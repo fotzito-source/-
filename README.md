@@ -11,6 +11,7 @@ Ce ne sont **pas** des publicités : aucune démonstration de l'application, auc
 | `videos/01-heures-de-priere/animatic/animatic.mp4` | Prototype animé de 86 s (sans voix off, sous-titres incrustés) |
 | `videos/01-heures-de-priere/animatic/sous-titres.srt` | Sous-titres synchronisés, à importer dans CapCut, Premiere… |
 | `videos/01-heures-de-priere/animatic/render.py` | Générateur de l'animatic (Python, numpy, Pillow, ffmpeg) |
+| `videos/01-heures-de-priere/animatic/voix.py` | Génération de la voix off avec Cartesia (clé dans `CARTESIA_API_KEY`), puis `render.py --voix voix` |
 | `videos/01-heures-de-priere/images/` | Images clés du storyboard |
 
 Régénérer l'animatic :

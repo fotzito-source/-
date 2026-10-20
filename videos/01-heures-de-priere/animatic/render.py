@@ -6,10 +6,12 @@ Prototype de mise en scène, pas la vidéo finale :
 - textes en Poppins (pleine résolution), étiquettes « HUD » en VT323, arabe en Amiri ;
 - identité Nuraq : fond #1D1D1D, violet #6157F8, lavande, blanc cassé ;
 - ambiance sonore synthétisée (vent, oiseaux, grillons, petits signaux) : aucune musique ;
-- sous-titres incrustés = texte de la voix off, qui reste à enregistrer.
+- sous-titres incrustés = texte de la voix off.
 
 Usage :
-    python3 render.py                       # rend animatic.mp4 + sous-titres.srt
+    python3 render.py                       # rend animatic.mp4 + sous-titres.srt (sans voix)
+    python3 render.py --voix voix           # cale tout sur la voix générée par voix.py
+                                            #   → video-voix-off.mp4 + sous-titres-voix-off.srt
     python3 render.py --stills 2,24,38      # images fixes PNG pour contrôle
     python3 render.py --no-subs             # sans sous-titres incrustés
 
@@ -19,6 +21,7 @@ Dépendances : Python 3.10+, numpy, Pillow (avec libraqm pour l'arabe), ffmpeg.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import multiprocessing
 import os
@@ -808,6 +811,31 @@ VO = [
     (81.0, 84.4, "Cinq rendez-vous par jour… réglés sur le ciel."),
 ]
 
+# Même texte, écrit pour la synthèse vocale (nombres en lettres, graphies phonétiques).
+# Une entrée par réplique de VO : voix.py génère un fichier audio par ligne.
+VO_TTS = [
+    "Pourquoi l'heure de la prière change chaque jour ?",
+    "À Paris, le soleil se couche vers dix-sept heures en décembre… et vers vingt-deux heures en juin.",
+    "Parce que la prière ne suit pas l'horloge. Elle suit le soleil.",
+    "Le Coran parle d'une prescription, à des temps déterminés.",
+    "Et ces temps, la Souna les décrit avec des repères dans le ciel.",
+    "Fadjr : dès que l'aube apparaît, quand la lumière s'étend le long de l'horizon…",
+    "Et jusqu'au lever du soleil.",
+    "Dohr : quand le soleil a passé son point le plus haut, et commence à décliner.",
+    "Asr : quand l'ombre d'un objet devient égale à sa taille, en plus de son ombre de midi.",
+    "Selon l'imam Abou Hanifa : quand elle atteint deux fois sa taille.",
+    "Maghrib : dès que le soleil s'est couché.",
+    "Icha : quand la lueur du crépuscule a disparu.",
+    "La lueur rouge pour la majorité des savants, la lueur blanche selon Abou Hanifa.",
+    "Mais pourquoi ces heures bougent-elles chaque jour ? Parce que l'axe de la Terre est incliné.",
+    "Au fil de l'année, la course du soleil change… et les cinq repères glissent avec elle.",
+    "Aujourd'hui, ces moments sont calculés à l'avance.",
+    "Mais pour l'aube et la nuit, tous les calendriers ne retiennent pas le même angle du soleil sous l'horizon.",
+    "D'où des écarts, parfois importants.",
+    "Cinq rendez-vous par jour… réglés sur le ciel.",
+]
+assert len(VO_TTS) == len(VO)
+
 # Texte arabe : Tanzil (écriture simple) ; traduction : Hamidullah, version Tanzil « fr.hamidullah ».
 QURAN_AR = "إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا"
 QURAN_FR = "« … la Salât demeure, pour les\ncroyants, une prescription,\nà des temps déterminés. »"
@@ -851,6 +879,70 @@ def subtitle_chunks(start, end, text, max_chars=52):
     return out
 
 
+def word_tokens(text):
+    return [w for w in text.split() if any(ch.isalnum() for ch in w)]
+
+
+class Timing:
+    """Fait correspondre le temps de l'animatic (τ) au temps réel de la vidéo (t).
+
+    Sans voix, les deux sont identiques. Avec une voix générée par voix.py (manifest.json),
+    chaque réplique prend la durée réelle de son enregistrement, en gardant l'ordre et les
+    silences d'origine : l'image est étirée ou resserrée de façon linéaire entre ces repères.
+    """
+
+    def __init__(self, voice_dir=None):
+        self.voice_dir = Path(voice_dir) if voice_dir else None
+        self.clips = [None] * len(VO)
+        self.words = [None] * len(VO)
+        if self.voice_dir is None:
+            self.lines = [(a, b) for a, b, _ in VO]
+            self.total = DURATION
+        else:
+            manifest = json.loads((self.voice_dir / "manifest.json").read_text(encoding="utf-8"))
+            items = manifest["lines"]
+            if len(items) != len(VO):
+                raise SystemExit(f"manifest.json : {len(items)} répliques, {len(VO)} attendues")
+            self.lines, t = [], VO[0][0]
+            for i, ((a, _, _), item) in enumerate(zip(VO, items)):
+                if i:
+                    t += max(0.3, a - VO[i - 1][1])
+                self.lines.append((t, t + item["duration"]))
+                t += item["duration"]
+                self.clips[i] = self.voice_dir / item["file"]
+                self.words[i] = item.get("words")
+            self.total = t + (DURATION - VO[-1][1])
+        old, new = [0.0], [0.0]
+        for (a, b, _), (s, e) in zip(VO, self.lines):
+            old += [a, b]
+            new += [s, e]
+        self.old = np.array(old + [DURATION])
+        self.new = np.array(new + [self.total])
+
+    def tau(self, t):
+        return float(np.interp(t, self.new, self.old))
+
+    def real(self, tau):
+        return float(np.interp(tau, self.old, self.new))
+
+    def subtitles(self):
+        """Sous-titres en temps réel : calés sur les mots si la synthèse a fourni leurs horaires."""
+        out = []
+        for (_, _, text), (s, e), words in zip(VO, self.lines, self.words):
+            chunks = subtitle_chunks(s, e, text)
+            counts = [len(word_tokens(c)) for _, _, c in chunks]
+            if words and sum(counts) == len(words):
+                timed, k = [], 0
+                for (_, _, c), n in zip(chunks, counts):
+                    timed.append([s + words[k]["start"], c])
+                    k += n
+                timed[0][0] = s
+                chunks = [(t0, timed[j + 1][0] if j + 1 < len(timed) else e, c)
+                          for j, (t0, c) in enumerate(timed)]
+            out += chunks
+        return out
+
+
 def wrap2(text, f, max_w=860):
     words = text.split()
     best = text
@@ -883,7 +975,7 @@ def subtitle_sprite(text):
 SUB_Y = 1478
 
 
-def build_timeline(subs=True):
+def build_timeline():
     E = []
 
     def add(sprite, y, t0, t1, x=540, **kw):
@@ -973,11 +1065,13 @@ def build_timeline(subs=True):
     add(text_sprite("réglés sur le [[ciel]].", "xb", 88), 562, 82.4, 85.3)
     add(tag_sprite("SOURCES EN DESCRIPTION", size=38), 690, 83.4, 85.3)
 
-    if subs:
-        for a, b, text in VO:
-            for c0, c1, chunk in subtitle_chunks(a, b, text):
-                E.append(El(subtitle_sprite(chunk), 540, SUB_Y, c0, c1, fade_in=0.06, fade_out=0.06, rise=0))
     return E
+
+
+def subtitle_elements(entries):
+    """Sous-titres incrustés ; leurs temps sont en temps réel (voir Timing.subtitles)."""
+    return [El(subtitle_sprite(c), 540, SUB_Y, c0, c1, fade_in=0.06, fade_out=0.06, rise=0)
+            for c0, c1, c in entries]
 
 
 @lru_cache(maxsize=None)
@@ -1120,7 +1214,8 @@ def world_at(t):
     return img, hud
 
 
-def compose(t, elements):
+def compose(t, elements, subs=(), t_real=None):
+    """Image au temps d'animatic t ; les sous-titres suivent le temps réel t_real."""
     img, hud = world_at(t)
     a = hud.a[..., None]
     img = img * (1 - a) + hud.rgb * a
@@ -1131,6 +1226,10 @@ def compose(t, elements):
 
     for el in elements:
         k, dy = el.state(t)
+        if k > 0:
+            blit(frame, el.s, el.x, el.y + dy, k, el.anchor)
+    for el in subs:
+        k, dy = el.state(t if t_real is None else t_real)
         if k > 0:
             blit(frame, el.s, el.x, el.y + dy, k, el.anchor)
 
@@ -1174,8 +1273,28 @@ def shaped_noise(n, lo, hi, seed):
     return out / (np.abs(out).max() + 1e-9)
 
 
-def synth_audio(path, elements):
-    n = int(DURATION * SR)
+def read_wav_mono(path):
+    with wave.open(str(path), "rb") as w:
+        sr, ch, sw = w.getframerate(), w.getnchannels(), w.getsampwidth()
+        raw = w.readframes(w.getnframes())
+    if sw != 2:
+        raise SystemExit(f"{path} : seul le PCM 16 bits est géré")
+    x = np.frombuffer(raw, dtype=np.int16).astype(np.float64) / 32768
+    if ch > 1:
+        x = x.reshape(-1, ch).mean(axis=1)
+    if sr != SR:  # rééchantillonnage simple ; voix.py demande déjà du 48 kHz
+        n = int(len(x) * SR / sr)
+        x = np.interp(np.arange(n) * sr / SR, np.arange(len(x)), x)
+    return x
+
+
+AMBIENCE_UNDER_VOICE_DB = 21  # l'ambiance reste 18 à 24 dB sous la voix
+
+
+def synth_audio(path, elements, timing):
+    total = timing.total
+    R = timing.real
+    n = int(total * SR)
     buf = np.zeros((2, n))
     tt = np.arange(n) / SR
     rng_a = np.random.default_rng(11)
@@ -1196,8 +1315,8 @@ def synth_audio(path, elements):
         return np.sin(ph) * np.sin(np.pi * x / dur) ** 2
 
     for a, b, density in ((22.6, 34.0, 1.6), (56.8, 67.8, 0.9)):
-        t = a
-        while t < b:
+        t, end = R(a), R(b)
+        while t < end:
             f0 = rng_a.uniform(2800, 4300)
             for j in range(int(rng_a.integers(2, 5))):
                 sig = chirp(rng_a.uniform(0.05, 0.11), f0, f0 * rng_a.uniform(0.75, 1.3)) * 0.022
@@ -1212,21 +1331,21 @@ def synth_audio(path, elements):
 
     for a, b in ((14.0, 21.4), (50.8, 56.6), (68.5, 80.6), (80.8, 86.0)):
         for pan in (-0.5, 0.45):
-            t = a + rng_a.uniform(0, 0.5)
-            while t < b:
+            t, end = R(a) + rng_a.uniform(0, 0.5), R(b)
+            while t < end:
                 for j in range(3):
                     add_at(buf, t + j * 0.04, cricket() * 0.006, pan)
                 t += rng_a.uniform(0.75, 1.2)
 
     # souffle du « jour qui passe »
     for a, b in ((28.8, 31.2),):
-        m = int((b - a) * SR)
+        m = int((R(b) - R(a)) * SR)
         sig = shaped_noise(m, 500, 2600, 5) * np.sin(np.pi * np.arange(m) / m) ** 2 * 0.035
-        add_at(buf, a, sig, 0.0)
+        add_at(buf, R(a), sig, 0.0)
     for t in (56.6, 68.0, 80.6):
         m = int(0.5 * SR)
         sig = shaped_noise(m, 900, 4000, int(t)) * env(m, 0.15, 0.3) * 0.018
-        add_at(buf, t, sig)
+        add_at(buf, R(t), sig)
 
     # petits signaux d'interface
     def blip():
@@ -1244,14 +1363,37 @@ def synth_audio(path, elements):
 
     for el in elements:
         if el.sfx == "blip":
-            add_at(buf, el.t0, blip(), 0.0)
+            add_at(buf, R(el.t0), blip(), 0.0)
         elif el.sfx == "chime":
-            add_at(buf, el.t0, chime(), 0.0)
+            add_at(buf, R(el.t0), chime(), 0.0)
 
-    buf *= np.minimum(1, np.minimum(tt / 0.4, (DURATION - tt) / 1.2))[None, :]
-    peak = np.abs(buf).max()
-    if peak > 0:
-        buf *= 0.4 / peak  # crête ≈ −8 dBFS : l'ambiance reste sous une future voix off
+    buf *= np.minimum(1, np.minimum(tt / 0.4, (total - tt) / 1.2))[None, :]
+
+    if timing.voice_dir is None:
+        peak = np.abs(buf).max()
+        if peak > 0:
+            buf *= 0.4 / peak  # crête ≈ −8 dBFS : l'ambiance reste sous une future voix off
+    else:
+        voice = np.zeros(n)
+        spoken = np.zeros(n, dtype=bool)
+        for (s, _), clip in zip(timing.lines, timing.clips):
+            x = read_wav_mono(clip)
+            i = int(s * SR)
+            j = min(n, i + len(x))
+            voice[i:j] += x[:j - i]
+            spoken[i:j] = True
+        v_rms = np.sqrt(np.mean(voice[spoken] ** 2)) + 1e-12
+        voice *= 10 ** (-18 / 20) / v_rms  # voix ≈ −18 dBFS RMS
+        if np.abs(voice).max() > 0.89:
+            voice *= 0.89 / np.abs(voice).max()
+        v_rms = np.sqrt(np.mean(voice[spoken] ** 2))
+        a_rms = np.sqrt(np.mean(buf ** 2)) + 1e-12
+        buf *= v_rms * 10 ** (-AMBIENCE_UNDER_VOICE_DB / 20) / a_rms
+        buf += voice[None, :]
+        peak = np.abs(buf).max()
+        if peak > 0.97:
+            buf *= 0.97 / peak
+
     data = (np.clip(buf.T, -1, 1) * 32767).astype(np.int16)
     with wave.open(str(path), "wb") as w:
         w.setnchannels(2)
@@ -1269,63 +1411,68 @@ def srt_time(t):
     return f"{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}"
 
 
-def write_srt(path):
-    lines, i = [], 1
-    for a, b, text in VO:
-        for c0, c1, chunk in subtitle_chunks(a, b, text):
-            lines += [str(i), f"{srt_time(c0)} --> {srt_time(c1)}", chunk, ""]
-            i += 1
+def write_srt(path, entries):
+    lines = []
+    for i, (c0, c1, chunk) in enumerate(entries, start=1):
+        lines += [str(i), f"{srt_time(c0)} --> {srt_time(c1)}", chunk, ""]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
 
-_ELEMENTS = None
+_ELEMENTS = _SUBS = _TIMING = None
 
 
-def _init_worker(subs):
-    global _ELEMENTS
-    _ELEMENTS = build_timeline(subs=subs)
+def _init_worker(subs, voice_dir):
+    global _ELEMENTS, _SUBS, _TIMING
+    _TIMING = Timing(voice_dir)
+    _ELEMENTS = build_timeline()
+    _SUBS = subtitle_elements(_TIMING.subtitles()) if subs else []
 
 
 def _render_frame(f):
-    return compose(f / FPS, _ELEMENTS).tobytes()
+    t = f / FPS
+    return compose(_TIMING.tau(t), _ELEMENTS, _SUBS, t).tobytes()
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--out", default=str(HERE / "animatic.mp4"))
+    ap.add_argument("--out", help="vidéo de sortie (défaut : animatic.mp4, ou video-voix-off.mp4 avec --voix)")
+    ap.add_argument("--voix", help="dossier produit par voix.py : cale l'image et les sous-titres sur la voix")
     ap.add_argument("--stills", help="liste de temps (s) à exporter en PNG, ex. 2,24,38")
     ap.add_argument("--still-dir", default=str(HERE / "stills"))
     ap.add_argument("--no-subs", action="store_true")
     ap.add_argument("--start", type=float, default=0.0)
-    ap.add_argument("--end", type=float, default=DURATION)
+    ap.add_argument("--end", type=float)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     args = ap.parse_args()
 
-    elements = build_timeline(subs=not args.no_subs)
+    timing = Timing(args.voix)
+    elements = build_timeline()
+    subs = [] if args.no_subs else subtitle_elements(timing.subtitles())
 
     if args.stills:
         out = Path(args.still_dir)
         out.mkdir(parents=True, exist_ok=True)
         for v in args.stills.split(","):
             t = float(v)
-            Image.fromarray(compose(t, elements)).save(out / f"t{t:05.1f}.png")
+            Image.fromarray(compose(timing.tau(t), elements, subs, t)).save(out / f"t{t:05.1f}.png")
         return
 
-    out = Path(args.out)
+    out = Path(args.out) if args.out else HERE / ("video-voix-off.mp4" if args.voix else "animatic.mp4")
     wav = out.with_suffix(".wav")
-    synth_audio(wav, elements)
-    write_srt(HERE / "sous-titres.srt")
+    synth_audio(wav, elements, timing)
+    write_srt(HERE / ("sous-titres-voix-off.srt" if args.voix else "sous-titres.srt"), timing.subtitles())
 
-    n0, n1 = int(args.start * FPS), int(args.end * FPS)
+    end = timing.total if args.end is None else args.end
+    n0, n1 = int(args.start * FPS), int(end * FPS)
     cmd = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
            "-r", str(FPS), "-i", "-", "-ss", f"{args.start}", "-i", str(wav),
            "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "slow", "-crf", "21",
            "-tune", "animation", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
            "-shortest", "-movflags", "+faststart", str(out)]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    with multiprocessing.Pool(args.jobs, _init_worker, (not args.no_subs,)) as pool:
+    with multiprocessing.Pool(args.jobs, _init_worker, (not args.no_subs, args.voix)) as pool:
         for f, buf in enumerate(pool.imap(_render_frame, range(n0, n1), chunksize=6), start=n0):
             proc.stdin.write(buf)
             if f % (FPS * 5) == 0:

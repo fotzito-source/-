@@ -30,10 +30,25 @@ Ce ne sont **pas** des publicités : aucune démo de l'app, aucun appel à l'ins
 - **Son** : sobre, pas de musique par défaut, droits vérifiés pour tout son ajouté.
 - **Vidéo de référence** : s'inspirer des principes, ne pas copier ses plans, ses textes, ses images ou sa musique.
 
+## Voix off avec Cartesia (vidéo 01)
+La clé API se lit **uniquement** dans la variable d'environnement `CARTESIA_API_KEY`. Ne jamais l'écrire dans un fichier du dépôt ni la committer.
+
+```bash
+cd videos/01-heures-de-priere/animatic
+export CARTESIA_API_KEY=…            # clé fournie par l'utilisateur
+python3 voix.py --list               # voix françaises masculines, les plus douces en premier
+python3 voix.py                      # voix d'homme douce choisie automatiquement → voix/
+python3 voix.py --voice-id <id>      # ou une voix imposée
+python3 voix.py --only 9 --force     # régénérer une réplique mal prononcée
+python3 render.py --voix voix        # → video-voix-off.mp4 + sous-titres-voix-off.srt
+```
+
+- **Texte prononcé** : liste `VO_TTS` de `render.py` (graphies phonétiques). **Texte affiché** : liste `VO`.
+- **Recalage** : chaque réplique prend sa durée réelle (classe `Timing`). L'image est étirée entre les répliques, les sous-titres sont calés sur les mots quand l'API fournit leurs horaires.
+- **Mixage** : voix à environ −18 dBFS RMS, ambiance 21 dB en dessous (`AMBIENCE_UNDER_VOICE_DB`).
+- **Voix demandée** : une voix d'homme, douce.
+
 ## Prochaines étapes (vidéo 01)
-1. Générer la voix off à partir de `transcription-voix-off.txt` (version A).
-2. Recaler l'animatic sur la vraie voix :
-   - dans `render.py`, mettre à jour les temps de la liste `VO`, ceux des éléments de `build_timeline()`, les clés de `SKY_CLOCK` et les `NODE_TIMES` ;
-   - ajouter une option `--voix fichier.mp3` qui mixe la voix avec l'ambiance, en plaçant l'ambiance 18 à 24 dB sous la voix.
-3. Faire relire le texte par une personne compétente, puis ouvrir une fois les liens du § 7 de `brief.md`.
-4. Exporter la version finale (avec ou sans sous-titres incrustés, selon l'usage des sous-titres automatiques de TikTok).
+1. Générer la voix (ci-dessus), l'écouter, régénérer les répliques mal prononcées.
+2. Faire relire le texte par une personne compétente, puis ouvrir une fois les liens du § 7 de `brief.md`.
+3. Exporter la version finale (avec ou sans sous-titres incrustés, selon l'usage des sous-titres automatiques de TikTok).
