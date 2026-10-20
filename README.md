@@ -7,6 +7,7 @@ Ce ne sont **pas** des publicités : aucune démonstration de l'application, auc
 |---|---|
 | [`direction-artistique.md`](direction-artistique.md) | Analyse de la vidéo de référence et charte commune : palette, typographie, composants, zones de sécurité, mouvement, son, check-list de respect du sujet |
 | [`videos/01-heures-de-priere/brief.md`](videos/01-heures-de-priere/brief.md) | Vidéo 01 : « Pourquoi l'heure de la prière change chaque jour ? ». Brief complet en 7 points, sources vérifiées |
+| `videos/01-heures-de-priere/transcription-voix-off.txt` | Texte de la voix off : version pour générateur de voix + version horodatée |
 | `videos/01-heures-de-priere/animatic/animatic.mp4` | Prototype animé de 86 s (sans voix off, sous-titres incrustés) |
 | `videos/01-heures-de-priere/animatic/sous-titres.srt` | Sous-titres synchronisés, à importer dans CapCut, Premiere… |
 | `videos/01-heures-de-priere/animatic/render.py` | Générateur de l'animatic (Python, numpy, Pillow, ffmpeg) |

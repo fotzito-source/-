@@ -1,0 +1,91 @@
+TRANSCRIPTION – VOIX OFF
+Vidéo 01 : « Pourquoi l'heure de la prière change chaque jour ? »
+
+Durée visée : environ 1 min 26 (230 mots).
+Voix : posée, chaleureuse, homme ou femme, environ 160 mots par minute.
+Laisser des silences courts (0,2 à 0,4 s) entre les phrases.
+
+
+====================================================================
+A) VERSION À COLLER DANS LE GÉNÉRATEUR DE VOIX (TTS)
+   - Les nombres sont écrits en toutes lettres.
+   - Les mots arabes sont écrits pour être bien prononcés.
+   - Une ligne vide correspond à une petite pause.
+====================================================================
+
+Pourquoi l'heure de la prière change chaque jour ?
+
+À Paris, le soleil se couche vers dix-sept heures en décembre… et vers vingt-deux heures en juin.
+
+Parce que la prière ne suit pas l'horloge. Elle suit le soleil.
+
+Le Coran parle d'une prescription, à des temps déterminés.
+
+Et ces temps, la Souna les décrit avec des repères dans le ciel.
+
+Fadjr : dès que l'aube apparaît, quand la lumière s'étend le long de l'horizon… et jusqu'au lever du soleil.
+
+Dohr : quand le soleil a passé son point le plus haut, et commence à décliner.
+
+Asr : quand l'ombre d'un objet devient égale à sa taille, en plus de son ombre de midi.
+
+Selon l'imam Abou Hanifa : quand elle atteint deux fois sa taille.
+
+Maghrib : dès que le soleil s'est couché.
+
+Icha : quand la lueur du crépuscule a disparu.
+
+La lueur rouge pour la majorité des savants, la lueur blanche selon Abou Hanifa.
+
+Mais pourquoi ces heures bougent-elles chaque jour ? Parce que l'axe de la Terre est incliné.
+
+Au fil de l'année, la course du soleil change… et les cinq repères glissent avec elle.
+
+Aujourd'hui, ces moments sont calculés à l'avance.
+
+Mais pour l'aube et la nuit, tous les calendriers ne retiennent pas le même angle du soleil sous l'horizon.
+
+D'où des écarts, parfois importants.
+
+Cinq rendez-vous par jour… réglés sur le ciel.
+
+
+Si le générateur prononce mal un mot :
+  - Asr          → essayer « Assr »
+  - Fadjr        → « Fajr »  (son « dj »)
+  - Dohr         → « Dhohr »  (« th » doux, comme dans « this » en anglais)
+  - Icha         → « Ichâ »
+  - Abou Hanifa  → « Abou Hanîfa »
+
+
+====================================================================
+B) TEXTE EXACT, AVEC LES REPÈRES DE TEMPS DE L'ANIMATIC
+   C'est l'orthographe à utiliser pour les sous-titres.
+====================================================================
+
+[00:00] Pourquoi l'heure de la prière change chaque jour ?
+[00:03] À Paris, le soleil se couche vers 17 heures en décembre… et vers 22 heures en juin.
+[00:09] Parce que la prière ne suit pas l'horloge. Elle suit le soleil.
+[00:14] Le Coran parle d'une prescription « à des temps déterminés ».
+[00:17] Et ces temps, la Sunna les décrit avec des repères dans le ciel.
+[00:21] Fajr : dès que l'aube apparaît, quand la lumière s'étend le long de l'horizon…
+[00:26] … et jusqu'au lever du soleil.
+[00:29] Dhuhr : quand le soleil a passé son point le plus haut et commence à décliner.
+[00:34] Asr : quand l'ombre d'un objet devient égale à sa taille, en plus de son ombre de midi.
+[00:40] Selon l'imam Abou Hanifa : quand elle atteint deux fois sa taille.
+[00:45] Maghrib : dès que le soleil s'est couché.
+[00:48] Isha : quand la lueur du crépuscule a disparu.
+[00:51] La lueur rouge pour la majorité des savants, la lueur blanche selon Abou Hanifa.
+[00:56] Mais pourquoi ces heures bougent-elles chaque jour ? Parce que l'axe de la Terre est incliné.
+[01:02] Au fil de l'année, la course du soleil change… et les cinq repères glissent avec elle.
+[01:08] Aujourd'hui, ces moments sont calculés à l'avance.
+[01:11] Mais pour l'aube et la nuit, tous les calendriers ne retiennent pas le même angle du soleil sous l'horizon.
+[01:18] D'où des écarts, parfois importants.
+[01:21] Cinq rendez-vous par jour… réglés sur le ciel.
+
+Les repères de temps viennent de l'animatic. Une fois l'audio généré,
+il faudra recaler les images et les sous-titres sur la vraie voix
+(voir CLAUDE.md, « Prochaines étapes »).
+
+Avant publication, faire relire ce texte par une personne compétente
+(enseignant, imam), en particulier les deux divergences (Asr et Isha).
