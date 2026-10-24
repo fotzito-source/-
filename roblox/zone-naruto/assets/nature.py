@@ -3,7 +3,8 @@ rochers, parterres de fleurs et touffes d'herbe.
 
 Principes :
 - feuillages en blocs empilés, studs sur les dessus ; quatre tons par masse : dessous très sombre (le volume se lit
-  d'en bas), corps, étage plus clair, sommet ensoleillé ; des lobes latéraux cassent les silhouettes carrées ;
+  d'en bas), corps, étage plus clair, sommet ensoleillé ; blocs droits et blocs tournés de 45° alternés : silhouettes
+  octogonales, arrondies sous tous les angles, sans faces coplanaires possibles entre eux ;
 - chaque variante a une silhouette franche (rond, élancé, parasol, pin en plateaux…), lisible de loin ;
 - troncs, branches et racines collisionnent ; feuillages, fleurs et petits détails non (`collide=False`) ;
 - cotes de conception données pour `taille = 1` sur la grille du demi-stud, puis multipliées par `taille`
@@ -56,7 +57,7 @@ class _K:
         kw.setdefault("name", "Feuillage")
         return self.b.box(self.p(x0, y0, z0), self.p(x1, y1, z1), col, **kw)
 
-    def touffe(self, cx, y0, cz, sx, sy, sz, col, yaw=0.0, **kw):
+    def bloc(self, cx, y0, cz, sx, sy, sz, col, yaw=0.0, **kw):
         """Bloc de feuillage donné par le centre de sa base, sa taille et sa rotation (0° ou 45° le plus souvent)."""
         kw.setdefault("studs", "top")
         kw.setdefault("collide", False)
@@ -100,7 +101,7 @@ def _racines(k, col, specs):
 
 def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
     """Arbre feuillu du village (12 à 20 studs à taille 1), 4 silhouettes :
-    0 rond à lobes, 1 élancé en colonne, 2 parasol à branches fourchues, 3 pin japonais en plateaux."""
+    0 rond (boule octogonale), 1 élancé en colonne torsadée, 2 parasol à branches fourchues, 3 pin japonais en plateaux."""
     rng = b.rng
     k = _K(b, taille)
     v = variant % 4
@@ -121,24 +122,24 @@ def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
                               (-2, 0.5, -0.5, 1.5, 1.0, "-x")])
             k.bois(-2.5, 4.5, -0.5, -1, 5.5, 0.5, tr, collide=False, name="Branche")
             k.feuille(-3.5, 4, -1, -2, 6, 1, F("feuille_claire"))
-            k.touffe(0, 7.5, 0, 6, 1, 6, OMBRE)
-            k.touffe(0, 8.5, 0, 8, 2, 8, F("feuille_fonce"), 45)
-            k.touffe(0, 10, 0, 11, 3.5, 11, F("feuille"))
-            k.touffe(0.5, 10.5, -0.5, 10, 4, 10, M("feuille", "feuille_claire", 0.35), 45)
-            k.touffe(0, 13.5, 0, 7, 2.5, 7, F("feuille_claire"))
-            k.touffe(0.5, 16, 0, 4, 1.5, 4, F("herbe_claire"), 45)
-            k.touffe(-4.5, 9, 4.5, 3, 2.5, 3, F("feuille_fonce"), 20)
+            k.bloc(0, 7.5, 0, 6, 1, 6, OMBRE)
+            k.bloc(0, 8.5, 0, 8, 2, 8, F("feuille_fonce"), 45)
+            k.bloc(0, 10, 0, 11, 3.5, 11, F("feuille"))
+            k.bloc(0.5, 10.5, -0.5, 10, 4, 10, M("feuille", "feuille_claire", 0.35), 45)
+            k.bloc(0, 13.5, 0, 7, 2.5, 7, F("feuille_claire"))
+            k.bloc(0.5, 16, 0, 4, 1.5, 4, F("herbe_claire"), 45)
+            k.bloc(-4.5, 9, 4.5, 3, 2.5, 3, F("feuille_fonce"), 20)
         elif v == 1:  # élancé : colonne torsadée (étages alternés droits / 45°), légère inclinaison
             k.bois(-1, 0, -1, 1, 7, 1, tr)
             _racines(k, rac, [(0.5, -0.5, 2, 0.5, 1.0, "+x"), (-0.5, 0.5, 0.5, 2, 1.0, "+z"),
                               (-2, -0.5, -0.5, 0.5, 1.0, "-x")])
-            k.touffe(0, 4, 0, 4, 1, 4, OMBRE)
-            k.touffe(0, 5, 0, 6.5, 4.5, 6.5, F("feuille_fonce"))
-            k.touffe(0.25, 8.5, 0.25, 6.5, 4, 6.5, M("feuille_fonce", "feuille", 0.5), 45)
-            k.touffe(0.5, 12, 0.25, 5, 3.5, 5, F("feuille"))
-            k.touffe(0.5, 15, 0.5, 4, 3, 4, M("feuille", "feuille_claire", 0.55), 45)
-            k.touffe(0.75, 17.5, 0.5, 2.5, 1.5, 2.5, F("feuille_claire"))
-            k.touffe(0.75, 19, 0.75, 1.5, 1, 1.5, F("herbe_claire"), 45)
+            k.bloc(0, 4, 0, 4, 1, 4, OMBRE)
+            k.bloc(0, 5, 0, 6.5, 4.5, 6.5, F("feuille_fonce"))
+            k.bloc(0.25, 8.5, 0.25, 6.5, 4, 6.5, M("feuille_fonce", "feuille", 0.5), 45)
+            k.bloc(0.5, 12, 0.25, 5, 3.5, 5, F("feuille"))
+            k.bloc(0.5, 15, 0.5, 4, 3, 4, M("feuille", "feuille_claire", 0.55), 45)
+            k.bloc(0.75, 17.5, 0.5, 2.5, 1.5, 2.5, F("feuille_claire"))
+            k.bloc(0.75, 19, 0.75, 1.5, 1, 1.5, F("herbe_claire"), 45)
         elif v == 2:  # parasol : tronc fourchu, large plateau octogonal qui retombe sur les côtés
             k.bois(-1, 0, -1, 1, 11, 1, tr)
             _racines(k, rac, [(0.5, -0.5, 2.5, 0.5, 1.5, "+x"), (-2.5, -0.5, -0.5, 0.5, 1.5, "-x"),
@@ -149,9 +150,9 @@ def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.bois(3.5, 9, -1, 5, 11, 1, tr, name="Branche")
             k.feuille(-6.5, 10.5, -5, 6.5, 11.5, 5, OMBRE)
             k.feuille(-8, 11.5, -6, 8, 14, 6, F("feuille"))
-            k.touffe(0.5, 12, 0, 13, 2.5, 13, M("feuille", "feuille_claire", 0.3), 45)
-            k.touffe(-0.5, 14.5, 0, 9, 1.5, 8, F("feuille_claire"))
-            k.touffe(1, 16, -0.5, 4.5, 1, 4.5, F("herbe_claire"), 45)
+            k.bloc(0.5, 12, 0, 13, 2.5, 13, M("feuille", "feuille_claire", 0.3), 45)
+            k.bloc(-0.5, 14.5, 0, 9, 1.5, 8, F("feuille_claire"))
+            k.bloc(1, 16, -0.5, 4.5, 1, 4.5, F("herbe_claire"), 45)
             k.feuille(-9.5, 11, -3, -7, 13, 2, F("feuille_fonce"))
             k.feuille(7, 10.5, -1, 9.5, 13.5, 4, F("feuille_fonce"))
         else:  # pin japonais : tronc en zigzag, plateaux d'aiguilles étagés et un peu tournés au bout des branches
@@ -169,8 +170,8 @@ def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
             pads = [(-5.5, 7.5, -0.5, 7.5, 6.5, 1.5, 12), (5.5, 10.5, 0.5, 7, 6, 1.5, -18), (-4, 13.5, 1, 6, 5.5, 1.5, 24),
                     (0.5, 16.5, 1, 7.5, 6.5, 2, -8), (0, 5, 4.5, 4.5, 4, 1.5, -30)]
             for (cx, y0, cz, sx, sz, h, yaw) in pads:
-                k.touffe(cx, y0, cz, sx, h, sz, vary(PIN, rng, 0.04), yaw)
-                k.touffe(cx, y0 + h, cz, sx - 2, 1, sz - 2, vary(PIN_CLAIR, rng, 0.04), yaw)
+                k.bloc(cx, y0, cz, sx, h, sz, vary(PIN, rng, 0.04), yaw)
+                k.bloc(cx, y0 + h, cz, sx - 2, 1, sz - 2, vary(PIN_CLAIR, rng, 0.04), yaw)
     return _infos(b, n0)
 
 
@@ -207,18 +208,18 @@ def cerisier(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.bois(-4.5, 6, -1, -2, 8, 1, e, name="Branche")
             k.bois(0.5, 4, -0.5, 2.5, 7, 1.5, e, name="Branche")
             k.bois(2, 6.5, 0, 4.5, 8.5, 1, e, name="Branche")
-            k.touffe(0, 8, 0, 10, 1, 7, SAKURA_OMBRE)
-            k.touffe(0, 9, 0, 14, 3, 10, S(sf))
-            k.touffe(0.5, 9.5, 0, 11, 3.5, 11, S(sf45), 45)
-            k.touffe(-7.5, 8.75, 0.5, 5, 3, 5, S(s0), 30)
-            k.touffe(7.5, 9.25, -1, 5, 3, 5, S(s0), -20)
-            k.touffe(-0.5, 12, 0, 9, 2, 7, S(s0))
-            k.touffe(0.5, 13, 0.5, 7, 2, 7, S(mix(s0, sc, 0.4)), 45)
-            k.touffe(0, 15, 0, 3.5, 1, 3.5, S(sc))
-            k.touffe(-3.5, 14, -1.5, 3, 1.5, 3, S(mix(s0, sc, 0.3)), 45)
-            k.touffe(3.5, 14, 2, 2.5, 1.5, 2.5, S(s0), 20)
-            k.touffe(3, 7, -3.5, 1.5, 1.5, 1.5, S(s0))
-            k.touffe(-3.5, 7.25, 2.5, 1.5, 1.5, 1.5, S(sf))
+            k.bloc(0, 8, 0, 10, 1, 7, SAKURA_OMBRE)
+            k.bloc(0, 9, 0, 14, 3, 10, S(sf))
+            k.bloc(0.5, 9.5, 0, 11, 3.5, 11, S(sf45), 45)
+            k.bloc(-7.5, 8.75, 0.5, 5, 3, 5, S(s0), 30)
+            k.bloc(7.5, 9.25, -1, 5, 3, 5, S(s0), -20)
+            k.bloc(-0.5, 12, 0, 9, 2, 7, S(s0))
+            k.bloc(0.5, 13, 0.5, 7, 2, 7, S(mix(s0, sc, 0.4)), 45)
+            k.bloc(0, 15, 0, 3.5, 1, 3.5, S(sc))
+            k.bloc(-3.5, 14, -1.5, 3, 1.5, 3, S(mix(s0, sc, 0.3)), 45)
+            k.bloc(3.5, 14, 2, 2.5, 1.5, 2.5, S(s0), 20)
+            k.bloc(3, 7, -3.5, 1.5, 1.5, 1.5, S(s0))
+            k.bloc(-3.5, 7.25, 2.5, 1.5, 1.5, 1.5, S(sf))
             _petales(b, k, rng, [(4.5, -3, 1, 1), (-5.5, 2.5, 1.5, 1), (1.5, 6, 1, 1), (-3, -5.5, 1, 1.5), (7, 3.5, 1, 1)], sols)
         elif v == 1:  # penché : tronc en escalier, couronne décalée, une branche basse fleurie
             k.bois(-1, 0, -1, 1, 5, 1, e)
@@ -228,27 +229,27 @@ def cerisier(b, variant: int = 0, taille: float = 1.0) -> dict:
                               (0.5, -0.5, 2, 0.5, 1.0, "+x")])
             k.bois(-3, 6, 0, 0.5, 7, 1, e, collide=False, name="Branche")
             k.feuille(-5, 6.5, -1, -2.5, 8.5, 2, S(s0))
-            k.touffe(2, 10.5, 0, 8, 1, 6, SAKURA_OMBRE)
-            k.touffe(2, 11.5, 0, 12, 3.5, 9, S(sf))
-            k.touffe(2.5, 12, -0.5, 10, 4, 10, S(sf45), 45)
-            k.touffe(8.5, 11.25, 0, 4.5, 3, 4.5, S(s0), 25)
-            k.touffe(-4, 12.25, 0.5, 4, 2.5, 4, S(s0), -15)
-            k.touffe(2, 15, 0, 8, 2, 6.5, S(s0))
-            k.touffe(2.5, 17, 0, 4, 1, 4, S(sc), 45)
-            k.touffe(-1, 16.5, 1.5, 3, 1, 3, S(mix(s0, sc, 0.3)), 30)
-            k.touffe(6.75, 10, -2.25, 1.5, 1.5, 1.5, S(s0))
+            k.bloc(2, 10.5, 0, 8, 1, 6, SAKURA_OMBRE)
+            k.bloc(2, 11.5, 0, 12, 3.5, 9, S(sf))
+            k.bloc(2.5, 12, -0.5, 10, 4, 10, S(sf45), 45)
+            k.bloc(8.5, 11.25, 0, 4.5, 3, 4.5, S(s0), 25)
+            k.bloc(-4, 12.25, 0.5, 4, 2.5, 4, S(s0), -15)
+            k.bloc(2, 15, 0, 8, 2, 6.5, S(s0))
+            k.bloc(2.5, 17, 0, 4, 1, 4, S(sc), 45)
+            k.bloc(-1, 16.5, 1.5, 3, 1, 3, S(mix(s0, sc, 0.3)), 30)
+            k.bloc(6.75, 10, -2.25, 1.5, 1.5, 1.5, S(s0))
             _petales(b, k, rng, [(5.5, -2.5, 1, 1), (-3.5, 3.5, 1.5, 1), (2.5, 5.5, 1, 1), (8, 2, 1, 1.5), (-4.5, -4, 1, 1)], sols)
-        elif v == 2:  # pleureur : dôme rose d'où retombent douze rameaux fleuris de longueurs alternées
+        elif v == 2:  # pleureur : dôme rose d'où retombent vingt rameaux fleuris de longueurs variées
             k.bois(-1, 0, -1, 1, 9, 1, e)
             k.bois(-0.5, 8.5, -0.5, 1.5, 12.5, 1.5, e)
             _racines(k, rac, [(0.5, -0.5, 2.5, 0.5, 1.5, "+x"), (-2.5, -0.5, -0.5, 0.5, 1.0, "-x"),
                               (-0.5, -2.5, 0.5, -0.5, 1.0, "-z")])
-            k.touffe(0, 11, 0, 9, 1, 9, SAKURA_OMBRE)
-            k.touffe(0, 12, 0, 13, 2.5, 13, S(sf))
-            k.touffe(0, 12.5, 0, 12, 3, 12, S(sf45), 45)
-            k.touffe(0, 14.5, 0, 9.5, 2, 9.5, S(s0))
-            k.touffe(0.5, 15, -0.5, 8, 2, 8, S(mix(s0, sc, 0.3)), 45)
-            k.touffe(0, 16.5, 0, 4, 1, 4, S(sc), 45)
+            k.bloc(0, 11, 0, 9, 1, 9, SAKURA_OMBRE)
+            k.bloc(0, 12, 0, 13, 2.5, 13, S(sf))
+            k.bloc(0, 12.5, 0, 12, 3, 12, S(sf45), 45)
+            k.bloc(0, 14.5, 0, 9.5, 2, 9.5, S(s0))
+            k.bloc(0.5, 15, -0.5, 8, 2, 8, S(mix(s0, sc, 0.3)), 45)
+            k.bloc(0, 16.5, 0, 4, 1, 4, S(sc), 45)
             # rameaux : 20 lames fines (anneau extérieur long, anneau intérieur plus court) : un rideau rose irrégulier
             for i in range(20):
                 ext = i < 12
@@ -268,14 +269,14 @@ def cerisier(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.bois(-1.5, 3.5, -0.5, 0.5, 7, 1.5, e)
             _racines(k, rac, [(0.5, -0.5, 2, 0.5, 1.0, "+x"), (-2.5, -0.5, -0.5, 0.5, 1.5, "-x"),
                               (-0.5, 0.5, 0.5, 2, 1.0, "+z")])
-            k.touffe(-0.5, 6.5, 0.5, 7, 1, 7, SAKURA_OMBRE)
-            k.touffe(-0.5, 7.5, 0.5, 10, 3.5, 10, S(SAKURA_VIF))
-            k.touffe(0, 8, 0, 10, 3.5, 10, S(mix(SAKURA_VIF, sf, 0.5)), 45)
-            k.touffe(-0.5, 11, 0.5, 7, 2, 7, S(sf))
-            k.touffe(0, 12, 0, 5.5, 1.5, 5.5, S(mix(sf, s0, 0.5)), 45)
-            k.touffe(-0.5, 13.5, 0.5, 3, 1, 3, S(s0))
-            k.touffe(-6, 8.25, 1, 3, 2.5, 3, S(sf), 20)
-            k.touffe(5, 8.75, -1.5, 3, 2.5, 3, S(SAKURA_VIF), -30)
+            k.bloc(-0.5, 6.5, 0.5, 7, 1, 7, SAKURA_OMBRE)
+            k.bloc(-0.5, 7.5, 0.5, 10, 3.5, 10, S(SAKURA_VIF))
+            k.bloc(0, 8, 0, 10, 3.5, 10, S(mix(SAKURA_VIF, sf, 0.5)), 45)
+            k.bloc(-0.5, 11, 0.5, 7, 2, 7, S(sf))
+            k.bloc(0, 12, 0, 5.5, 1.5, 5.5, S(mix(sf, s0, 0.5)), 45)
+            k.bloc(-0.5, 13.5, 0.5, 3, 1, 3, S(s0))
+            k.bloc(-6, 8.25, 1, 3, 2.5, 3, S(sf), 20)
+            k.bloc(5, 8.75, -1.5, 3, 2.5, 3, S(SAKURA_VIF), -30)
             _petales(b, k, rng, [(4, -3.5, 1, 1), (-4.5, 3, 1, 1.5), (2, 5, 1, 1), (-3.5, -4.5, 1.5, 1), (6, 2.5, 1, 1)],
                      (sf, s0, SAKURA_VIF))
     return _infos(b, n0)
@@ -303,18 +304,18 @@ def _masse(k, cx, y0, cz, w, d, h, cols, sommet=True, rot=0.0):
     même partie fractionnaire (modulo 0,5) n'ont jamais de faces horizontales au même niveau. Renvoie le haut de
     l'étage."""
     ombre, fonce, moyen, clair = cols
-    k.touffe(cx, y0, cz, w - 6, 1.5, d - 6, ombre, rot)
+    k.bloc(cx, y0, cz, w - 6, 1.5, d - 6, ombre, rot)
     yb = y0 + 1.5
     yt = yb + h
-    k.touffe(cx, yb, cz, w, h, d, fonce, rot)
+    k.bloc(cx, yb, cz, w, h, d, fonce, rot)
     s = round(min(w, d) * 0.84 * 2) / 2
-    k.touffe(cx + 0.5, yb + 0.5, cz - 0.5, s, h + 1, s, mix(fonce, moyen, 0.45), rot + 45)
+    k.bloc(cx + 0.5, yb + 0.5, cz - 0.5, s, h + 1, s, mix(fonce, moyen, 0.45), rot + 45)
     he = max(2.5, round(h * 0.6 * 2) / 2)
-    k.touffe(cx - 0.5, yt, cz + 0.5, round(w * 0.62 * 2) / 2, he, round(d * 0.62 * 2) / 2, moyen, rot)
+    k.bloc(cx - 0.5, yt, cz + 0.5, round(w * 0.62 * 2) / 2, he, round(d * 0.62 * 2) / 2, moyen, rot)
     if sommet:
         hs = max(1.5, round(h * 0.3 * 2) / 2)
         e = round(min(w, d) * 0.36 * 2) / 2
-        k.touffe(cx + 0.5, yt + he, cz, e, hs, e, clair, rot + 45)
+        k.bloc(cx + 0.5, yt + he, cz, e, hs, e, clair, rot + 45)
     return yt + he
 
 
@@ -326,14 +327,14 @@ def _masse(k, cx, y0, cz, w, d, h, cols, sommet=True, rot=0.0):
 GEANTS = [
     # 0 : dôme — grande couronne arrondie, une masse centrale surmontée, cinq masses autour
     dict(r=5.5, h1=26, r2=4.0, h2=58, centre=(0.5, 55.5, -0.5, 30, 28, 9), dessus=(0.25, -0.25, 18, 17, 6),
-         couronne=[(20, 15, 49.25, 20, 18, 7), (95, 16, 52.375, 19, 18, 6.5), (170, 15, 48.125, 20, 19, 7),
-                   (250, 16, 51.1875, 18, 18, 6.5), (320, 14, 54.3125, 17, 16, 6)],
+         couronne=[(20, 17, 49.25, 22, 20, 7), (95, 18, 52.375, 21, 20, 6.5), (170, 17, 48.125, 22, 21, 7),
+                   (250, 18, 51.1875, 20, 20, 6.5), (320, 16, 54.3125, 19, 18, 6)],
          racines=[(10, 10, 8), (70, 8, 7), (135, 11, 8.5), (200, 9, 7), (265, 10, 8), (320, 8, 6.5)],
          lianes=[(0, 0.5, 11), (2, 0.55, 9), (3, 0.45, 12)]),
     # 1 : élancé — tronc haut, couronne étroite en deux étages
     dict(r=5.0, h1=34, r2=3.5, h2=72, centre=(-0.5, 69.5, 0.5, 24, 23, 8), dessus=(0.25, 0.25, 16, 15, 6),
-         couronne=[(60, 12, 62.25, 17, 16, 6), (180, 12.5, 59.375, 16, 15, 6), (300, 12, 64.125, 16, 15, 5.5),
-                   (120, 11, 74.1875, 14, 13, 5)],
+         couronne=[(60, 14.5, 62.25, 19, 18, 6), (180, 15, 59.375, 19, 18, 6), (300, 14.5, 64.125, 18, 17, 5.5),
+                   (120, 13, 74.1875, 16, 15, 5)],
          racines=[(30, 9, 7), (100, 10, 8), (170, 8, 6.5), (240, 10, 8), (300, 8.5, 7)],
          lianes=[(0, 0.5, 12), (1, 0.6, 10)]),
     # 2 : large — couronne plate et vaste (parasol), cinq longues branches
@@ -342,10 +343,10 @@ GEANTS = [
                    (220, 20, 48.1875, 21, 20, 6), (290, 19, 50.3125, 22, 20, 6)],
          racines=[(0, 11, 9), (60, 9, 7.5), (120, 11, 8.5), (180, 9.5, 7.5), (240, 11, 9), (300, 9, 7)],
          lianes=[(0, 0.5, 10), (1, 0.45, 12), (2, 0.55, 9), (3, 0.5, 11), (4, 0.5, 10)]),
-    # 3 : fourchu — un second fût part d'un coude du tronc et porte sa propre couronne
+    # 3 : fourchu — un second fût sort du flanc du tronc (deux tronçons en escalier) et porte sa propre couronne
     dict(r=5.5, h1=30, r2=4.0, h2=66, centre=(-1.5, 63.5, 0.5, 26, 25, 8),
          fourche=((6.25, -0.75), (9.75, -1.25), 3.0, 52, (12.75, 50.625, -1.25, 22, 21, 7)),
-         couronne=[(140, 13, 55.25, 18, 17, 6), (230, 12, 58.375, 16, 15, 5.5), (320, 12, 52.1875, 17, 16, 6)],
+         couronne=[(140, 15, 55.25, 20, 19, 6), (230, 14, 58.375, 18, 17, 5.5), (320, 14, 52.1875, 19, 18, 6)],
          racines=[(20, 10, 8), (90, 9, 7), (160, 10.5, 8), (230, 8.5, 7), (300, 10, 8)],
          lianes=[(0, 0.5, 10), (1, 0.55, 9), (2, 0.5, 11)]),
 ]
@@ -353,8 +354,8 @@ GEANTS = [
 
 def arbre_geant(b, variant: int = 0, taille: float = 1.0) -> dict:
     """Grand arbre de la forêt autour de Konoha (70 à 100 studs à taille 1) : tronc rond « pixel » de rayon 4 à 6
-    en deux tronçons, racines en contreforts, branches en escalier, couronne de 4 à 7 masses (50 à 70 studs de large)
-    qui dépasse du rempart et cadre le ciel, lianes."""
+    en deux tronçons, racines en contreforts, grosses branches à gousset rentrées sous le feuillage, couronne de
+    4 à 7 masses (50 à 70 studs de large) qui dépasse du rempart et cadre le ciel, lianes pendantes."""
     rng = b.rng
     k = _K(b, taille)
     v = variant % 4
@@ -440,21 +441,21 @@ def buisson(b, variant: int = 0) -> dict:
 
     with b.group("Buisson"):
         if v == 0:  # boule verte
-            k.touffe(0, 0, 0, 4, 2, 3.5, F("feuille"))
-            k.touffe(0.25, 0, -0.25, 3.5, 2.5, 3.5, vary(mix(c("feuille"), c("feuille_claire"), 0.3), rng, 0.04), 45)
-            k.touffe(-0.25, 2, 0.25, 2.5, 1, 2, F("feuille_claire"))
-            k.touffe(2.25, 0, 1, 2, 1.5, 2, F("feuille_fonce"), 30)
-            k.touffe(-2.25, 0, -0.75, 1.5, 1, 1.5, F("feuille_fonce"), -20)
-            k.touffe(0, 3, 0, 1, 0.5, 1, F("herbe_claire"), 45)
+            k.bloc(0, 0, 0, 4, 2, 3.5, F("feuille"))
+            k.bloc(0.25, 0, -0.25, 3.5, 2.5, 3.5, vary(mix(c("feuille"), c("feuille_claire"), 0.3), rng, 0.04), 45)
+            k.bloc(-0.25, 2, 0.25, 2.5, 1, 2, F("feuille_claire"))
+            k.bloc(2.25, 0, 1, 2, 1.5, 2, F("feuille_fonce"), 30)
+            k.bloc(-2.25, 0, -0.75, 1.5, 1, 1.5, F("feuille_fonce"), -20)
+            k.bloc(0, 3, 0, 1, 0.5, 1, F("herbe_claire"), 45)
         elif v == 1:  # azalée (tsutsuji) : dôme taillé piqué de fleurs roses
-            k.touffe(0, 0, 0, 5, 2, 3, F("feuille_fonce"))
-            k.touffe(0, 0, 0, 3.5, 2.5, 3.5, vary(mix(c("feuille_fonce"), c("feuille"), 0.5), rng, 0.04), 45)
+            k.bloc(0, 0, 0, 5, 2, 3, F("feuille_fonce"))
+            k.bloc(0, 0, 0, 3.5, 2.5, 3.5, vary(mix(c("feuille_fonce"), c("feuille"), 0.5), rng, 0.04), 45)
             for (x, y, z, col) in ((-1.2, 2.0, -0.3, AZALEE), (0.6, 2.25, 0.5, AZALEE_CLAIR), (1.7, 1.75, -0.6, AZALEE),
                                    (-0.2, 2.2, -0.9, AZALEE_CLAIR), (-2.3, 1.3, 0.4, AZALEE_CLAIR), (1.0, 1.0, -1.4, AZALEE)):
                 b.box((x - 0.4, y - 0.4, z - 0.4), (x + 0.4, y + 0.4, z + 0.4), col, studs="top", collide=False, name="Fleur")
         elif v == 2:  # hortensia (ajisai) : feuillage sombre, grosses boules bleues et mauves
-            k.touffe(0, 0, 0, 4, 2.5, 3, F("feuille_fonce"))
-            k.touffe(0.5, 0, 1, 3, 2, 3, F("feuille"), 45)
+            k.bloc(0, 0, 0, 4, 2.5, 3, F("feuille_fonce"))
+            k.bloc(0.5, 0, 1, 3, 2, 3, F("feuille"), 45)
             for (x, y, z, col) in ((-1.1, 2.5, -0.7, HORTENSIA), (1.1, 2.5, 0.2, HORTENSIA_MAUVE), (-0.4, 2.0, -1.5, HORTENSIA_MAUVE),
                                    (1.6, 2.0, 1.6, HORTENSIA)):
                 b.box((x - 0.7, y - 0.5, z - 0.7), (x + 0.7, y + 0.6, z + 0.7), vary(col, rng, 0.05), studs="top",
@@ -462,15 +463,14 @@ def buisson(b, variant: int = 0) -> dict:
         else:  # haie taillée : pavé vert foncé, dessus clair, bouts arrondis
             k.feuille(-3, 0, -1, 3, 2, 1, F("feuille_fonce"))
             k.feuille(-2.5, 2, -0.5, 2.5, 2.5, 0.5, F("feuille"))
-            k.touffe(-3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
-            k.touffe(3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
+            k.bloc(-3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
+            k.bloc(3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
     return _infos(b, n0)
 
 
 def rocher_deco(b, variant: int = 0) -> dict:
     """Groupe de rochers taillés en blocs : 0 granite gris moussu, 1 grès (comme le rocher des Hokage),
     2 pierre dressée, 3 galets plats. Studs sur les dessus, mousse en plaque."""
-    rng = b.rng
     v = variant % 4
     n0 = len(b.parts)
     gris = (c("pave_fonce"), shade(c("pave_fonce"), 0.9), c("bordure"), c("pave"))
@@ -514,7 +514,6 @@ def rocher_deco(b, variant: int = 0) -> dict:
                                                          (-1.2, -1.9, 1.0, 0.9, 0.4, -10))):
                 R(x, h / 2, z, sx, h, sz, (gris[0], gris[3], gris[1], gres[1], gris[2])[i], yaw)
             R(-0.3, 0.95, 0.1, 1.2, 0.3, 0.9, MOUSSE, 8, collide=False, name="Mousse")
-    _ = rng
     return _infos(b, n0)
 
 
@@ -542,11 +541,13 @@ def parterre_fleurs(b, variant: int = 0, largeur: float = 6, profondeur: float =
         for j, (za, zb) in enumerate(rangs):
             b.box((-w + 0.6, 1.0, za), (w - 0.6, 1.6, zb), vary("feuille_fonce" if j % 2 == 0 else "feuille", rng, 0.03),
                   studs="top", collide=False, name="Feuillage")
-            pas = max(1.2, (2 * w - 1.6) / n_max)
-            n = min(n_max, int((2 * w - 1.6) // pas) + 1)
+            utile = max(0.0, 2 * w - 2.1)  # course des centres de fleurs (0,9 de large) le long du rang
+            n = max(1, min(n_max, int(utile / 1.2) + 1))
+            pas = utile / (n - 1) if n > 1 else 0.0
             x0 = -(n - 1) * pas / 2
             for i in range(n):
-                x = x0 + i * pas + (0.25 if (i + j) % 2 else -0.25) * (pas > 1.5)
+                interieur = 0 < i < n - 1 and pas > 1.5  # léger décalage, jamais pour les fleurs des bouts
+                x = x0 + i * pas + ((0.25 if (i + j) % 2 else -0.25) if interieur else 0.0)
                 z = (za + zb) / 2 + (0.3 if i % 2 else -0.3) * (zb - za > 1.6)
                 haut = 2.1 if (i + j) % 3 else 2.5
                 col = cols[(i + 2 * j + v) % len(cols)]
