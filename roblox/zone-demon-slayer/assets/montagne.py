@@ -237,6 +237,30 @@ def _grappes(F, u0, u1, y_top, d, rng, masses=(), long_max=10.0, long_min=2.0, e
     return y_bas
 
 
+def _rideau(F, u0, u1, y, d_in, d_out, rng, masses=(), long_max=10.0, sol=None, densite=0.95, ep=0.8,
+            pans=(2.5, 3.5, 4.5), larg=(1.5, 2.0, 2.5, 3.0, 3.5)) -> float:
+    """Rideau de glycine sous y : pans sombres à l'ourlet irrégulier (de d_in à d_out), puis grappes sous
+    chaque pan (devant d_in + 0,1). Renvoie le plus bas y atteint."""
+    y_bas = y
+    u = u0 + 0.2
+    i = 0
+    while u < u1 - 0.6:
+        ws = min(float(rng.choice(pans)), u1 - 0.2 - u)
+        if u1 - 0.2 - (u + ws) < 1.5:
+            ws = u1 - 0.2 - u
+        hf = float(rng.choice([1.0, 1.5, 2.5, 3.5]))
+        if sol is not None:
+            hf = min(hf, max(0.5, y - sol - 0.3))
+        F.box(u, u + ws, y - hf, y, d_in, d_out, vary(("glycine_nuit", "glycine_fonce")[i % 2], rng, 0.04),
+              collide=False)
+        y_bas = min(y_bas, y - hf,
+                    _grappes(F, u + 0.05, u + ws - 0.05, y - hf, d_in + 0.1, rng, masses, long_max,
+                             long_min=min(3.0, long_max), ep=ep, sol=sol, densite=densite, larg=larg))
+        u += ws
+        i += 1
+    return y_bas
+
+
 def _glycine_corniche(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=10.0, sol=None, haut=1.0,
                       ov=None, grappes=True, densite=0.95, ov_max=None, devant=True):
     """Masse de glycine posée sur une corniche (dessus à y, de d_back à d_front) : nuage de blocs qui
@@ -275,26 +299,8 @@ def _glycine_corniche(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=10
             F.box(ua, ua + ww, y + h1, y + h1 + h2, e0, e1, vary(col, rng, 0.04), studs="top")
     if not grappes:
         return None
-    # rideau : pans sombres à l'ourlet irrégulier sous le débord, grappes sous chaque pan
     ep = max(0.5, min(1.0, ov - 0.85))
-    y_bas = y
-    u = u0 + 0.2
-    i = 0
-    while u < u1 - 0.6:
-        ws = min(float(rng.choice([2.5, 3.5, 4.5])), u1 - 0.2 - u)
-        if u1 - 0.2 - (u + ws) < 1.5:
-            ws = u1 - 0.2 - u
-        hf = float(rng.choice([1.0, 1.5, 2.5, 3.5]))
-        if sol is not None:
-            hf = min(hf, max(0.5, y - sol - 0.3))
-        F.box(u, u + ws, y - hf, y, d_c + 0.2, d_c + ov - 0.15,
-              vary(("glycine_nuit", "glycine_fonce")[i % 2], rng, 0.04), collide=False)
-        y_bas = min(y_bas, y - hf,
-                    _grappes(F, u + 0.05, u + ws - 0.05, y - hf, d_c + 0.3, rng, masses, long_max,
-                             long_min=min(3.0, long_max), ep=ep, sol=sol, densite=densite,
-                             larg=(1.5, 2.0, 2.5, 3.0, 3.5)))
-        u += ws
-        i += 1
+    y_bas = _rideau(F, u0, u1, y, d_c + 0.2, d_c + ov - 0.15, rng, masses, long_max, sol, densite, ep)
     return (u0, u1, y_bas, y, d_c + ov)
 
 
@@ -315,6 +321,95 @@ def _touffe(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=5.0, sol=Non
     _grappes(F, u0 + 0.3, u1 - 0.3, y, d_front + 0.25, rng, masses, long_max, long_min=1.5, ep=0.5, sol=sol,
              densite=0.7, larg=(1.0, 1.5, 2.0))
     return n
+
+
+def _glycine_arbre(b, x, y, z, rng, s=1.0, rideaux=(), sol=None, long_max=7.0, hx=None, hz=None,
+                   densite=0.95, ht=None, xmin=None, xmax=None) -> dict:
+    """Glycine en arbre, large et retombant : tronc épais gris-brun coudé, branche, houppier en dôme
+    (3 étages décalés) ; rideaux de grappes sous les bords demandés ('avant' = +Z, 'arriere', 'gauche' = -X,
+    'droite' = +X). `hx`, `hz` : demi-emprise du houppier (par défaut 9 × 6,5 à l'échelle s)."""
+    S = lambda v: v * s  # noqa: E731
+    sg = float(rng.choice([-1, 1]))
+    xmin = x - 1e9 if xmin is None else xmin
+    xmax = x + 1e9 if xmax is None else xmax
+    if (x - xmin) > (xmax - x):
+        sg = 1.0   # la branche part vers le côté le plus dégagé (-sg)
+    elif (xmax - x) > (x - xmin):
+        sg = -1.0
+    ht = S(5.0) if ht is None else ht
+    b.box((x - S(1.2), y, z - S(1.2)), (x + S(1.2), y + ht * 0.55, z + S(1.2)), vary("tronc", rng, 0.05))
+    b.box((x + sg * S(0.7) - S(0.9), y + ht * 0.55, z - S(0.9)), (x + sg * S(0.7) + S(0.9), y + ht + 0.4, z + S(0.9)),
+          vary("tronc", rng, 0.05))
+    lb = min(S(4.0), (x - xmin - 0.3) if sg > 0 else (xmax - x - 0.3))
+    if lb > S(1.5):
+        b.box((x - sg * lb, y + ht * 0.62, z - S(0.6)), (x + sg * S(0.2), y + ht * 0.62 + S(1.0), z + S(0.6)),
+              c("tronc_clair"))
+    yc = y + ht
+    hx = S(9.0) if hx is None else hx
+    hz = S(6.5) if hz is None else hz
+    b.box((x - hx, yc, z - hz), (x + hx, yc + S(2.6), z + hz), vary("glycine_fonce", rng, 0.04), studs="top")
+    # bosses en nuage dans des créneaux disjoints, la plus haute éclaircie
+    slot = (2 * hx - 1.0) / 3
+    hauts = [S(float(rng.choice([2.0, 2.5]))), S(float(rng.choice([3.0, 3.5]))), S(float(rng.choice([2.0, 2.5])))]
+    rng.shuffle(hauts)
+    for kk in range(3):
+        ww = slot * float(rng.uniform(0.7, 0.95))
+        ua = x - hx + 0.5 + kk * slot + float(rng.uniform(0, slot - ww))
+        dd = 2 * hz * float(rng.uniform(0.55, 0.85))
+        za = z - hz + 0.4 + float(rng.uniform(0, 2 * hz - 0.8 - dd))
+        col = "glycine_claire" if hauts[kk] == max(hauts) else "glycine"
+        b.box((ua, yc + S(2.6), za), (ua + ww, yc + S(2.6) + hauts[kk], za + dd), vary(col, rng, 0.04), studs="top")
+        if hauts[kk] == max(hauts) and ww > 3:
+            b.box((ua + ww * 0.25, yc + S(2.6) + hauts[kk], za + dd * 0.25),
+                  (ua + ww * 0.75, yc + S(2.6) + hauts[kk] + S(1.2), za + dd * 0.75), vary("glycine_pale", rng, 0.03),
+                  studs="top")
+    sol = y + 1.2 if sol is None else sol
+    faces = {"avant": ("z", z + hz, 1, x - hx, x + hx), "arriere": ("z", z - hz, -1, x - hx, x + hx),
+             "gauche": ("x", x - hx, -1, z - hz, z + hz), "droite": ("x", x + hx, 1, z - hz, z + hz)}
+    for nom in rideaux:
+        axis, n0, sens, u0, u1 = faces[nom]
+        F = _Face(b, axis, n0, sens)
+        F.box(u0 + 1.4, u1 - 1.4, yc - 1.0, yc, -1.4, -0.3, vary("glycine_nuit", rng, 0.04), collide=False)
+        _grappes(F, u0 + 1.5, u1 - 1.5, yc - 1.0, -1.25, rng, (), min(long_max, yc - 1.0 - sol), long_min=2.0,
+                 ep=0.8, sol=sol, densite=densite, larg=(1.0, 1.5, 2.0, 2.5))
+    return {"rayon_x": hx, "rayon_z": hz, "hauteur": ht + S(7.3)}
+
+
+def _glycine_maitre(b, x, y, z, rng, cotes=("avant",), densite=0.95) -> dict:
+    """Grand glycine retombant, arbre remarquable au pied de la montagne : tronc tordu en trois tronçons
+    et deux branches maîtresses, houppier en dôme (l'étage du milieu est le plus large), grappes longues
+    à l'ourlet irrégulier jusque près du sol sur les côtés vus (`cotes` : 'avant' = +Z, 'gauche' = -X,
+    'droite' = +X, 'arriere')."""
+    for dx, y0, dz, w, h in ((0.0, 0.0, 0.0, 2.8, 3.4), (0.8, 3.4, 0.4, 2.4, 3.0), (0.1, 6.4, -0.3, 2.1, 3.2)):
+        b.box((x + dx - w / 2, y + y0, z + dz - w / 2), (x + dx + w / 2, y + y0 + h, z + dz + w / 2),
+              vary("tronc", rng, 0.06))
+    for sx in (-1, 1):  # branches maîtresses vers les bords du houppier
+        a, bb = sorted((x + sx * 1.0, x + sx * 5.5))
+        b.box((a, y + 7.6, z - 0.6), (bb, y + 8.6, z + 0.6), c("tronc_clair"))
+        a, bb = sorted((x + sx * 4.5, x + sx * 6.5))
+        b.box((a, y + 8.6, z - 0.6), (bb, y + 9.4, z + 0.6), c("tronc_clair"))
+    yc = y + 9.4
+    hx, hz = 12.0, 9.0
+    b.box((x - 8.0, yc, z - 6.0), (x + 8.0, yc + 2.0, z + 6.0), vary("glycine_fonce", rng, 0.04), studs="top")
+    b.box((x - hx, yc + 2.0, z - hz), (x + hx, yc + 4.4, z + hz), vary("glycine_fonce", rng, 0.03), studs="top")
+    dx = float(rng.uniform(-1.5, 1.5))
+    b.box((x + dx - 8.5, yc + 4.4, z - 6.5), (x + dx + 8.5, yc + 6.4, z + 6.5), vary("glycine", rng, 0.04),
+          studs="top")
+    slot = 16.0 / 3
+    for kk, (hh, col) in enumerate(((1.4, "glycine"), (2.2, "glycine_claire"), (1.6, "glycine"))):
+        ww = slot * float(rng.uniform(0.7, 0.95))
+        ua = x + dx - 8.0 + kk * slot + float(rng.uniform(0, slot - ww))
+        dd = float(rng.uniform(6.0, 9.5))
+        za = z - 6.0 + float(rng.uniform(0, 12.0 - dd))
+        b.box((ua, yc + 6.4, za), (ua + ww, yc + 6.4 + hh, za + dd), vary(col, rng, 0.04), studs="top")
+    faces = {"avant": ("z", z + hz, 1, x - hx, x + hx), "arriere": ("z", z - hz, -1, x - hx, x + hx),
+             "gauche": ("x", x - hx, -1, z - hz, z + hz), "droite": ("x", x + hx, 1, z - hz, z + hz)}
+    for nom in cotes:
+        axis, n0, sens, u0, u1 = faces[nom]
+        F = _Face(b, axis, n0, sens)
+        _rideau(F, u0 + 2.0, u1 - 2.0, yc + 2.0, -1.8, -0.3, rng, (), long_max=yc + 2.0 - 1.0 - (y + 1.4),
+                sol=y + 1.4, densite=densite, ep=0.8, pans=(2.0, 3.0, 4.0), larg=(1.0, 1.5, 2.0, 2.5))
+    return {"rayon_x": hx, "rayon_z": hz, "hauteur": 18.0}
 
 
 # ---------------------------------------------------------------------------
@@ -528,12 +623,29 @@ def _pavillon(b, xc, y, zc, rng) -> None:
 # ---------------------------------------------------------------------------
 # Montagne
 # ---------------------------------------------------------------------------
+BUDGET_MONTAGNE = 3150
+
+
 def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float = 440, profondeur: float = 68,
                       hauteur: float = 120) -> dict:
     """Montagne aux glycines traversée par une gorge à ciel ouvert (allée de senbon torii).
 
-    variant : 0/2 sanctuaire à droite (+x) et belvédère à gauche, 1/3 l'inverse ; 2 et 3 changent le tirage."""
+    variant : 0/2 sanctuaire à droite (+x) et belvédère à gauche, 1/3 l'inverse ; 2 et 3 changent le tirage.
+    Si le tirage dépasse le budget de pièces, la montagne est reconstruite avec des rideaux de glycines un peu
+    moins denses (même plan, même roche)."""
+    n0 = len(b.parts)
+    for dens in (1.0, 0.88, 0.76, 0.64, 0.52, 0.4):
+        info = _montagne(b, variant, passage, largeur, profondeur, hauteur, dens)
+        if len(b.parts) - n0 <= BUDGET_MONTAGNE or dens <= 0.4:
+            break
+        del b.parts[n0:]
+    info["pieces"] = len(b.parts) - n0
+    return info
+
+
+def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
     rng = np.random.default_rng(4407 + 131 * variant)
+    DENS = 0.95 * dens
     s_main = 1 if variant % 2 == 0 else -1
     P = passage / 2
     W = largeur / 2
@@ -638,6 +750,13 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
         hs = [m["t"][j] for j in range(4) if m["z"][j + 1] < za - 1e-6 and m["z"][j] > zb + 1e-6]
         return min(hs) if hs else 0.0
 
+    def h_max(m, za, zb):
+        """Hauteur maximale de la colonne m entre zb et za (za > zb), arbres et glycines non compris."""
+        if m["kind"] == "escalier":
+            return 1e9  # pas de houppier au-dessus d'un escalier (fond rocheux et ses glycines)
+        hs = [m["t"][j] for j in range(4) if m["z"][j + 1] < za - 1e-6 and m["z"][j] > zb + 1e-6]
+        return max(hs) if hs else 0.0
+
     F_av = _Face(b, "z", 0.0, 1)
     F_dos = _Face(b, "z", ZBK, -1)
     peaux_av, peaux_dos, replats_av = {}, {}, []
@@ -738,7 +857,11 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
         plaque = b.box((-3.2, 42.2, zp + 0.5), (3.2, 50.3, zp + 0.8), LAQUE)
         plaque.label = {"face": "Back", "text": "藤", "color": c("or"), "bg": None, "font": "brush"}
         for s in (1, -1):
-            _lanterne(b, s * 50.0, 0.0, 12.0, s=1.4)
+            _lanterne(b, s * 46.0, 0.0, 12.0, s=1.4)
+    with b.group("Glycines"):
+        for s in (1, -1):  # deux grands glycines retombants encadrent la porte, à hauteur des yeux
+            _glycine_maitre(b, s * (G0 + 27.0), 0.0, 14.5, rng, cotes=("avant", "gauche" if s > 0 else "droite"),
+                            densite=0.95)
 
     # -- escaliers : torii, lanternes, sanctuaire, belvédère ------------------------------------
     with b.group("Sanctuaire"):
@@ -760,6 +883,7 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
 
     # -- glycines -------------------------------------------------------------------------
     def touffes(F, items, masses, rideaux, sol, y_max=1e9, proba=0.4):
+        proba *= dens
         """Touffes sur les petites corniches d'une peau, de haut en bas, hors des rideaux déjà posés ;
         chaque touffe (et ses grappes) devient un obstacle pour les suivantes."""
         occ = list(masses)
@@ -784,7 +908,7 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
                 hb = m["t"][2]
                 y_toit = e["yt"] + (17.0 if e["type"] == "sanctuaire" else 13.0)
                 if hb > y_toit + 10:
-                    _glycine_corniche(_Face(b, "z", e["zt1"], 1), x0, x1, hb, -(e["zt1"] - ZBK) + 1.0, 0.0, rng, (),
+                    _glycine_corniche(_Face(b, "z", e["zt1"], 1), x0, x1, hb, -(e["zt1"] - ZBK) + 1.0, 0.0, rng, (), densite=DENS,
                                       long_max=min(24.0, hb - y_toit - 2.0), sol=y_toit + 2.0, haut=1.2)
                 continue
             masses = peaux_av[i]
@@ -794,15 +918,15 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
             # corniche avant : dessus du gradin avant, rideau sur la face avant
             if rng.random() < 0.92:
                 dfront = _sa_haut(masses, x0, x1, t0)
-                rideau = _glycine_corniche(F_av, x0, x1, t0, -5.0 if tranche else ZA + 1.8, dfront, rng, masses,
+                rideau = _glycine_corniche(F_av, x0, x1, t0, -5.0 if tranche else ZA + 1.8, dfront, rng, masses, densite=DENS,
                                            long_max=min(24.0, 0.5 * t0), haut=1.2, ov_max=6.3 if tranche else None)
             touffes(F_av, [r for r, ms in replats_av if ms is masses], masses, [rideau], sol=1.0, y_max=t0 - 4)
             # gradin du milieu : rideau sur la face du gradin (pas de peau), au-dessus de la masse avant ;
             # sur les grandes faces nues, un balcon rocheux à mi-hauteur porte sa propre glycine
             if tranche and tB > t0 + 8:
-                _glycine_corniche(_Face(b, "z", ZA, 1), x0, x1, tB, -5.0, 0.0, rng, (),
+                _glycine_corniche(_Face(b, "z", ZA, 1), x0, x1, tB, -5.0, 0.0, rng, (), densite=DENS * 0.9,
                                   long_max=min(16.0, tB - t0 - 8.5), sol=t0 + 8.0, ov=1.5)
-            elif tB > t0 + 8 and rng.random() < 0.7:
+            elif tB > t0 + 8 and rng.random() < 0.6 + 0.2 * dens:
                 F_B = _Face(b, "z", ZA, 1)
                 obst = []
                 if tB - t0 > 30 and x1 - x0 >= 8:
@@ -813,10 +937,10 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
                     F_B.box(ub, ub + wb, yb - 2, yb, 0, pb, vary("roche_claire", rng, 0.03), studs="top")
                     b.wedge_under((ub + 0.5, yb - 5, ZA), (ub + wb - 0.5, yb - 2, ZA + pb - 0.5),
                                   vary("roche", rng, 0.03), down="+z")
-                    r = _glycine_corniche(F_B, ub + 0.3, ub + wb - 0.3, yb, 0.3, pb, rng, (),
+                    r = _glycine_corniche(F_B, ub + 0.3, ub + wb - 0.3, yb, 0.3, pb, rng, (), densite=DENS,
                                           long_max=min(10.0, yb - t0 - 10.0), sol=t0 + 8.0, ov=1.5)
                     obst.append((ub - 0.5, ub + wb + 0.5, (r[2] if r else yb - 5) - 0.5, yb + 9.0, pb + 2.0))
-                _glycine_corniche(F_B, x0, x1, tB, -(ZA - ZB) + 1.8, 0.0, rng, obst, devant=False,
+                _glycine_corniche(F_B, x0, x1, tB, -(ZA - ZB) + 1.8, 0.0, rng, obst, devant=False, densite=DENS * 0.9,
                                   long_max=min(20.0, tB - t0 - 8.5), sol=t0 + 8.0, ov=float(rng.choice([1.5, 2.0])))
         # gorge : corniches des tranches, qui retombent dans la gorge (au-dessus des kasagi)
         for s in (1, -1):
@@ -840,7 +964,7 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
                     for a, bb in _colonnes(zb + 0.4, za - 0.4, rng, (8, 10, 12, 14)):
                         if rng.random() < 0.9 and bb - a > 3:
                             dfront = _sa_haut(masses, a, bb, h) if masses else 0.0
-                            _glycine_corniche(F_g, a, bb, h, -(GS[gi + 1] - GS[gi]) + 1.8, dfront, rng, masses,
+                            _glycine_corniche(F_g, a, bb, h, -(GS[gi + 1] - GS[gi]) + 1.8, dfront, rng, masses, densite=DENS,
                                               long_max=min(16.0, h - sol), sol=sol)
             # petites corniches basses de la paroi (sous les torii) : touffes courtes
             touffes(F_g0, greplats, gmasses, [], sol=Y_ISHI + 0.5, y_max=24.0, proba=0.6)
@@ -852,26 +976,310 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
             tD, ZC = m["t"][3], m["z"][3]
             dfront = _sa_haut(masses, m["x0"], m["x1"], tD)
             _glycine_corniche(F_dos, m["x0"], m["x1"], tD, -5.0 if m["kind"].startswith("gorge") else -(ZC - ZBK) + 1.8,
-                              dfront, rng, masses, long_max=min(18.0, 0.4 * tD), ov=1.4, ov_max=D + ZBK)
+                              dfront, rng, masses, long_max=min(18.0, 0.4 * tD), ov=1.4, ov_max=D + ZBK,
+                              densite=DENS * 0.9)
 
     # -- sommets : arbres et glycines ------------------------------------------------------
     with b.group("Vegetation"):
-        for m in cols:
+        occ = []  # boîtes déjà prises par la végétation des sommets (x0, x1, y0, y1, z0, z1)
+
+        def coupe(bx):
+            return any(o[0] < bx[1] and o[1] > bx[0] and o[2] < bx[3] and o[3] > bx[2] and o[4] < bx[5] and o[5] > bx[4]
+                       for o in occ)
+
+        for i, m in enumerate(cols):
             if m["kind"] == "escalier" or m["kind"].startswith("gorge"):
                 continue
             x0, x1 = m["x0"], m["x1"]
-            tB, tC, ZB, ZC = m["t"][1], m["t"][2], m["z"][2], m["z"][3]
+            tC, ZB, ZC = m["t"][2], m["z"][2], m["z"][3]
             w = x1 - x0
+            z_libre = ZB - 1.0  # devant : glycine en arbre ; derrière : cèdre ou pin
             if rng.random() < 0.75:
-                cedre = rng.random() < 0.55
-                sc = min(float(rng.uniform(1.0, 1.45)), (w - 1.0) / (6.4 if cedre else 10.6))
+                sa = float(rng.uniform(0.75, 1.0))
+                hz = 6.5 * sa
+                zc = ZB - 1.0 - hz
+                yc = tC + 2.2 * sa
+                y_top = yc + 8.0 * sa
+                # le houppier déborde au-dessus des voisins plus bas que lui (jamais sur un escalier)
+                g = cols[i - 1] if i > 0 and abs(cols[i - 1]["x1"] - x0) < 1e-6 else None
+                d = cols[i + 1] if i + 1 < len(cols) and abs(cols[i + 1]["x0"] - x1) < 1e-6 else None
+                hg = h_max(g, zc + hz, zc - hz) if g is not None else 1e9
+                hd = h_max(d, zc + hz, zc - hz) if d is not None else 1e9
+                lim_g = 9.0 * sa if hg < yc - 1.2 else 0.0
+                lim_d = 9.0 * sa if hd < yc - 1.2 else 0.0
+                sol_arbre = max([tC] + [h for h, lim in ((hg, lim_g), (hd, lim_d)) if lim > 0]) + 1.2
+                xa, xb = x0 - lim_g + 0.5, x1 + lim_d - 0.5
+                for o in occ:
+                    if o[2] < y_top and o[3] > tC - 0.5 and o[4] < zc + hz + 0.3 and o[5] > zc - hz - 0.3:
+                        if (o[0] + o[1]) / 2 < (x0 + x1) / 2:
+                            xa = max(xa, o[1] + 0.3)
+                        else:
+                            xb = min(xb, o[0] - 0.3)
+                hx = min(9.0 * sa, (xb - xa) / 2)
+                if hx >= 5.0 and xa >= x0 - lim_g and xb <= x1 + lim_d and xa < x1 - 2.0 and xb > x0 + 2.0:
+                    lo, hi = max(xa + hx, x0 + 2.0), min(xb - hx, x1 - 2.0)
+                    xx = float(rng.uniform(lo, hi)) if lo < hi else (x0 + x1) / 2
+                    xx = min(max(xx, xa + hx), xb - hx)
+                    _glycine_arbre(b, xx, tC, zc, rng, s=sa, hx=hx, hz=hz, rideaux=("avant",), long_max=4.0,
+                                   densite=0.7 * dens, sol=sol_arbre, xmin=x0, xmax=x1, ht=2.2 * sa)
+                    occ.append((xx - hx, xx + hx, tC, y_top, zc - hz, zc + hz))
+                    z_libre = zc - hz - 1.0
+            for essai in range(3):  # un à trois conifères derrière (silhouette verte des crêtes)
+                if rng.random() > (0.85, 0.6, 0.35)[essai]:
+                    continue
+                cedre = rng.random() < 0.65
+                sc = min(float(rng.uniform(0.9, 1.45)), (w - 1.0) / (6.4 if cedre else 10.6))
                 half = sc * (3.2 if cedre else 5.3)
-                xx = float(rng.uniform(x0 + half + 0.3, max(x0 + half + 0.3, x1 - half - 0.3)))
-                zz = float(rng.uniform(ZC + 5.0, max(ZC + 5.0, ZB - 13.0)))
-                (_cedre if cedre else _pin)(b, xx, tC, zz, rng, s=sc)
-            if tC > tB + 8 and rng.random() < 0.7:
-                F_C = _Face(b, "z", ZB, 1)
-                _glycine_corniche(F_C, x0 + 0.5, x1 - 0.5, tC, -8.0, 0.0, rng, (), grappes=False, ov=1.0)
+                half_z = sc * (3.2 if cedre else 2.6)
+                if z_libre - (ZC + 0.5) >= 2 * half_z + 0.5:
+                    xx = float(rng.uniform(x0 + half + 0.3, max(x0 + half + 0.3, x1 - half - 0.3)))
+                    zz = float(rng.uniform(ZC + 0.5 + half_z, z_libre - half_z - 0.2))
+                    boite = (xx - half - 0.2, xx + half + 0.2, tC, tC + sc * 14.0, zz - half_z - 0.2, zz + half_z + 0.2)
+                    if not coupe(boite):
+                        (_cedre if cedre else _pin)(b, xx, tC, zz, rng, s=sc)
+                        occ.append(boite)
 
-    return {"emprise": (largeur, profondeur), "hauteur": hauteur, "passage": passage, "debord_avant": 19,
+    return {"emprise": (largeur, profondeur), "hauteur": hauteur, "passage": passage, "debord_avant": 22,
             "torii": n_torii}
+
+
+# ---------------------------------------------------------------------------
+# Train à vapeur de l'ère Taishō
+# ---------------------------------------------------------------------------
+LOCO = c("loco")
+LOCO_F = shade(c("loco"), 0.75)
+CHARBON = mix(c("noir"), c("metal_fonce"), 0.35)
+Y_RAIL = 2.8          # dessus des rails
+X_RAIL = 3.2          # axe des rails (écartement 6,4)
+
+
+def _essieu(b, y, z, r, rayons=True, demi=3.5) -> None:
+    """Essieu vu de côté : tambour noir (bandages) et, de chaque côté, centre de roue rouge à rayons noirs
+    et moyeu de laiton."""
+    b.cyl((0.0, y, z), r, 2 * demi, LOCO_F, axis="x")
+    for sx in (-1, 1):
+        x_ext = sx * demi
+        b.cyl((x_ext + sx * 0.06, y, z), r - 0.45, 0.12, c("loco_rouge"), axis="x")
+        if rayons:
+            for ang in (0.0, 60.0, 120.0):
+                b.part("block", (0.06, 0.22, 2 * (r - 0.6)), (x_ext + sx * 0.15, y, z), rot_x(ang), LOCO_F,
+                       collide=False)
+        b.cyl((x_ext + sx * 0.2, y, z), min(0.45, r * 0.3), 0.28, c("laiton"), axis="x", collide=False)
+
+
+def _voie(b, z0, z1, rng) -> None:
+    """Remblai herbeux, ballast, traverses et rails entre z0 et z1."""
+    b.box((-6.5, 0, z0), (6.5, 1.0, z1), vary("herbe_fonce", rng, 0.03), studs="top")
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 6.5, sx * 8.5))
+        b.wedge((a, 0, z0), (bb, 1.0, z1), vary("herbe", rng, 0.03), down="+x" if sx > 0 else "-x", studs="top")
+    b.box((-4.8, 1.0, z0 + 0.5), (4.8, 1.8, z1 - 0.5), vary("gravier", rng, 0.02), studs="top")
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 4.8, sx * 6.0))
+        b.wedge((a, 1.0, z0 + 0.5), (bb, 1.8, z1 - 0.5), vary("pierre_fonce", rng, 0.03), down="+x" if sx > 0 else "-x",
+                studs="top")
+    n = int((z1 - z0 - 2.0) // 2.6)
+    zz0 = z0 + (z1 - z0 - (n - 1) * 2.6) / 2
+    for i in range(n):
+        zz = zz0 + i * 2.6
+        b.box((-4.4, 1.8, zz - 0.5), (4.4, 2.2, zz + 0.5), vary("bois_fonce", rng, 0.06), studs="top")
+    for sx in (-1, 1):
+        b.box((sx * X_RAIL - 0.25, 2.2, z0 + 2.2), (sx * X_RAIL + 0.25, Y_RAIL, z1 - 2.2), c("metal"), material="Metal")
+    # heurtoirs en bout de voie : poutre rayée rouge et blanc sur deux poteaux
+    for zz, sz in ((z0 + 1.6, -1), (z1 - 1.6, 1)):
+        for sx in (-1, 1):
+            b.box((sx * X_RAIL - 0.4, 1.8, zz - 0.4), (sx * X_RAIL + 0.4, 4.6, zz + 0.4), c("bois_fonce"))
+        b.box((-4.2, 4.6, zz - 0.5), (-1.4, 5.6, zz + 0.5), c("rouge"))
+        b.box((-1.4, 4.6, zz - 0.5), (1.4, 5.6, zz + 0.5), c("blanc"))
+        b.box((1.4, 4.6, zz - 0.5), (4.2, 5.6, zz + 0.5), c("rouge"))
+
+
+def _locomotive(b, zL, rng, deflecteurs=True) -> float:
+    """Locomotive noire tournée vers -Z (traverse avant en z = zL) ; renvoie le z arrière de l'abri."""
+    yb = 10.1  # axe de la chaudière
+    # chasse-pierres et traverse rouge, tampons
+    b.wedge((-3.4, Y_RAIL + 0.4, zL - 2.2), (3.4, 4.4, zL), LOCO, down="-z", studs="top")
+    b.box((-3.9, 4.4, zL), (3.9, 5.6, zL + 0.8), c("loco_rouge"))
+    for sx in (-1, 1):
+        b.cyl((sx * 2.6, 5.0, zL - 0.35), 0.45, 0.7, LOCO_F, axis="z")
+        b.cyl((sx * 2.6, 5.0, zL - 0.78), 0.6, 0.16, c("metal"), axis="z")
+    # châssis, tabliers et liseré rouge
+    b.box((-2.3, 4.0, zL + 0.8), (2.3, 7.8, zL + 20.6), LOCO)
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 2.3, sx * 4.0))
+        b.box((a, 7.8, zL + 0.8), (bb, 8.2, zL + 15.2), LOCO_F, studs="top")
+        a, bb = sorted((sx * 3.85, sx * 4.05))
+        b.box((a, 7.55, zL + 0.9), (bb, 7.8, zL + 15.1), c("loco_rouge"), collide=False)
+    # boîte à fumée, porte ronde, phare
+    b.cyl((0, yb, zL + 2.7), 2.85, 3.8, LOCO_F, axis="z")
+    b.cyl((0, yb, zL + 0.65), 2.3, 0.3, LOCO, axis="z")
+    b.cyl((0, yb, zL + 0.38), 0.35, 0.24, c("laiton"), axis="z")
+    b.cyl((0, yb, zL + 0.44), 1.9, 0.06, c("metal_fonce"), axis="z", collide=False)
+    b.box((-0.75, 12.8, zL + 1.1), (0.75, 14.2, zL + 2.7), c("laiton"))
+    b.cyl((0, 13.5, zL + 1.02), 0.5, 0.16, c("jaune_lampion"), axis="z", material="Neon", collide=False)
+    # cheminée
+    b.cyl((0, 14.15, zL + 3.0), 0.9, 3.3, LOCO, axis="y")
+    b.cyl((0, 15.7, zL + 3.0), 1.15, 0.6, LOCO_F, axis="y", studs="top")
+    # écrans pare-fumée
+    if deflecteurs:
+        for sx in (-1, 1):
+            a, bb = sorted((sx * 3.3, sx * 3.5))
+            b.box((a, 8.2, zL + 1.3), (bb, 11.4, zL + 4.4), LOCO)
+    # chaudière, cerclages de laiton, main courante
+    b.cyl((0, yb, zL + 9.9), 2.6, 10.6, LOCO, axis="z")
+    for zz in (6.6, 10.2, 13.8):
+        b.cyl((0, yb, zL + zz), 2.66, 0.3, c("laiton"), axis="z", collide=False)
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 2.62, sx * 2.8))
+        b.box((a, 10.7, zL + 5.0), (bb, 10.88, zL + 15.1), c("laiton"), collide=False)
+    # dômes (vapeur en laiton, sablière noire), sifflet
+    b.cyl((0, 13.0, zL + 9.0), 1.1, 1.4, c("laiton"), axis="y")
+    b.ball((0, 13.7, zL + 9.0), 1.1, c("laiton"))
+    b.cyl((0, 12.9, zL + 12.0), 0.85, 1.2, LOCO, axis="y")
+    b.ball((0, 13.5, zL + 12.0), 0.85, LOCO)
+    b.cyl((0, 13.3, zL + 14.6), 0.25, 1.2, c("laiton"), axis="y", collide=False)
+    # pompe à air sur le flanc droit, tuyau de laiton, turbo-générateur derrière la cheminée
+    b.cyl((2.9, 9.6, zL + 11.6), 0.55, 2.6, LOCO_F, axis="y")
+    b.cyl((2.9, 11.0, zL + 11.6), 0.62, 0.2, c("laiton"), axis="y", collide=False)
+    b.box((2.66, 8.6, zL + 5.2), (2.86, 8.8, zL + 11.1), c("laiton"), collide=False)
+    b.box((-0.5, 12.6, zL + 4.6), (0.5, 13.3, zL + 5.8), LOCO_F)
+    # cylindres et bielles
+    for sx in (-1, 1):
+        b.cyl((sx * 3.45, 6.2, zL + 3.4), 1.0, 3.6, LOCO_F, axis="z")
+        for zz in (1.55, 5.25):
+            b.cyl((sx * 3.45, 6.2, zL + zz), 1.08, 0.1, c("laiton"), axis="z", collide=False)
+        a, bb = sorted((sx * 3.95, sx * 4.15))
+        b.box((a, 5.95, zL + 5.2), (bb, 6.3, zL + 13.4), c("metal"), material="Metal", collide=False)
+        b.box((a, 4.3, zL + 7.8), (bb, 4.65, zL + 18.6), c("metal"), material="Metal", collide=False)
+    # roues : bissel avant et trois essieux moteurs rouges
+    _essieu(b, Y_RAIL + 1.1, zL + 3.0, 1.1, rayons=False, demi=3.4)
+    for zz in (8.0, 13.2, 18.4):
+        _essieu(b, Y_RAIL + 2.4, zL + zz, 2.4)
+    # abri de conduite
+    z0, z1 = zL + 15.2, zL + 20.6
+    b.box((-3.9, 8.2, z0), (3.9, 14.8, z1), LOCO)
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 1.4, sx * 3.3))
+        b.box((a, 12.0, z0 - 0.08), (bb, 13.8, z0), c("fenetre"), collide=False)
+        a, bb = sorted((sx * 3.9, sx * 3.96))
+        b.box((a, 10.8, z0 + 0.9), (bb, 13.6, z0 + 4.1), c("laiton"), collide=False)
+        a, bb = sorted((sx * 3.96, sx * 4.02))
+        b.box((a, 11.1, z0 + 1.2), (bb, 13.3, z0 + 3.8), c("fenetre"), collide=False)
+    b.box((-4.3, 14.8, z0 - 0.4), (4.3, 15.3, z1 + 0.6), c("voiture_toit"), studs="top")
+    b.box((-3.0, 15.3, z0 + 0.2), (3.0, 15.7, z1), c("voiture_toit"), studs="top")
+    b.box((-0.8, 15.7, z0 + 1.6), (0.8, 16.1, z0 + 3.4), LOCO_F, studs="top")
+    return z1
+
+
+def _tender(b, z0, rng) -> float:
+    """Tender noir : caisse à eau, charbon en tas, liseré de laiton, trois essieux rouges."""
+    z1 = z0 + 11.0
+    b.box((-3.3, 4.0, z0 + 0.5), (3.3, 5.8, z1 - 0.5), LOCO_F)
+    b.box((-3.7, 5.8, z0), (3.7, 11.2, z1), LOCO)
+    b.box((-3.75, 10.3, z0 - 0.05), (3.75, 10.6, z1 + 0.05), c("laiton"), collide=False)
+    b.box((-3.2, 11.2, z0 + 0.5), (3.2, 12.0, z0 + 7.5), vary(CHARBON, rng, 0.05), studs="top")
+    b.box((-2.2, 12.0, z0 + 1.5), (2.0, 12.6, z0 + 5.5), vary(CHARBON, rng, 0.08), studs="top")
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 3.35, sx * 3.7))
+        b.box((a, 11.2, z0), (bb, 12.2, z0 + 8.0), LOCO_F)
+    b.cyl((0, 11.5, z0 + 9.3), 0.9, 0.6, LOCO_F, axis="y", studs="top")
+    for zz in (2.2, 5.5, 8.8):
+        _essieu(b, Y_RAIL + 1.4, z0 + zz, 1.4, rayons=False)
+    return z1
+
+
+def _voiture(b, zc, rng, allumees) -> None:
+    """Voiture à voyageurs marron (caisse en bois), fenêtres (certaines éclairées), toit à lanterneau sombre,
+    plates-formes d'extrémité à garde-corps, deux bogies."""
+    L = 24.0
+    zb0, zb1 = zc + 1.2, zc + L - 1.2
+    b.box((-3.4, 5.0, zc + 0.4), (3.4, 5.6, zc + L - 0.4), LOCO_F)
+    # caisse : soubassement plus sombre, partie haute
+    bas = shade(c("voiture"), 0.85)
+    b.box((-3.6, 5.6, zb0), (3.6, 8.4, zb1), bas)
+    b.box((-3.6, 8.4, zb0), (3.6, 11.8, zb1), vary("voiture", rng, 0.03))
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 3.6, sx * 3.65))
+        b.box((a, 8.4, zb0 + 0.3), (bb, 8.7, zb1 - 0.3), c("bois_clair"), collide=False)
+        b.box((a, 10.7, zb0 + 0.3), (bb, 11.0, zb1 - 0.3), c("bois_clair"), collide=False)
+        a, bb = sorted((sx * 3.6, sx * 3.68))
+        for k in range(7):
+            zz = zb0 + 1.4 + k * 2.8
+            lum = allumees[(k + (sx > 0)) % len(allumees)]
+            b.box((a, 8.7, zz), (bb, 10.7, zz + 1.6), c("fenetre_lumiere") if lum else c("fenetre"),
+                  material="Neon" if lum else "Glass" if False else "SmoothPlastic", collide=False)
+    for zz, sz in ((zb0, -1), (zb1, 1)):
+        b.box((-0.9, 6.0, min(zz, zz + sz * 0.08)), (0.9, 10.6, max(zz, zz + sz * 0.08)), c("bois_fonce"),
+              collide=False)
+    # toit à lanterneau
+    b.box((-3.9, 11.8, zc + 0.8), (3.9, 12.4, zc + L - 0.8), c("voiture_toit"), studs="top")
+    for sx in (-1, 1):
+        a, bb = sorted((sx * 1.9, sx * 3.9))
+        b.wedge((a, 12.4, zc + 1.2), (bb, 12.9, zc + L - 1.2), c("voiture_toit"), down="+x" if sx > 0 else "-x",
+                studs="top")
+    b.box((-1.9, 12.4, zc + 2.4), (1.9, 13.4, zc + L - 2.4), shade(c("voiture_toit"), 0.85), studs="top")
+    for k in range(3):
+        zz = zc + 6.0 + k * 6.0
+        b.box((-0.6, 13.4, zz - 0.6), (0.6, 13.9, zz + 0.6), LOCO_F, studs="top")
+    # plates-formes et garde-corps
+    for za, zbb, zr in ((zc + 0.2, zb0, zc + 0.2), (zb1, zc + L - 0.2, zc + L - 0.45)):
+        b.box((-3.4, 5.6, za), (3.4, 6.0, zbb), c("bois_fonce"), studs="top")
+        for sx in (-1, 1):  # marchepied
+            a, bb = sorted((sx * 3.0, sx * 3.7))
+            b.box((a, 4.1, za + 0.1), (bb, 4.35, zbb - 0.1), LOCO_F, studs="top", collide=False)
+            b.box((sx * 3.35 - 0.08, 4.35, za + 0.25), (sx * 3.35 + 0.08, 5.0, za + 0.45), LOCO_F, collide=False)
+        b.box((-3.3, 8.2, zr), (3.3, 8.45, zr + 0.25), LOCO_F, collide=False)
+        for sx in (-1, 1):
+            b.box((sx * 3.2 - 0.1, 6.0, zr), (sx * 3.2 + 0.1, 8.2, zr + 0.25), LOCO_F, collide=False)
+    # bogies
+    for zz in (zc + 4.6, zc + L - 4.6):
+        b.box((-3.2, 3.4, zz - 2.3), (3.2, 5.0, zz + 2.3), LOCO_F)
+        for dz in (-1.4, 1.4):
+            b.cyl((0.0, Y_RAIL + 1.1, zz + dz), 1.1, 7.0, LOCO_F, axis="x")
+            for sx in (-1, 1):
+                b.cyl((sx * 3.56, Y_RAIL + 1.1, zz + dz), 0.7, 0.12, c("loco_rouge"), axis="x", collide=False)
+
+
+def train_vapeur(b, variant: int = 0, voitures: int = 3) -> dict:
+    """Train à vapeur de l'ère Taishō à l'arrêt sur un court remblai, nez de la locomotive vers -Z.
+
+    variant : fenêtres éclairées et volute de vapeur ; 2 et 3 sans écrans pare-fumée."""
+    rng = np.random.default_rng(907 + 53 * variant)
+    voitures = max(0, int(voitures))
+    L_train = 2.2 + 20.6 + 0.8 + 11.0 + voitures * (1.6 + 24.0)
+    L = L_train + 20.0
+    z_av = -L_train / 2
+    with b.group("Voie"):
+        _voie(b, -L / 2, L / 2, rng)
+    with b.group("Locomotive"):
+        zL = z_av + 2.2
+        z_abri = _locomotive(b, zL, rng, deflecteurs=variant < 2)
+        # volute de vapeur au-dessus de la cheminée, chassée vers l'arrière : colonne de boules qui grossissent,
+        # avec des bouffées latérales (nuage, pas un collier de perles)
+        pts = [(0.0, 16.9, 0.0, 1.0), (0.3, 18.3, 0.8, 1.35), (-0.4, 19.8, 2.0, 1.7), (0.5, 21.0, 3.8, 2.1),
+               (-0.6, 21.9, 6.2, 2.4), (0.4, 22.3, 9.0, 2.2), (1.4, 20.6, 2.6, 1.2), (-1.5, 21.4, 4.6, 1.5),
+               (1.6, 22.8, 6.6, 1.6), (-1.0, 23.6, 8.0, 1.5), (0.8, 21.2, 11.2, 1.6)]
+        if variant % 2:
+            pts = [(x, y - 0.6 + 0.03 * z * z, z * 1.15, r) for x, y, z, r in pts]
+        for k, (x, y, z, r) in enumerate(pts):
+            col = mix(c("blanc"), c("metal"), (0.0, 0.06, 0.12)[k % 3])
+            b.ball((x, y, zL + 3.0 + z), r, col, collide=False, shadow=False)
+    with b.group("Tender"):
+        z_t = _tender(b, z_abri + 0.8, rng)
+        b.box((-0.6, 4.6, z_abri), (0.6, 5.2, z_abri + 0.8), LOCO_F, collide=False)  # attelage
+    zc = z_t + 1.6
+    motifs = ([1, 0, 1, 1, 0, 1, 0], [1, 1, 0, 1, 0, 0, 1], [0, 1, 1, 0, 1, 1, 0], [1, 0, 0, 1, 1, 0, 1])
+    for i in range(voitures):
+        with b.group(f"Voiture{i + 1}"):
+            allumees = motifs[(variant + i) % len(motifs)]
+            _voiture(b, zc, rng, allumees)
+            b.box((-0.6, 4.6, zc - 1.6), (0.6, 5.2, zc + 0.4), LOCO_F, collide=False)        # attelage
+            b.box((-1.2, 5.65, zc - 1.6), (1.2, 5.95, zc + 0.2), c("bois_fonce"), collide=False)  # passerelle
+        zc += 24.0 + 1.6
+    if voitures:
+        with b.group(f"Voiture{voitures}"):  # feu de queue rouge sur la dernière voiture
+            zq = zc - 1.6 - 1.2  # paroi arrière de la caisse
+            b.box((2.2, 9.0, zq), (3.0, 9.8, zq + 0.3), LOCO_F, collide=False)
+            b.cyl((2.6, 9.4, zq + 0.4), 0.3, 0.2, c("rouge"), axis="z", material="Neon", collide=False)
+    return {"emprise": (17.0, round(L, 2)), "hauteur": 16.0, "longueur": round(L, 2),
+            "longueur_train": round(L_train, 2)}

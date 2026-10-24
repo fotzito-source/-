@@ -108,6 +108,12 @@ def _dist_segments(p1, q1, p2, q2) -> float:
     return float(np.linalg.norm((p1 + d1 * s) - (p2 + d2 * t)))
 
 
+def _impair32(y):
+    """Arrondit à un multiple impair de 1/32 de stud : les faces horizontales des grappes ne tombent jamais sur la
+    grille du 1/16 où sont toutes les faces des masses de fleurs (pas de faces coplanaires possibles)."""
+    return (math.floor(y * 16) + 0.5) / 16
+
+
 def _sous(p0, p1, y):
     """Partie du segment [p0, p1] située sous la hauteur y (None si tout est au-dessus)."""
     if p0[1] > y and p1[1] > y:
@@ -175,6 +181,20 @@ def _recentrer(b, n0, x=True, z=True):
         p.pos = tuple(round(float(v), 4) for v in np.asarray(p.pos, float) + dw)
 
 
+def _bornes(top, embed, L, n, rng):
+    """Hauteurs des n + 1 bornes des segments d'une grappe (du haut vers la pointe), longueurs un peu irrégulières,
+    chaque borne sur un multiple impair de 1/32 (voir `_impair32`)."""
+    fr = np.asarray(_FR[n]) * rng.uniform(0.88, 1.12, n)
+    fr = fr / fr.sum()
+    ys = [top]
+    for i in range(n):
+        ys.append(ys[-1] - (L * fr[i] + (embed if i == 0 else 0.0)))
+    ys = [_impair32(v) for v in ys]
+    for i in range(1, n + 1):  # chaque segment garde au moins 1/4 de stud
+        ys[i] = min(ys[i], ys[i - 1] - 0.25)
+    return ys
+
+
 class _Arbre:
     """Atelier d'un arbre à glycines : cotes de conception (taille 1) multipliées par `t`, registre des blocs de
     fleurs (plafonds où accrocher les grappes), du bois (obstacles) et des grappes posées, budget de pièces.
@@ -196,6 +216,7 @@ class _Arbre:
         self.grappes = []   # (x, z, demi-largeur, demi-profondeur, yaw, y_haut, y_bas)
         self._m = -1
         self._fams = []     # (cx, cz, demi-largeur, demi-profondeur, rot, famille)
+        self.dessous = 0.4  # semelle des masses : mélange glycine_nuit → glycine_fonce
 
     def p(self, *v):
         return tuple(float(x) * self.t for x in v)
@@ -248,14 +269,17 @@ class _Arbre:
 
     def masse(self, cx, y0, cz, w, d, h, rot=0.0, detail=3):
         """Masse de fleurs plate, du sombre (dessous) au clair (sommet ensoleillé).
-        detail 1 : corps + sommet ; 2 : + semelle sombre dessous ; 3 : + corps tourné de 45° (contour octogonal)
-        et étage. Renvoie le haut."""
+        detail 0 : plaque seule ; 1 : corps + sommet ; 2 : + semelle sombre dessous ; 3 : + corps tourné de 45°
+        (contour octogonal) et étage. Renvoie le haut."""
         nuit, fonce, mauve, claire, _pale = self.g
         self._m += 1
         self.masses.append((cx, cz, w, d, rot, y0, y0 + h))
+        if detail <= 0:  # simple plaque (nappe de treille)
+            self.bloc(cx, y0, cz, w, h, d, self.V(mix(fonce, mauve, 0.6)), rot)
+            return y0 + h
         if detail >= 2:  # semelle sombre, un peu en retrait : le dessous se lit d'en bas
-            self.bloc(cx, y0 - 0.5, cz, w - 0.4, 0.5, d - 0.4, self.V(mix(nuit, fonce, 0.4)), rot, studs="none",
-                      name="Dessous")
+            self.bloc(cx, y0 - 0.5, cz, w - 0.4, 0.5, d - 0.4, self.V(mix(nuit, fonce, self.dessous)), rot,
+                      studs="none", name="Dessous")
         self.bloc(cx, y0, cz, w, h, d, self.V(mix(fonce, mauve, 0.45)), rot)
         top = y0 + h
         if detail >= 3:
@@ -366,17 +390,14 @@ class _Arbre:
         if n < 2:
             return False
         cols = self.degrade(n, s0)
-        fr = np.asarray(_FR[n]) * rng.uniform(0.88, 1.12, n)
-        fr = fr / fr.sum()
-        yt = y + embed
+        ys = _bornes(y + embed, embed, L, n, rng)
         for i in range(n):
-            h = L * fr[i] + (embed if i == 0 else 0.0)
+            h = ys[i] - ys[i + 1]
             wi = larg * _LG[n][i]
             jx, jz = (rng.uniform(-0.05, 0.05, 2) * larg) if i else (0.0, 0.0)
             dyaw = float(rng.uniform(-8, 8)) if i else 0.0
-            self.b.boxc(self.p(x + jx, yt - h / 2, z + jz), self.p(wi, h, wi), cols[i],
+            self.b.boxc(self.p(x + jx, ys[i] - h / 2, z + jz), self.p(wi, h, wi), cols[i],
                         yaw=yaw + dyaw, studs="none", collide=False, name="Grappe")
-            yt -= h
         self.grappes.append((x, z, larg / 2, larg / 2, yaw, y + embed, y - L))
         return True
 
@@ -388,30 +409,29 @@ class _Arbre:
         demi = larg / 2
         if self.traverse(x, z, demi, y, y - L, sauf):
             return False
-        L = self._longueur(x, L, demi + ep / 2 + 0.12)(y)
+        t = math.radians(yaw)  # demi-emprise réelle en x de la lame tournée (les segments du bas restent dedans)
+        L = self._longueur(x, L, demi * abs(math.cos(t)) + ep / 2 * abs(math.sin(t)) + 0.12)(y)
         if L < 1.6:
             return False
-        if not self.place_libre(x, z, demi, ep / 2, yaw, y + embed, y - L, demi):
+        if not self.place_libre(x, z, demi, ep / 2, yaw, y + embed, y - L, 0.6 * demi + 0.2):
             return False
         n = n or (2 if L < 5.0 else 3 if L < 9.0 else 4)
         n = min(n, self.reste())
         if n < 2:
             return False
         cols = self.degrade(n, s0)
-        fr = np.asarray(_FR[n]) * rng.uniform(0.88, 1.12, n)
-        fr = fr / fr.sum()
-        yt, off, wprev = y + embed, 0.0, larg
+        ys = _bornes(y + embed, embed, L, n, rng)
+        off, wprev = 0.0, larg
         for i in range(n):
-            h = L * fr[i] + (embed if i == 0 else 0.0)
+            h = ys[i] - ys[i + 1]
             wi = larg * _LR[n][i]
             if i:
                 jeu = (wprev - wi) / 2
                 off += float(rng.choice((-1, 1))) * jeu * float(rng.uniform(0.35, 0.95))
             dx, dz = _monde(off, 0.0, yaw)
-            self.b.boxc(self.p(x + dx, yt - h / 2, z + dz), self.p(wi, h, ep * (1 - 0.12 * i)), cols[i],
+            self.b.boxc(self.p(x + dx, ys[i] - h / 2, z + dz), self.p(wi, h, ep * (1 - 0.12 * i)), cols[i],
                         yaw=yaw, studs="none", collide=False, name="Grappe")
             wprev = wi
-            yt -= h
         self.grappes.append((x, z, demi, ep / 2, yaw, y + embed, y - L))
         return True
 
@@ -513,16 +533,18 @@ class _Arbre:
                 out.append((self.grappe, (cx + dx, cz + dz, Lg, lg), dict(n=nseg)))
         return out if differe else [f(*a, **k) for f, a, k in out]
 
-    def remplir(self, L, larg=1.4, essais=900, bord=0.7, reserve=0):
-        """Passe de remplissage : des grappes sous les grandes masses jusqu'à épuisement du budget."""
+    def remplir(self, L, larg=1.4, essais=900, bord=0.7, reserve=0, quota=None, masses=None):
+        """Passe de remplissage : des grappes sous les grandes masses jusqu'à épuisement du budget (ou jusqu'à
+        `quota` pièces posées par cet appel ; `masses` : n'utiliser que ces masses)."""
         rng = self.rng
-        grands = [q for q in self.plafonds if min(q[2], q[3]) >= 2 * larg + 1]
+        n_dep = len(self.b.parts)
+        grands = [q for q in self.plafonds if min(q[2], q[3]) >= 2 * larg + 1 and (masses is None or q[7] in masses)]
         if not grands:
             return
         aires = np.array([q[2] * q[3] for q in grands], float)
         pr = aires / aires.sum()
         for _ in range(essais):
-            if self.reste() - reserve < 2:
+            if self.reste() - reserve < 2 or (quota is not None and len(self.b.parts) - n_dep >= quota):
                 break
             cx, cz, sx, sz, yaw, _y0, _y1, _m = grands[int(rng.choice(len(grands), p=pr))]
             r = larg * 0.8 + 0.1
@@ -538,12 +560,14 @@ def _franges(T, specs, ep=0.5):
     files = [T.frange(im, n, L, larg, mode=mode, nseg=opt[0] if opt else None, ep=ep, differe=True,
                       faces=opt[1] if len(opt) > 1 else None)
              for (im, n, L, larg, mode, *opt) in specs]
+    poids = [opt[2] if len(opt) > 2 else 1 for (_im, _n, _L, _l, _m, *opt) in specs]
     k = 0
     while any(files) and T.reste() >= 2:
         f = files[k % len(files)]
-        if f:
-            fn, a, kw = f.pop(0)
-            fn(*a, **kw)
+        for _ in range(poids[k % len(files)]):  # une masse de poids p pose p grappes par tour
+            if f and T.reste() >= 2:
+                fn, a, kw = f.pop(0)
+                fn(*a, **kw)
         k += 1
 
 
@@ -824,6 +848,7 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
     D = (16.0, 16.0, 24.0, 18.0)[v]       # profondeur du bandeau (le long du couloir, axe Z)
     teinte = ("mauve", "violet", "mauve", "mauve")[v]
     T = _Arbre(b, 1.0, teinte, budget=220, interdit=(X0, H), melange=("blanc", 0.4) if v == 3 else None)
+    T.dessous = 0.8                        # l'arche se voit d'en dessous : semelle moins sombre
     asym = (0.0, 3.5, 0.0, 0.0)[v]         # côté +x plus haut de `asym`
     pointe = (0.0, 0.0, 0.0, 3.5)[v]       # sommet relevé (arc brisé)
 
@@ -834,7 +859,7 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
     def y_plafond(x):
         """Dessous du bandeau : bombé, plus haut au milieu (pointe en v3), relevé côté +x en v1."""
         f = min(1.0, abs(x) / (P - 6))
-        return H + 9.0 - 3.5 * f ** 2 + pointe * (1 - f) + (asym * f if x > 0 else 0.0)
+        return H + 10.5 - 4.0 * f ** 2 + pointe * (1 - f) + (asym * f if x > 0 else 0.0)
 
     with b.group("ArcheGlycines"):
         with b.group("Bois"):
@@ -842,14 +867,13 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
                 dh = asym if s > 0 else 0.0
                 z0 = float(rng.uniform(-0.6, 0.6))
                 X = lambda dx: s * (P + dx)  # noqa: E731  (dx < 0 : vers le couloir)
-                T.tige([(X(0.0), 0, z0 - 1.2), (X(-1.6), 9.5, z0 + 1.2), (X(-2.6), 19, z0 - 1.0), (X(-3.3), 28, z0 + 0.7),
-                        (X(-3.6), H + 3.0 + dh, z0)], 3.4, T.ecorce(0), (10 * s, 32 * s, 54 * s, 76 * s))
-                T.tige([(X(1.9), 0, z0 + 2.2), (X(-0.4), 7, z0 - 2.0), (X(-0.2), 15.5, z0 + 2.0), (X(-2.6), 24.5, z0 - 1.6),
-                        (X(-3.0), H + dh, z0 + 0.9)], 2.5, T.ecorce(1), (-15 * s, 20 * s, -30 * s, 8 * s))
-                T.tige([(X(0.8), 0, z0 - 3.4), (X(1.8), 10, z0 - 1.4), (X(-0.6), 21, z0 - 2.8)], 1.7, T.ecorce(2),
-                       (25 * s, 50 * s))
+                T.tige([(X(0.0), 0, z0 - 1.2), (X(-1.8), 12, z0 + 1.3), (X(-3.0), 24, z0 - 1.0),
+                        (X(-3.6), H + 3.0 + dh, z0)], 3.6, T.ecorce(0), (10 * s, 38 * s, 66 * s))
+                T.tige([(X(2.0), 0, z0 + 2.2), (X(-0.6), 9, z0 - 2.1), (X(-0.4), 19, z0 + 2.0),
+                        (X(-3.0), H + dh, z0 + 0.6)], 2.6, T.ecorce(1), (-15 * s, 20 * s, -30 * s))
+                T.tige([(X(0.9), 0, z0 - 3.4), (X(1.6), 13, z0 - 1.6)], 1.8, T.ecorce(2), (25 * s,))
                 T.racines(X(0.4), z0, [(90 * s + a, lg, h, lw) for (a, lg, h, lw) in
-                                       ((-10, 4.8, 2.8, 2.6), (65, 3.8, 2.2, 2.2), (-85, 4.0, 2.4, 2.2))])
+                                       ((-10, 5.0, 3.0, 2.8), (75, 4.2, 2.4, 2.4))])
                 # maîtresse : monte au-dessus de `hauteur`, passe le milieu et s'entrelace avec l'autre
                 yb = H + dh
                 T.tige([(X(-3.6), yb + 1.5, z0), (X(-12), y_plafond(s * (P - 12)) + 1.0, z0 - 0.8),
@@ -859,30 +883,476 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
                 zd = (D / 2 - 2.5) * s
                 T.tige([(X(-3.4), yb + 2.0, z0), (X(-11), y_plafond(s * (P - 11)) + 0.8, zd)], 1.7, T.ecorce(1),
                        (20 * s,), name="Branche")
+                # branche basse vers l'extérieur : porte le lobe extérieur
+                T.tige([(X(-2.4), H - 13.0 + dh, z0), (X(4.0), H - 4.6 + dh, 1.25 * s)], 1.6, T.ecorce(2),
+                       (-25 * s,), name="Branche")
         with b.group("Fleurs"):
-            # bandeau au-dessus du couloir : un grand lobe central et deux lobes latéraux, un peu tournés
+            # bandeau au-dessus du couloir : un grand lobe central et deux lobes latéraux, dessus en nuage
             xl = P - 17.0
             masse(0.0, y_plafond(0), float(rng.uniform(-0.8, 0.8)), 22, D, 3.0, float(rng.uniform(-4, 4)), 3)
             for s in (-1, 1):
-                masse(s * xl, y_plafond(s * xl), float(rng.uniform(-0.8, 0.8)), 20, D - 1, 2.5,
+                masse(s * xl, y_plafond(s * xl), float(rng.uniform(-0.8, 0.8)), 20, D - 1, 3.0,
                       float(rng.uniform(-5, 5)), 2)
-            # au-dessus des troncs, à la limite du couloir (dessous ≥ hauteur), puis masses latérales hors couloir
+            # masses latérales, toutes hors couloir (|x| ≥ 31,5) : au-dessus des troncs, autour, et plus bas dehors
             for s in (-1, 1):
                 dh = asym if s > 0 else 0.0
-                masse(s * (P - 5.5), H + 1.5 + dh, 0.0, 9, D - 3, 3.0, 0, 2)
-                wl = min(10.0, 2 * (P - 2 - X0))
-                masse(s * (P - 2), H - 5.0 + dh, 0.0, wl, D, 3.0, 0, 2)
-                masse(s * (P + 4), H - 8.0 + dh, 2.0 * s, 7, D - 5, 2.5, 0, 1)
-            for (im, fx, fz, sx, sz, yaw, ton) in ((0, 0.45, -0.5, 3.4, 2.6, 20, 2), (1, -0.4, 0.45, 3.0, 2.4, -25, 1),
-                                                   (2, 0.4, 0.5, 3.0, 2.4, 35, 2), (5, 0.3, -0.4, 3.0, 2.2, 10, 1)):
+                masse(s * (P + 0.5), H + 1.0 + dh, 0.0, 8, D - 3, 3.0, 0, 1)
+                wl = min(10.0, 2 * (P - 2 - X0 - 0.5))
+                masse(s * (P - 2), H - 3.0 + dh, 0.0, wl, D, 3.0, 0, 2)
+                masse(s * (P + 4.0), H - 6.0 + dh, 1.25 * s, 8, D - 3, 3.5, 0, 2)
+            for (im, fx, fz, sx, sz, yaw, ton) in ((0, 0.45, -0.5, 3.4, 2.6, 20, 2), (2, 0.4, 0.5, 3.0, 2.4, 35, 1)):
                 T.feuilles_sur(im, fx, fz, sx, sz, yaw, ton)
         with b.group("Grappes"):
+            # d'abord quelques grappes sous le bandeau (vues en passant dessous), puis les rideaux
+            T.remplir((3.5, 9.0), 1.2, quota=(30, 30, 45, 30)[v], bord=0.3, masses=(0, 1, 2))
             specs = []
             for im, (cx, _cz, _w, _d, _r, _y0, _y1) in enumerate(T.masses):
                 if abs(cx) >= X0 + 2:      # côtés : longs rideaux sur les trottoirs, tout autour
-                    specs.append((im, 14, (8.0, 15.0), 2.2, "rideau"))
+                    specs.append((im, 16, (8.0, 15.0), 2.2, "rideau", None, None, 2))
                 else:                      # bandeau : rideaux avant et arrière, bornés par la zone interdite
-                    specs.append((im, 22, (4.0, 9.5), 2.1, "rideau", None, "z"))
+                    specs.append((im, 22, (4.5, 11.0), 2.6, "rideau", None, "z", 2))
             _franges(T, specs, ep=0.6)
-            T.remplir((3.0, 8.0), 1.1)
+            T.remplir((3.0, 9.0), 1.1)
     return _infos(b, T.n0)
+
+
+# ---------------------------------------------------------------------------
+# Treille (fujidana)
+# ---------------------------------------------------------------------------
+
+def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, variant: int = 0) -> dict:
+    """Treille de glycines (fujidana) le long de l'axe X local : poteaux sur dés de pierre, sablières, traverses et
+    treillis de lattes, deux glycines tordues qui grimpent aux poteaux, nappe de fleurs sur le treillis et grappes
+    qui pendent au travers jusqu'à environ hauteur - 4 (on passe dessous). Avant = -Z.
+    0 bois sombre et glycines mauves, 1 bois brun et glycines violettes, 2 bois clair et glycines blanches,
+    3 poteaux vermillon (treille de sanctuaire). ≤ 130 pièces."""
+    v = variant % 4
+    rng = b.rng
+    L, W, H = float(longueur), float(largeur), float(hauteur)
+    teinte = ("mauve", "violet", "blanc", "mauve")[v]
+    bois = (c("bois_fonce"), c("bois"), c("bois_clair"), c("vermillon"))[v]
+    bois2 = (c("bois"), c("bois_fonce"), c("bois_moyen"), c("noir_laque"))[v]  # sablières et traverses
+    T = _Arbre(b, 1.0, teinte, budget=130)
+    nx = max(2, int(round(L / 6.5)) + 1)
+    xs = [float(x) for x in np.linspace(-L / 2 + 0.6, L / 2 - 0.6, nx)]
+    zs = (-W / 2 + 0.6, W / 2 - 0.6)
+    with b.group("Treille"):
+        with b.group("Bois"):
+            for x in xs:
+                for z in zs:
+                    b.box((x - 0.5, 0, z - 0.5), (x + 0.5, H - 1.3, z + 0.5), vary(bois, rng, 0.03), name="Poteau")
+                    b.box((x - 0.8, 0, z - 0.8), (x + 0.8, 0.45, z + 0.8), vary(c("pierre_fonce"), rng, 0.04),
+                          studs="top", name="Socle")
+                # traverse (le long de Z), posée sur les sablières, débordante
+                b.box((x - 0.4, H - 1.0, -W / 2 - 0.5), (x + 0.4, H - 0.4, W / 2 + 0.5), vary(bois2, rng, 0.03),
+                      name="Traverse")
+                T.bois.append((np.array([x, H - 0.7, -W / 2 - 0.5]), np.array([x, H - 0.7, W / 2 + 0.5]), 0.45))
+            for z in zs:  # sablières (le long de X)
+                b.box((-L / 2 - 0.8, H - 2.0, z - 0.6), (L / 2 + 0.8, H - 1.0, z + 0.6), vary(bois2, rng, 0.03),
+                      name="Sabliere")
+                T.bois.append((np.array([-L / 2 - 0.8, H - 1.5, z]), np.array([L / 2 + 0.8, H - 1.5, z]), 0.65))
+            # treillis : lattes le long de X sur les traverses, puis lattes le long de Z par-dessus
+            nzl = max(3, int(round(W / 2.0)))
+            for z in np.linspace(-W / 2 + 1.0, W / 2 - 1.0, nzl):
+                b.box((-L / 2 - 0.5, H - 0.4, z - 0.2), (L / 2 + 0.5, H - 0.1, z + 0.2), vary(bois, rng, 0.03),
+                      name="Latte", collide=False)
+            nxl = max(2, int(round(L / 3.2)))
+            for x in np.linspace(-L / 2 + 1.4, L / 2 - 1.4, nxl):
+                b.box((x - 0.2, H - 0.1, -W / 2 - 0.6), (x + 0.2, H + 0.2, W / 2 + 0.6), vary(bois, rng, 0.03),
+                      name="Latte", collide=False)
+            # deux glycines tordues grimpent à des poteaux opposés puis courent sur le treillis
+            for (xp, zp, sx, sz) in ((xs[0], zs[0], 1, -1), (xs[-1] if nx > 2 else xs[-1], zs[1], -1, 1)):
+                T.tige([(xp + 0.9 * sx, 0, zp + 0.8 * sz), (xp - 0.6 * sx, 3.0, zp + 1.0 * sz),
+                        (xp + 0.8 * sx, 6.0, zp - 0.4 * sz), (xp + 0.2 * sx, H - 0.6, zp + 0.5 * sz),
+                        (xp + 4.0 * sx, H + 0.6, zp * 0.4)], 0.8, T.ecorce(1), (20, 45, 70, 95))
+        with b.group("Fleurs"):
+            # nappe de fleurs : deux rangées de plaques un peu tournées (avant / arrière) qui débordent des sablières,
+            # avec parfois un trou où l'on voit le treillis
+            npx = max(1, int(round(L / 5.5)))
+            pas = L / npx
+            for i in range(npx):
+                for j, sz in enumerate((-1, 1)):
+                    if 0 < i < npx - 1 and rng.uniform() < 0.12:
+                        continue
+                    cx = -L / 2 + pas * (i + 0.5) + float(rng.uniform(-0.5, 0.5))
+                    w = round(pas * float(rng.uniform(0.92, 1.08)) * 2) / 2
+                    d = round((W / 2 + 1.6 + float(rng.uniform(0.0, 0.6))) * 2) / 2
+                    zc = sz * (d / 2 - 0.2)
+                    rot = float(rng.uniform(-6, 6))
+                    y0 = H + 0.2 - T.famille(cx, zc, w, d, rot) / 2 - 0.05
+                    T.masse(cx, y0, zc, w, d, 1.0 + 0.5 * ((i + j) % 2), rot, 0)
+            # quelques bouffées plus claires sur la nappe
+            nuit, fonce, mauve, claire, pale = T.g
+            choix = rng.permutation(len(T.masses))[:max(2, npx)]
+            for k, im in enumerate(choix):
+                cx, cz, w, d, rot, _y0, y1 = T.masses[int(im)]
+                dx, dz = _monde(float(rng.uniform(-0.2, 0.2)) * w, float(rng.uniform(-0.15, 0.15)) * d, rot)
+                T.bloc(cx + dx, y1 - 0.15625, cz + dz, round(w * 0.4 * 2) / 2, (0.875, 0.75)[k % 2],
+                       round(d * 0.4 * 2) / 2, T.V(mix(mauve, claire, 0.4 + 0.3 * (k % 2))), rot + 30 + 15 * k,
+                       plafond=False)
+        with b.group("Grappes"):
+            # rideaux devant et derrière (hors des sablières), pointes vers H - 4, puis grappes entre les sablières
+            specs = [(im, 14, (3.4, 5.4), 1.1, "rideau") for im in range(len(T.masses))]
+            _franges(T, specs, ep=0.45)
+            T.remplir((3.0, 5.0), 0.95)
+    return _infos(b, T.n0)
+
+
+# ---------------------------------------------------------------------------
+# Bambous
+# ---------------------------------------------------------------------------
+
+def bambous(b, variant: int = 0, n: int = 7) -> dict:
+    """Bosquet de bambous : n tiges fines de 18 à 30 studs, segmentées par des nœuds, légèrement écartées en
+    éventail, bouquets de feuilles en haut. 0 touffe ronde, 1 rangée le long de X (haie de fond), 2 éventail (tiges
+    très penchées), 3 touffe avec vieilles tiges sombres et jeunes pousses. ≤ 50 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    n = int(max(1, min(int(n), 16)))
+    sol = 2 if v == 3 else 1
+    par = max(2, (50 - sol) // n)                 # pièces par tige
+    feuilles = min(4, max(1, par - 1 - 2))        # lames de feuilles par tige
+    noeuds = max(0, min(4, par - 1 - feuilles))
+    with b.group("Bambous"):
+        # positions : spirale de tournesol (touffe), ligne, ou touffe lâche
+        pos = []
+        for i in range(n):
+            if v == 1:
+                x = (i - (n - 1) / 2) * 1.9 + float(rng.uniform(-0.3, 0.3))
+                z = float(rng.uniform(-0.9, 0.9))
+            else:
+                r = (1.05 if v != 2 else 1.25) * math.sqrt(i + 0.5)
+                a = i * 2.39996 + float(rng.uniform(-0.2, 0.2))
+                x, z = r * math.cos(a), r * math.sin(a)
+            pos.append((x, z))
+        cx = sum(q[0] for q in pos) / n
+        cz = sum(q[1] for q in pos) / n
+        for i, (x, z) in enumerate(pos):
+            dx, dz = x - cx, z - cz
+            dist = math.hypot(dx, dz)
+            centre = 1.0 - min(1.0, dist / 4.0)
+            h = 18.0 + 10.0 * centre + float(rng.uniform(-1.5, 2.0))
+            h = min(30.0, max(18.0, h)) if v != 3 or i % 3 else 16.0 + float(rng.uniform(0, 3))
+            dia = 0.7 + 0.3 * (h - 18.0) / 12.0
+            inc = {0: (1.5, 4.0), 1: (0.5, 2.5), 2: (5.0, 11.0), 3: (1.5, 5.0)}[v]
+            tilt = math.radians(float(rng.uniform(*inc)))
+            if dist > 1e-6:
+                ux, uz = dx / dist, dz / dist
+            else:
+                a = float(rng.uniform(0, 2 * math.pi))
+                ux, uz = math.cos(a), math.sin(a)
+            if v == 1:
+                ux, uz = 0.3 * ux, 1.0 if z < 0 else -1.0  # la rangée s'ouvre un peu vers l'avant et l'arrière
+                nn = math.hypot(ux, uz)
+                ux, uz = ux / nn, uz / nn
+            u = np.array([math.sin(tilt) * ux, math.cos(tilt), math.sin(tilt) * uz])
+            p0 = np.array([x, 0.0, z])
+            vieux = v == 3 and i % 3 == 0
+            col = vary(c("bambou_fonce") if (i % 2 or vieux) else c("bambou"), rng, 0.04)
+            if vieux:
+                col = mix(col, c("terre"), 0.35)
+            tw = float(rng.uniform(0, 90))
+            # le pied est un peu enfoncé : aucun coin ne flotte
+            e0 = (dia * 0.72 * math.sin(tilt) + 0.05) / max(math.cos(tilt), 0.3)
+            _poutre(b, p0, p0 + u * h, dia, dia, col, tw, e0, 0.0, name="Bambou")
+            # nœuds : anneaux un peu plus larges et plus sombres
+            for k in range(noeuds):
+                f = 0.14 + 0.6 * ((k + 0.5) / noeuds) ** 1.1
+                q = p0 + u * h * f
+                _poutre(b, q - u * 0.15, q + u * 0.15, dia + 0.24, dia + 0.24, shade(col, 0.78), tw, 0, 0,
+                        name="Noeud", collide=False)
+            # feuilles : lames en fer de lance qui partent du haut de la tige en éventail et retombent un peu
+            a0 = float(rng.uniform(0, 360))
+            for k in range(feuilles):
+                f = 1.0 - 0.13 * k - float(rng.uniform(0, 0.05))
+                q = p0 + u * h * f
+                a = math.radians(a0 + k * (360.0 / max(feuilles, 1)) * 0.75 + float(rng.uniform(-20, 20)))
+                chute = math.radians(float(rng.uniform(12, 32)))
+                lg = 3.6 - 0.3 * k + float(rng.uniform(-0.4, 0.5))
+                d = np.array([math.cos(a) * math.cos(chute), -math.sin(chute), math.sin(a) * math.cos(chute)])
+                col_f = vary((FEUILLES[2], c("bambou"), FEUILLES[1], FEUILLES[2])[(i + k) % 4], rng, 0.05)
+                _poutre(b, q - d * 0.3, q + d * lg, 1.05, 0.3, col_f, 90.0, 0, 0, collide=False, name="Feuilles")
+        # sol : litière de feuilles sèches, pousses de bambou (takenoko)
+        rx = max(abs(q[0] - cx) for q in pos) + 1.6
+        rz = max(abs(q[1] - cz) for q in pos) + 1.6
+        b.boxc((cx, 0.15, cz), (round(rx * 2 * 2) / 2, 0.3, round(rz * 2 * 2) / 2), vary(mix(c("terre"), c("bambou_fonce"), 0.35), rng, 0.04),
+               yaw=float(rng.uniform(-10, 10)), studs="top", collide=False, name="Litiere")
+        if v == 3:
+            px, pz = cx + rx * 0.6, cz - rz * 0.5
+            b.wedge((px - 0.5, 0.3, pz - 0.6), (px + 0.5, 1.9, pz + 0.6), vary(mix(c("terre"), c("bambou_fonce"), 0.5), rng, 0.04),
+                    down="-z", collide=False, name="Pousse")
+    _recentrer(b, n0)
+    return _infos(b, n0)
+
+
+# ---------------------------------------------------------------------------
+# Pin taillé en nuages (niwaki)
+# ---------------------------------------------------------------------------
+
+PINS = [
+    # 0 : droit — tronc en S, cinq plateaux étagés en alternance et un plateau sommital
+    dict(tronc=[(0.0, 0, 0.0), (0.8, 4.0, 0.3), (-0.6, 8.0, -0.2), (0.4, 12.0, 0.3), (0.0, 14.5, 0.0)], w=1.6,
+         plateaux=[((-0.4, 5.5, 0.0), (-5.0, 6.5, -0.5), 7, 5.5, 1.5, 15), ((0.6, 8.5, 0.0), (5.0, 9.0, 0.5), 6.5, 5, 1.5, -20),
+                   ((-0.3, 10.8, 0.0), (-3.6, 11.5, 1.0), 5.5, 4.5, 1.5, 30), ((0.3, 12.6, 0.0), (3.2, 13.0, -0.6), 5, 4, 1.5, -10),
+                   (None, (0.0, 14.4, 0.0), 5.5, 5.5, 2.0, 45)]),
+    # 1 : penché (nagare) — tronc qui s'incline fortement d'un côté, plateaux en escalier vers le bas
+    dict(tronc=[(0.0, 0, 0.0), (1.4, 4.0, 0.2), (3.6, 7.5, -0.3), (6.4, 9.6, 0.2), (8.8, 10.2, 0.0)], w=1.6,
+         plateaux=[((1.6, 4.6, 0.1), (-1.6, 7.0, 0.6), 5.5, 4.5, 1.5, 20), ((4.0, 7.8, -0.2), (4.2, 11.2, -1.2), 6, 5, 1.5, -15),
+                   ((6.6, 9.6, 0.1), (8.0, 10.0, 2.2), 5.5, 5, 1.5, 10), (None, (9.6, 10.6, -0.2), 6, 5, 1.5, 35),
+                   ((2.6, 6.2, 0.0), (1.8, 9.6, 2.4), 4.5, 4, 1.5, -30)]),
+    # 2 : large (monkaburi) — tronc court et coudé, une longue branche basse horizontale, couronne plate
+    dict(tronc=[(0.0, 0, 0.0), (0.6, 3.5, 0.2), (-0.3, 7.0, -0.2), (0.2, 10.5, 0.1)], w=1.8,
+         plateaux=[((0.2, 4.0, 0.0), (-7.5, 4.8, 0.4), 7.5, 5, 1.5, 10), ((-3.5, 4.4, 0.2), (-3.4, 6.0, -2.4), 4, 3.5, 1.0, -20),
+                   ((0.4, 7.0, 0.0), (5.5, 7.6, -0.4), 6.5, 5, 1.5, -15), (None, (0.0, 10.4, 0.0), 8.5, 7, 2.0, 25),
+                   ((-0.2, 8.8, 0.0), (-4.5, 9.4, 1.6), 5, 4, 1.5, 40)]),
+    # 3 : élancé — tronc haut et fin, trois étages de plateaux de plus en plus petits
+    dict(tronc=[(0.0, 0, 0.0), (0.5, 6.0, 0.3), (-0.4, 12.0, -0.2), (0.2, 17.5, 0.2)], w=1.4,
+         plateaux=[((0.3, 7.0, 0.1), (-4.0, 8.0, 0.4), 6, 5, 1.5, 15), ((0.2, 7.5, 0.0), (4.0, 8.4, -0.6), 5.5, 4.5, 1.5, -25),
+                   ((-0.3, 12.5, 0.0), (-3.0, 13.2, 0.6), 4.5, 4, 1.5, 30), ((-0.1, 13.0, 0.0), (3.0, 13.6, -0.4), 4.5, 3.5, 1.5, -10),
+                   (None, (0.2, 17.5, 0.2), 4.5, 4.5, 2.0, 45)]),
+]
+
+
+def pin(b, variant: int = 0) -> dict:
+    """Pin japonais taillé en nuages (niwaki) : tronc brun-roux en S, branches qui portent des plateaux d'aiguilles
+    vert bleuté sombre, dessus plus clair et studdé. 0 droit, 1 penché (nagare), 2 large à branche basse,
+    3 élancé. ≤ 40 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    S = PINS[v]
+    T = _Arbre(b, 1.0, "mauve", budget=40)
+    ecorce = vary(ECORCE_PIN, rng, 0.04)
+    aig = c("pin")
+    with b.group("Pin"):
+        T.tige(S["tronc"], S["w"], ecorce, (10, 35, 60, 85), name="Tronc")
+        x0, _y, z0 = S["tronc"][0]
+        T.racines(x0, z0, [(30, 2.0, 1.2, 1.2), (160, 1.8, 1.0, 1.1), (270, 2.0, 1.1, 1.2)], shade(ECORCE_PIN, 0.85))
+        for k, (dep, (cx, y0, cz), w, d, h, rot) in enumerate(S["plateaux"]):
+            if dep is not None:  # branche du tronc au plateau (noyée dedans)
+                T.tige([dep, (cx, y0 + h * 0.4, cz)], 0.6, ecorce, (20 * k,), name="Branche", collide=False)
+            y0f = y0 + (k % 4) * 0.125  # chaque plateau a sa propre famille de hauteurs
+            b.boxc((cx, y0f + h / 2, cz), (w, h, d), vary(aig, rng, 0.04), yaw=rot, studs="top", collide=False,
+                   name="Aiguilles")
+            b.boxc((cx + 0.2, y0f + h + 0.25, cz - 0.1), (max(1.0, w - 2.2), 0.5, max(1.0, d - 2.0)),
+                   vary(mix(aig, c("feuille_claire"), 0.45), rng, 0.04), yaw=rot + 12, studs="top", collide=False,
+                   name="Aiguilles")
+            b.boxc((cx - 0.1, y0f - 0.25, cz + 0.1), (max(1.0, w - 1.6), 0.5, max(1.0, d - 1.4)),
+                   vary(shade(aig, 0.78), rng, 0.04), yaw=rot - 8, studs="none", collide=False, name="Aiguilles")
+    _recentrer(b, n0)
+    return _infos(b, n0)
+
+
+# ---------------------------------------------------------------------------
+# Petits éléments : buissons, rochers moussus, souches, herbes
+# ---------------------------------------------------------------------------
+
+MOUSSE = c("mousse")
+CHAMPIGNON = mix(c("lampion_papier"), c("terre"), 0.15)
+CHAMPIGNON_ROUGE = c("rouge")
+
+
+def _brin(b, x, z, h, w, col, ax=0.0, az=0.0, tw=0.0, name="Brin", d=None):
+    """Brin ou feuille fine qui part du sol (pied un peu enfoncé), incliné de (ax, az) par stud de hauteur."""
+    p0 = np.array([x, 0.0, z])
+    p1 = np.array([x + ax * h, h, z + az * h])
+    u = (p1 - p0) / np.linalg.norm(p1 - p0)
+    e0 = (max(w, d or w) * 0.72 * math.sqrt(max(0.0, 1 - u[1] ** 2)) + 0.03) / max(u[1], 0.3)
+    return _poutre(b, p0, p1, w, d or w, col, tw, e0, 0.0, collide=False, shadow=False, name=name)
+
+
+def buisson(b, variant: int = 0) -> dict:
+    """Petit buisson (2 à 4 studs) : 0 boule verte, 1 azalée lilas en fleurs, 2 hortensia bleu-violet,
+    3 fougère (frondes en étoile). ≤ 12 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    F = lambda i, a=0.04: vary(FEUILLES[i], rng, a)  # noqa: E731
+
+    def bloc(cx, y0, cz, sx, sy, sz, col, yaw=0.0, **kw):
+        kw.setdefault("studs", "top")
+        kw.setdefault("collide", False)
+        kw.setdefault("name", "Feuillage")
+        return b.boxc((cx, y0 + sy / 2, cz), (sx, sy, sz), col, yaw=yaw, **kw)
+
+    with b.group("Buisson"):
+        if v == 0:  # boule : blocs droit et à 45°, dessus clair, deux bosses sur les côtés
+            bloc(0, 0, 0, 4, 2, 3.5, F(1))
+            bloc(0.25, 0, -0.25, 3.5, 2.5, 3.5, vary(mix(FEUILLES[1], FEUILLES[2], 0.3), rng, 0.04), 45)
+            bloc(-0.25, 2.5, 0.25, 2.5, 0.75, 2, F(2))
+            bloc(2.25, 0, 1, 2, 1.5, 2, F(0), 30)
+            bloc(-2.25, 0, -0.75, 1.5, 1.0, 1.5, F(0), -20)
+            bloc(0, 3.25, 0, 1, 0.5, 1, vary(c("herbe_claire"), rng, 0.04), 45)
+        elif v == 1:  # azalée lilas : dôme taillé piqué de fleurs
+            bloc(0, 0, 0, 5, 2, 3, F(0))
+            bloc(0, 0, 0, 3.5, 2.5, 3.5, vary(mix(FEUILLES[0], FEUILLES[1], 0.5), rng, 0.04), 45)
+            fl = (c("glycine_claire"), c("glycine"), c("glycine_pale"), mix(c("glycine_claire"), c("rouge"), 0.2))
+            for i, (x, y, z) in enumerate(((-1.2, 2.0, -0.3), (0.6, 2.25, 0.5), (1.7, 1.75, -0.6), (-0.2, 2.2, -0.9),
+                                           (-2.3, 1.3, 0.4), (1.0, 1.0, -1.4), (-0.9, 1.5, 1.3))):
+                b.box((x - 0.4, y - 0.4, z - 0.4), (x + 0.4, y + 0.45, z + 0.4), vary(fl[i % 4], rng, 0.04), studs="top",
+                      collide=False, name="Fleur")
+        elif v == 2:  # hortensia : feuillage sombre et grosses têtes bleu-violet
+            bloc(0, 0, 0, 4, 2.5, 3, F(0))
+            bloc(0.5, 0, 1, 3, 2, 3, F(1), 45)
+            cols = (mix(c("eau"), c("glycine"), 0.5), c("glycine"), mix(c("eau"), c("glycine_claire"), 0.4),
+                    c("glycine_fonce"), mix(c("glycine_claire"), c("blanc"), 0.3))
+            for i, (x, y, z) in enumerate(((-1.1, 2.5, -0.7), (1.1, 2.5, 0.2), (-0.4, 2.0, -1.5), (1.6, 2.0, 1.6),
+                                           (-1.6, 1.8, 0.9))):
+                b.box((x - 0.7, y - 0.5, z - 0.7), (x + 0.7, y + 0.65, z + 0.7), vary(cols[i], rng, 0.04), studs="top",
+                      collide=False, name="Fleur")
+        else:  # fougère : frondes fines qui s'ouvrent en étoile
+            for k in range(8):
+                a = math.radians(k * 45 + float(rng.uniform(-12, 12)))
+                h = 2.0 + 0.8 * (k % 3) + float(rng.uniform(-0.2, 0.3))
+                ouv = 0.75 + 0.15 * (k % 2)
+                _brin(b, 0.15 * math.cos(a), 0.15 * math.sin(a), h, 0.55, F(k % 3), ouv * math.cos(a), ouv * math.sin(a),
+                      tw=math.degrees(a), name="Feuille", d=0.18)
+            bloc(0, 0, 0, 1.2, 0.6, 1.2, F(0), 20)
+    return _infos(b, n0)
+
+
+def rocher_deco(b, variant: int = 0) -> dict:
+    """Rochers gris-bleu moussus (comme ceux du sanctuaire en forêt) : 0 amas de blocs arrondis, 1 pierre dressée
+    entourée de petites pierres, 2 pas japonais (pierres plates), 3 gros rocher couvert de mousse avec une touffe de
+    fougère. Studs sur les dessus, mousse en plaques. ≤ 12 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    g0, g1, g2, g3 = GRIS
+
+    def R(cx, cy, cz, sx, sy, sz, col, yaw, **kw):
+        kw.setdefault("studs", "top")
+        kw.setdefault("name", "Rocher")
+        return b.boxc((cx, cy, cz), (sx, sy, sz), vary(col, rng, 0.03), yaw=yaw, **kw)
+
+    def M(cx, y0, cz, sx, sz, yaw):
+        return R(cx, y0 + 0.15, cz, sx, 0.3, sz, MOUSSE, yaw, collide=False, name="Mousse")
+
+    with b.group("Rochers"):
+        if v == 0:
+            R(0, 1.5, 0, 5, 3, 4, g0, 12)
+            R(0.25, 1.75, -0.25, 4, 3.5, 4.5, g1, 57)
+            R(-0.3, 3.75, 0.2, 3, 1.0, 2.5, g2, 20)
+            M(-0.6, 4.25, 0.4, 2.0, 1.6, 20)
+            R(3.4, 0.75, 1.6, 2.4, 1.5, 2.0, g1, -20)
+            M(3.3, 1.5, 1.6, 1.4, 1.2, -20)
+            R(-3.1, 0.55, 1.9, 1.8, 1.1, 1.6, g2, 35)
+            R(1.6, 0.35, -2.9, 1.2, 0.7, 1.0, g0, 8)
+        elif v == 1:
+            R(0, 2.75, 0, 2.2, 5.5, 1.8, g0, 10)
+            R(0.1, 5.75, 0.05, 1.5, 0.5, 1.3, g2, 25)
+            R(0.2, 2.5, -0.3, 1.6, 5.0, 2.2, g1, 55)
+            R(1.9, 0.6, 1.0, 2.0, 1.2, 1.8, g1, -25)
+            R(-1.8, 0.45, -0.9, 1.6, 0.9, 1.4, g2, 40)
+            M(-0.1, 1.2, 1.25, 1.4, 0.9, 10)
+            M(1.9, 1.2, 1.0, 1.2, 1.0, -25)
+        elif v == 2:
+            for i, (x, z, sx, sz, h, yaw) in enumerate(((0, 0, 2.6, 2.0, 0.6, 8), (2.4, 1.4, 1.8, 1.5, 0.5, -25),
+                                                         (-2.2, 1.0, 1.8, 1.6, 0.55, 40), (0.7, -2.2, 1.5, 1.3, 0.45, 15),
+                                                         (-1.3, -2.1, 1.1, 1.0, 0.4, -10))):
+                R(x, h / 2, z, sx, h, sz, (g2, g3, g1, g2, g3)[i], yaw)
+            M(-0.3, 0.6, 0.1, 1.0, 0.8, 8)
+        else:
+            R(0, 2.0, 0, 6, 4, 5, g0, 15)
+            R(0.3, 2.25, 0.2, 5, 4.5, 5.5, g1, 60)
+            R(-0.2, 4.75, -0.2, 3.5, 1.0, 3.0, g2, 30)
+            M(-0.4, 5.25, -0.1, 2.6, 2.0, 30)
+            M(1.6, 4.0, 1.8, 2.2, 1.8, 60)
+            M(-2.3, 4.0, -1.0, 1.8, 2.2, 15)
+            R(3.6, 0.6, -1.6, 1.8, 1.2, 1.6, g2, -15)
+            for k in range(3):  # touffe de fougère au pied
+                a = math.radians(200 + k * 50)
+                _brin(b, -3.3, 1.6, 1.8 + 0.3 * k, 0.5, vary(FEUILLES[k % 3], rng, 0.04), 0.7 * math.cos(a),
+                      0.7 * math.sin(a), tw=math.degrees(a), name="Feuille", d=0.18)
+    return _infos(b, n0)
+
+
+def souche(b, variant: int = 0) -> dict:
+    """Souche (comme celle du sanctuaire en forêt) : 0 souche coupée net (cernes clairs, racines, mousse),
+    1 souche cassée en pointes, 2 tronc couché, 3 souche moussue aux champignons. ≤ 12 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    e = vary(TRONC_CLAIR, rng, 0.04)
+    e2 = vary(mix(TRONC, TRONC_CLAIR, 0.5), rng, 0.04)
+    coeur = vary(c("bois_clair"), rng, 0.04)
+    rac = shade(TRONC_CLAIR, 0.85)
+
+    def racines(specs):
+        for (ang, lg, h, lw) in specs:
+            with b.at((0, 0, 0), yaw=ang):
+                b.wedge((-lw / 2, 0, 0.6), (lw / 2, h, 0.6 + lg), vary(rac, rng, 0.04), down="+z", name="Racine")
+
+    with b.group("Souche"):
+        if v in (0, 3):
+            hs = 2.2 if v == 0 else 1.8
+            b.boxc((0, hs / 2, 0), (3, hs, 3), e)
+            b.boxc((0, (hs - 0.25) / 2, 0), (3.1, hs - 0.25, 3.1), e2, yaw=45)
+            b.boxc((0, hs + 0.05, 0), (2.2, 0.1, 2.2), coeur, studs="top", name="Coeur")
+            racines(((20, 1.6, 1.2, 1.2), (140, 1.4, 1.0, 1.1), (260, 1.8, 1.3, 1.2)))
+            if v == 0:
+                b.boxc((0.9, hs + 0.15, -0.6), (1.2, 0.2, 1.0), MOUSSE, yaw=20, collide=False, studs="top", name="Mousse")
+            else:  # mousse épaisse et champignons sur le flanc
+                b.boxc((0.2, hs + 0.2, 0.3), (2.0, 0.3, 1.8), MOUSSE, yaw=10, collide=False, studs="top", name="Mousse")
+                for k, (x, y, z, col) in enumerate(((1.75, 0.9, 0.3, CHAMPIGNON), (1.7, 1.4, -0.5, CHAMPIGNON),
+                                                    (-0.6, 0.25, -2.0, CHAMPIGNON_ROUGE))):
+                    b.boxc((x, y, z), (0.9 if k < 2 else 0.8, 0.25, 0.9 if k < 2 else 0.8), col, yaw=15 * k,
+                           collide=False, studs="top", name="Champignon")
+                b.boxc((-0.6, 0.1, -2.0), (0.25, 0.2, 0.25), c("blanc"), collide=False, name="Champignon")
+        elif v == 1:  # cassée : fût plus haut, sommet en pointes de hauteurs différentes
+            b.boxc((0, 1.6, 0), (2.6, 3.2, 2.6), e)
+            b.boxc((0, 1.45, 0), (2.7, 2.9, 2.7), e2, yaw=45)
+            for (x, z, sx, sz, h) in ((-0.6, -0.5, 1.0, 1.1, 1.8), (0.7, 0.3, 0.9, 1.0, 1.1), (-0.2, 0.8, 0.8, 0.7, 0.7)):
+                b.box((x - sx / 2, 3.2, z - sz / 2), (x + sx / 2, 3.2 + h, z + sz / 2), e, name="Echarde")
+            racines(((40, 1.6, 1.2, 1.1), (170, 1.5, 1.0, 1.0), (290, 1.7, 1.2, 1.1)))
+        else:  # tronc couché le long de X, souche de branche, mousse dessus
+            b.box((-3.5, 0, -0.9), (3.5, 1.8, 0.9), e, name="Tronc")
+            with b.at((0, 0.9, 0)):
+                _poutre(b, (-3.45, 0, 0), (3.45, 0, 0), 2.1, 2.1, e2, 45, 0, 0, name="Tronc")
+            b.box((3.5, 0.2, -0.7), (3.6, 1.6, 0.7), coeur, name="Coeur")
+            b.box((-3.6, 0.2, -0.7), (-3.5, 1.6, 0.7), coeur, name="Coeur")
+            _poutre(b, (0.8, 1.6, 0.2), (1.6, 2.8, -0.6), 0.6, 0.6, e, 20, 0.2, 0, name="Branche")
+            b.boxc((-1.0, 2.0, 0.1), (2.6, 0.3, 1.4), MOUSSE, yaw=8, collide=False, studs="top", name="Mousse")
+    return _infos(b, n0)
+
+
+def herbes(b, variant: int = 0) -> dict:
+    """Touffes d'herbe : 0 touffe courte, 1 hautes herbes à plumets (susuki), 2 bambou nain (sasa),
+    3 herbes et petites fleurs mauves. ≤ 12 pièces."""
+    v = variant % 4
+    rng = b.rng
+    n0 = len(b.parts)
+    cols = (c("herbe_fonce"), c("herbe"), c("herbe_claire"), c("feuille"))
+    with b.group("Herbes"):
+        if v == 0:
+            for k in range(6):
+                a = math.radians(k * 60 + float(rng.uniform(-15, 15)))
+                _brin(b, 0.2 * math.cos(a), 0.2 * math.sin(a), 0.9 + 0.35 * (k % 3), 0.3, vary(cols[k % 4], rng, 0.05),
+                      0.35 * math.cos(a), 0.35 * math.sin(a), tw=k * 30)
+        elif v == 1:
+            for k in range(5):
+                a = math.radians(k * 72 + float(rng.uniform(-15, 15)))
+                h = 3.0 + 0.6 * (k % 3)
+                _brin(b, 0.2 * math.cos(a), 0.2 * math.sin(a), h, 0.25, vary(cols[k % 4], rng, 0.05), 0.18 * math.cos(a),
+                      0.18 * math.sin(a), tw=k * 20)
+                if k < 3:  # plumet clair au bout de la tige
+                    tip = np.array([0.2 * math.cos(a) + 0.18 * math.cos(a) * h, h, 0.2 * math.sin(a) + 0.18 * math.sin(a) * h])
+                    b.boxc(tuple(tip + np.array([0, -0.45, 0])), (0.45, 1.2, 0.45), vary(c("lampion_papier"), rng, 0.04),
+                           yaw=k * 25, collide=False, shadow=False, name="Plumet")
+        elif v == 2:
+            for k in range(7):
+                a = math.radians(k * 51 + float(rng.uniform(-10, 10)))
+                _brin(b, 0.15 * math.cos(a), 0.15 * math.sin(a), 1.4 + 0.3 * (k % 3), 0.6, vary(FEUILLES[k % 3], rng, 0.05),
+                      0.8 * math.cos(a), 0.8 * math.sin(a), tw=math.degrees(a), name="Feuille", d=0.14)
+        else:
+            for k in range(5):
+                a = math.radians(k * 72 + float(rng.uniform(-15, 15)))
+                _brin(b, 0.2 * math.cos(a), 0.2 * math.sin(a), 1.0 + 0.4 * (k % 3), 0.3, vary(cols[k % 4], rng, 0.05),
+                      0.3 * math.cos(a), 0.3 * math.sin(a), tw=k * 30)
+            for k, (x, z) in enumerate(((0.9, 0.5), (-0.7, 0.9), (0.2, -1.0))):
+                h = 1.3 + 0.25 * k
+                _brin(b, x, z, h, 0.14, vary(cols[0], rng, 0.05), name="Tige")
+                b.boxc((x, h + 0.2, z), (0.55, 0.4, 0.55), vary((c("glycine"), c("glycine_claire"), c("glycine_pale"))[k],
+                       rng, 0.04), yaw=20 * k, collide=False, shadow=False, studs="top", name="Fleur")
+    return _infos(b, n0)

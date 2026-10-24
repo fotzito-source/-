@@ -1,13 +1,24 @@
 """Bâtiments du village de l'ère Taishō et du sanctuaire de montagne (zone 3), style « stud ».
 
 Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "hauteur": h}) :
-- machiya      : maison de marchand à deux niveaux (treillis koshi, auvent, étage enduit, enseigne) ;
-- auberge      : ryokan à trois niveaux (balcons, fenêtres éclairées, porche à fronton courbe, enseigne 宿) ;
-- maison_the   : maison de thé ouverte (bancs à tissu rouge, grande ombrelle, menus, noren) ;
-- kura         : entrepôt à murs épais d'enduit et soubassement namako ;
-- sanctuaire   : pavillon de culte (socle de pierre, plancher surélevé, véranda, grand toit irimoya, cloche, shimenawa) ;
-- temizuya     : pavillon des ablutions (bassin de pierre, louches, plaque 清水) ;
-- yatai        : échoppe ambulante sur roues.
+- machiya(largeur=22, profondeur=18) : maison de marchand à deux niveaux (≈ 22 de haut) ;
+    v0 étoffes 呉服 (mushiko-mado, enseigne de toit, ailes udatsu, toit à deux pans bleu nuit),
+    v1 apothicaire 薬 (étage en planches, sudare, toit irimoya ardoise, enseigne sur pied),
+    v2 confiserie 甘味 (boutique ouverte, fenêtres vitrées, pignon sur rue), v3 soba 蕎麦 (balcon, lanterneau) ;
+- auberge(largeur=28, profondeur=24) : ryokan à trois niveaux (≈ 30 de haut, 38 avec la tour) ;
+    v0 blanc, porche kara-hafu, irimoya bleu nuit ; v1 tout en bois, porche à pignon, chidori-hafu ;
+    v2 crème, tour de guet, cuivre patiné ; v3 garde-corps vermillon, chidori-hafu ;
+- maison_the() : maison de thé ouverte 16 × 12 (≈ 12-14) ; v0 団子 ombrelle, v1 chaume 茶 andon,
+    v2 甘味 bannières nobori, v3 藤 tonnelle de glycine ;
+- kura() : entrepôt 12 × 10 (≈ 15) à soubassement namako ; v0 blanc, v1 noir à pignon sur rue,
+    v2 crème 茶 sur le pignon, v3 namako sur tout le rez et 薬 ;
+- sanctuaire() : pavillon de culte 28 × 24 (≈ 22), pignon sur l'avant ; v0 bois naturel et ardoise (comme la
+    référence), v1 vermillon, cuivre et auvent kara-hafu, v2 laque noire et or à auvent à pignon, v3 bois clair ;
+- temizuya() : pavillon des ablutions 10 × 7 (≈ 11) ; v0 bois et ardoise, v1 vermillon et cuivre,
+    v2 bois sombre et lanterne de pierre, v3 chaume ;
+- yatai() : échoppe ambulante 8 × 5 (≈ 8,5) ; v0 蕎麦, v1 団子, v2 茶, v3 甘味.
+Débords hors emprise : avant-toits (≤ 2,6), porches et marches (≤ 1,1), ombrelle / tonnelle de la maison de thé
+(≤ 1,9) ; débords latéraux des toits ≤ 1,2 (auberge), ≤ 0,8 ailleurs.
 
 Repère (voir CONVENTIONS.md) : origine au centre de l'emprise au sol, y = 0 au sol, l'AVANT regarde -Z.
 `largeur` est le long de X, `profondeur` le long de Z. Les sous-ensembles « de façade » se dessinent dans un
@@ -23,7 +34,7 @@ from __future__ import annotations
 
 import math
 
-from kit import hexrgb, mix, rot_x, rot_z, shade
+from kit import hexrgb, rot_x, rot_z, shade
 from palette import c, vary
 
 # ---------------------------------------------------------------------------
@@ -106,7 +117,7 @@ def _pan_x(b, xa, ya, xb, yb, z0, z1, ep, couleur, *, ext_a=0.0, ext_b=0.0, stud
 
 
 def _toit_hirairi(b, x0, x1, zf, zb, H, pente, toit, mur, *, deb_av=2.2, deb_ar=1.2, deb_cote=0.7, ep=0.8,
-                  sori=0.5, rng=None, faitage=None, oni=True, pignons=True, blanc=True):
+                  sori=0.5, rng=None, faitage=None, oni=True, pignons=True, blanc=True, fait=1.0):
     """Toit à deux pans, faîtage parallèle à X (entrée sous le long pan, « hirairi ») sur des murs x0..x1 / zf..zb
     de hauteur H : triangles de pignon en enduit, dalles stud qui débordent ; le débord est moins pentu que
     le reste du pan (`sori`), ce qui donne la courbe creuse des toits japonais. Renvoie (y_faitage_haut, f)
@@ -137,15 +148,20 @@ def _toit_hirairi(b, x0, x1, zf, zb, H, pente, toit, mur, *, deb_av=2.2, deb_ar=
               name="Rive")
     yr = H + hu + k
     fa = col(faitage) if faitage else shade(t, 0.72)
-    b.box((xa - 0.15, yr - 0.6, zm - 0.95), (xb + 0.15, yr + 0.75, zm + 0.95), fa, studs="top", name="Faitage")
+    rd = 0.95 * fait                           # demi-largeur du faîtage ; `fait` règle sa taille
+    yb_f = yr - rd * pente - 0.25              # bas du faîtage, toujours noyé dans les pans
+    b.box((xa - 0.15, yb_f, zm - rd), (xb + 0.15, yr + 0.75 * fait, zm + rd), fa, studs="top", name="Faitage")
     if blanc:
         # liseré d'enduit blanc sous le faîtage (lits de tuiles noshi), lisible de loin
-        b.box((xa, yr - 0.75, zm - 1.05), (xb, yr - 0.35, zm + 1.05), col("enduit"), name="Noshi")
-    top = yr + 0.75
+        yn = yr - (rd + 0.1) * pente - 0.12
+        b.box((xa, yn, zm - rd - 0.1), (xb, yn + 0.4 * fait, zm + rd + 0.1), col("enduit"), name="Noshi")
+    top = yr + 0.75 * fait
     if oni:
-        for xe in (xa - 0.15, xb + 0.15):
-            b.box((xe - 0.65, yr - 0.7, zm - 1.15), (xe + 0.65, yr + 1.55, zm + 1.15), shade(t, 0.58), name="Oni")
-        top = yr + 1.55
+        # oni-gawara aux bouts du faîtage, sans dépasser du toit (les voisins sont à 2 studs)
+        for xe, s_ in ((xa - 0.2, 1), (xb + 0.2, -1)):
+            xo0, xo1 = sorted((xe, xe + s_ * 1.3 * fait))
+            b.box((xo0, yb_f - 0.1, zm - rd - 0.2), (xo1, yr + 1.55 * fait, zm + rd + 0.2), shade(t, 0.58), name="Oni")
+        top = yr + 1.55 * fait
 
     def dessous(z):
         if z >= zf:
@@ -182,13 +198,15 @@ def _toit_tsumairi(b, x0, x1, zf, zb, H, pente, toit, mur, *, deb=1.2, deb_av=1.
     hc = col(hafu) if hafu else shade(t, 0.62)
     # planches de rive (hafu) sur le pignon avant : suivent les deux pentes, un peu plus hautes que la dalle
     z0h, z1h = za - 0.35, za + 0.3
-    for (xa_, ya_, xb_, yb_, ea, eb) in ((x0, H + k + 0.2, xm, yr + 0.2, 0.25, 0.45), (xm, yr + 0.2, x1, H + k + 0.2, 0.45, 0.25),
-                                         (x0 - deb, H - deb * pe + ke + 0.2, x0, H + ke + 0.2, 0.0, 0.2),
-                                         (x1, H + ke + 0.2, x1 + deb, H - deb * pe + ke + 0.2, 0.2, 0.0)):
-        _pan_x(b, xa_, ya_, xb_, yb_, z0h, z1h, ep + 0.55, hc, ext_a=ea, ext_b=eb, studs="none", name="Hafu")
+    for i, (xa_, ya_, xb_, yb_, ea, eb) in enumerate((
+            (x0, H + k + 0.15, xm, yr + 0.15, 0.25, 0.45), (xm, yr + 0.15, x1, H + k + 0.15, 0.45, 0.25),
+            (x0 - deb + 0.2, H - (deb - 0.2) * pe + ke + 0.15, x0, H + ke + 0.15, 0.0, 0.2),
+            (x1, H + ke + 0.15, x1 + deb - 0.2, H - (deb - 0.2) * pe + ke + 0.15, 0.2, 0.0))):
+        dz = 0.05 * (i % 2)               # planches voisines décalées : pas de faces coplanaires
+        _pan_x(b, xa_, ya_, xb_, yb_, z0h - dz, z1h - dz, ep + 0.3, hc, ext_a=ea, ext_b=eb, studs="none", name="Hafu")
     fa = col(faitage) if faitage else shade(t, 0.72)
-    b.box((xm - 0.95, yr - 0.6, za - 0.5), (xm + 0.95, yr + 0.75, zb_ + 0.15), fa, studs="top", name="Faitage")
-    b.box((xm - 1.15, yr - 0.7, za - 0.65), (xm + 1.15, yr + 1.5, za + 0.6), shade(t, 0.58), name="Oni")
+    b.box((xm - 0.95, yr - 0.6, za - 0.5), (xm + 0.95, yr + 0.55, zb_ + 0.15), fa, studs="top", name="Faitage")
+    b.box((xm - 1.1, yr - 0.6, za - 0.72), (xm + 1.1, yr + 0.8, za + 0.4), shade(t, 0.58), name="Oni")
     if gegyo:
         b.box((xm - 0.7, yr - 2.6, z0h - 0.25), (xm + 0.7, yr - 0.2, z0h + 0.3), hc, name="Gegyo")
         b.box((xm - 0.4, yr - 2.3, z0h - 0.4), (xm + 0.4, yr - 1.1, z0h - 0.2), col(gegyo), name="Gegyo")
@@ -205,7 +223,7 @@ def _toit_tsumairi(b, x0, x1, zf, zb, H, pente, toit, mur, *, deb=1.2, deb_av=1.
             yy = H + hu * j
             half = run * (1 - j) - 0.15
             b.box((xm - half, yy - 0.12, zt0 + 0.07), (xm + half, yy + 0.12, zt1 - 0.04), tc, name="Treillis")
-    return yr + 1.5
+    return yr + 0.8
 
 
 def _toit_irimoya(b, x0, x1, z0, z1, y, toit, *, a_z0, a_z1, a_x0, a_x1, h1, h2, tri="enduit", tri_x0=None, tri_x1=None,
@@ -467,36 +485,37 @@ _MACHIYA = [
     # 0 : marchand d'étoffes — enduit blanc, mushiko-mado, enseigne de toit noire et or, ailes udatsu, toit bleu nuit
     dict(toit="tuile", mur="enduit", rdc="bois", cadre="bois_fonce", etage="mushiko", fond="lampion_papier",
          noren=("noren_bleu", "blanc", "呉服"), kanban_toit=("呉服", "noir_laque", "or"),
-         verticale=("呉服", "bois_clair", "noir"), udatsu=True, porte="droite", lampion=("lampion_papier", True)),
+         verticale=("呉服", "bois_clair", "noir"), udatsu=True, porte="droite", lampion=("lampion_papier", True),
+         forme="hirairi", h2=15.6),
     # 1 : apothicaire — étage en planches sombres, baie à treillis avec sudare et garde-corps, toit ardoise
     dict(toit="tuile_ardoise", mur="enduit_creme", rdc="bois", cadre="bois_fonce", etage="sudare", fond=INTERIEUR,
          noren=("noren_violet", "blanc", "薬"), kanban_toit=None, verticale=("薬", "blanc", "noren_rouge"),
-         udatsu=False, porte="gauche", lampion=("rouge", False), pied=True),
+         udatsu=False, porte="gauche", lampion=("rouge", False), pied=True, forme="irimoya", h2=15.6),
     # 2 : confiserie — boutique ouverte, étage crème à fenêtres vitrées éclairées, udatsu, lampions rouges
     dict(toit="tuile_claire", mur="enduit_creme", rdc="bois_moyen", cadre="bois_fonce", etage="vitres",
          fond="lampion_papier", noren=("noren_rouge", "blanc", "甘味"), kanban_toit=("茶", "bois_clair", "noir"),
-         verticale=("甘味", "noren_rouge", "blanc"), udatsu=True, porte="gauche", lampion=("rouge", False), boutique=True),
+         verticale=("甘味", "noren_rouge", "blanc"), udatsu=True, porte="gauche", lampion=("rouge", False), boutique=True,
+         forme="tsumairi", h2=15.0),
     # 3 : soba — étage en encorbellement à balcon et shoji éclairés, toit bleu sombre, noren bleus
     dict(toit="tuile_fonce", mur="enduit", rdc="bois_fonce", cadre="bois_fonce", etage="balcon", fond=INTERIEUR,
          noren=("noren_bleu", "blanc", "蕎麦"), kanban_toit=None, verticale=("蕎麦", "noir_laque", "blanc"),
-         udatsu=False, porte="droite", lampion=("orange_lampion", True)),
+         udatsu=False, porte="droite", lampion=("orange_lampion", True), forme="kemuri", h2=16.4),
 ]
 
 
 def machiya(b, variant=0, largeur=22, profondeur=18):
     """Maison de marchand de l'ère Taishō à deux niveaux : rez en bois sombre à treillis koshi (portes
     coulissantes, inuyarai, noren, lanterne), auvent stud entre les niveaux, étage d'enduit (mushiko-mado,
-    sudare, fenêtres vitrées ou balcon), ailes udatsu, enseigne de toit et enseigne verticale, grand toit
-    hirairi en tuiles bleu nuit ou ardoise à débord adouci."""
+    sudare, fenêtres vitrées ou balcon), ailes udatsu, enseigne de toit et enseigne verticale ; toit à deux pans
+    sur rue (v0), irimoya (v1), pignon sur rue (v2) ou à lanterneau de fumée (v3), débords adoucis."""
     rng = b.rng
     S = _style(_MACHIYA, variant, _ALT)
-    v = variant % 4
     W, D = float(largeur), float(profondeur)
     x0, x1, zf, zb = -W / 2, W / 2, -D / 2, D / 2
     YS = 0.6                      # socle de pierre
     H1 = 9.0                      # naissance de l'auvent
     HS = H1 + 0.7                 # jonction bois / enduit (cachée sous l'auvent)
-    H2 = 15.6                     # haut des murs
+    H2 = S["h2"]                  # haut des murs
     PA, PROF_A, EP_A = 0.4, 2.8, 0.6
     KA = EP_A * math.hypot(1, PA)
     YA = H1 + 1.0                 # dessus de l'auvent contre la façade
@@ -557,7 +576,7 @@ def machiya(b, variant=0, largeur=22, profondeur=18):
                 else:
                     b.box((xx - 0.6, 3.4, -1.7), (xx + 0.6, 4.1, -0.5), col("noir_laque"), studs="top", name="Boite")
             # store de bambou roulé sous le linteau
-            b.box((za0, YK - 1.0, -0.75), (za1, YK - 0.1, -0.35), col(SUDARE), name="Store")
+            b.box((za0, YK - 0.9, -0.75), (za1, YK + 0.05, -0.35), col(SUDARE), name="Store")
         else:
             span = za1 - za0
             cuts = [za0, za1] if span < 10 else [za0, (za0 + za1) / 2 - 0.4, (za0 + za1) / 2 + 0.4, za1]
@@ -627,13 +646,16 @@ def machiya(b, variant=0, largeur=22, profondeur=18):
             b.box((x0 + 0.7, HS, -0.15), (x1 - 0.7, H2 - 0.8, 0.3), vr("bois", rng, 0.03), name="Planches")
             bw = min(12.0, W - 6.0)
             with b.at((0, 0, -0.15)):
-                _fenetre_shoji(b, 0, yw - 0.6, bw, 3.6, cadre, lumiere=True, croix=5, appui=False)
+                n3 = 3
+                for i in range(n3):
+                    xx = -bw / 2 + (i + 0.5) * bw / n3
+                    _fenetre_shoji(b, xx, yw - 0.6, bw / n3 - 0.75, 3.6, cadre, lumiere=(i != 1), croix=2, appui=False)
                 _sudare(b, 0, yw + 3.05, bw - 0.4, 2.2, z=-0.5)
                 _garde_corps(b, -bw / 2 - 0.4, bw / 2 + 0.4, yw - 0.95, -1.3, cadre, h=1.5, pas=1.6)
                 b.box((-bw / 2 - 0.6, yw - 1.25, -1.6), (bw / 2 + 0.6, yw - 0.95, 0.3), cadre, studs="top", name="Plancher")
-                for xx in (-W / 2 + 2.4, W / 2 - 2.4):
-                    if abs(xx) > bw / 2 + 1.8:
-                        _mushiko(b, xx, yw, 1.8, 2.2, "enduit_creme", n=2)
+                for xx in (-W / 2 + 2.3, W / 2 - 2.3):
+                    if abs(xx) > bw / 2 + 2.0:
+                        _fenetre_shoji(b, xx, yw + 0.2, 1.6, 2.4, cadre, lumiere=False, croix=1, appui=True)
         elif et == "vitres":
             n = 2 if kt else (3 if W >= 20 else 2)
             if kt:
@@ -687,6 +709,11 @@ def machiya(b, variant=0, largeur=22, profondeur=18):
                 zc = (zb - 4.0) * side
                 _mushiko(b, zc, H1 + 2.6, 2.4, 1.8, mur, n=3)
                 b.box((-D / 2 + 0.2, HS - 0.4, -0.25), (D / 2 - 0.2, HS + 0.2, 0.3), cadre, name="Bandeau")
+                # mur à colombage apparent : poteau au milieu de l'étage, couvre-joints sur les planches du rez
+                b.box((-0.35, HS + 0.2, -0.22), (0.35, H2 - 0.8, 0.3), cadre, name="Poteau")
+                for lx in (-D / 4, 0.0, D / 4):
+                    b.box((lx - 0.14, YS + 0.2, -0.12), (lx + 0.14, HS - 0.45, 0.2), shade(col(S["rdc"]), 0.78),
+                          name="Couvre_joint")
         with b.at((0, 0, zb), yaw=180):
             _fenetre_shoji(b, W / 5, H1 + 2.4, 4.0, 2.4, cadre, lumiere=False, croix=2)
             b.box((-W / 4 - 1.4, YS, -0.12), (-W / 4 + 1.4, 7.0, 0.3), cadre, name="Porte")
@@ -694,8 +721,34 @@ def machiya(b, variant=0, largeur=22, profondeur=18):
 
     # --- toit ----------------------------------------------------------------------------------------------
     with b.group("Toit"):
-        top, _ = _toit_hirairi(b, x0, x1, zf, zb, H2, 0.42, S["toit"], mur, deb_av=2.4, deb_ar=1.2, deb_cote=0.6,
-                               ep=0.8, sori=0.5, rng=rng)
+        forme = S["forme"]
+        if forme == "irimoya":
+            R = _toit_irimoya(b, x0 - 0.6, x1 + 0.6, zf - 2.4, zb + 1.2, H2, S["toit"], a_z0=4.4, a_z1=3.2, a_x0=3.6,
+                              a_x1=3.6, h1=1.6, h2=0.55 * (D / 2 - 2.0), tri=mur, rng=rng, gegyo=S["cadre"])
+            top = R["top"]
+        elif forme == "tsumairi":
+            top = _toit_tsumairi(b, x0, x1, zf, zb, H2, 0.5, S["toit"], mur, deb=0.7, deb_av=2.2, deb_ar=1.0, ep=0.8,
+                                 sori=0.5, hafu=None, gegyo="or", rng=rng)
+            # poutre de base et fenêtre du pignon
+            with b.at((0, 0, zf)):
+                b.box((x0 + 0.3, H2 + 0.05, -0.35), (x1 - 0.3, H2 + 0.55, 0.1), cadre, name="Tsuma_poutre")
+                _mushiko(b, 0, H2 + 1.6, 3.2, 1.5, mur, n=4)
+        else:
+            top, _ = _toit_hirairi(b, x0, x1, zf, zb, H2, 0.42, S["toit"], mur, deb_av=2.4, deb_ar=1.2, deb_cote=0.6,
+                                   ep=0.8, sori=0.5, rng=rng)
+            if forme == "kemuri":
+                # lanterneau de fumée (kemuri-dashi) sur le faîtage : petite cage de bois coiffée d'un toit
+                zm = (zf + zb) / 2
+                yr = H2 + (zm - zf) * 0.42 + 0.8 * math.hypot(1, 0.42)
+                b.box((-1.7, yr - 0.4, zm - 1.3), (1.7, yr + 1.6, zm + 1.3), cadre, name="Kemuri")
+                for xx in (-0.85, 0.0, 0.85):
+                    b.box((xx - 0.18, yr + 0.85, zm - 1.45), (xx + 0.18, yr + 1.45, zm + 1.45), col(INTERIEUR), name="Kemuri_fente")
+                b.box((-2.3, yr + 1.6, zm - 2.0), (2.3, yr + 1.9, zm + 2.0), shade(col(S["toit"]), 0.72), name="Rive")
+                b.wedge((-2.3, yr + 1.9, zm - 2.0), (2.3, yr + 2.8, zm), col(S["toit"]), down="-z", studs="top", name="Kemuri_toit")
+                b.wedge((-2.3, yr + 1.9, zm), (2.3, yr + 2.8, zm + 2.0), col(S["toit"]), down="+z", studs="top", name="Kemuri_toit")
+                b.box((-2.5, yr + 2.6, zm - 0.5), (2.5, yr + 3.1, zm + 0.5), shade(col(S["toit"]), 0.72), studs="top",
+                      name="Faitage")
+                top = max(top, yr + 3.1)
     return {"emprise": (W, D), "hauteur": round(top, 2)}
 
 
@@ -711,7 +764,7 @@ _AUBERGES = [
     # 1 : ryokan de source chaude tout en bois, irimoya ardoise, porche à pignon treillissé, enseigne verticale
     dict(toit="tuile_ardoise", mur="bois_moyen", rdc="bois", cadre="bois_fonce", garde="bois_fonce", porche="pignon",
          hafu="bois_fonce", poteau="bois_fonce", noren=("noren_bleu", "blanc", "宿"), enseigne=("宿", "bois_clair", "noir"),
-         lampion=("lampion_papier", True), tour=False, verticale=True),
+         lampion=("lampion_papier", True), tour=False, verticale=True, forme="hirairi", chidori="bois_clair"),
     # 2 : ryokan crème à tour de guet, toits de cuivre patiné, porche kara-hafu, lampions rouges
     dict(toit="cuivre_vert", mur="enduit_creme", rdc="bois", cadre="bois_fonce", garde="bois_fonce", porche="kara",
          hafu="bois_fonce", poteau="bois_fonce", noren=("noren_rouge", "blanc", "宿"), enseigne=("宿", "noir_laque", "blanc"),
@@ -719,7 +772,7 @@ _AUBERGES = [
     # 3 : quartier des fleurs : garde-corps et poteaux vermillon, toit bleu sombre, lanternes blanches
     dict(toit="tuile_fonce", mur="enduit", rdc="bois_fonce", cadre="bois_fonce", garde="vermillon", porche="kara",
          hafu="vermillon_fonce", poteau="vermillon", noren=("noren_violet", "blanc", "藤"), enseigne=("宿", "vermillon", "blanc"),
-         lampion=("lampion_papier", True), tour=False),
+         lampion=("lampion_papier", True), tour=False, chidori="or"),
 ]
 
 
@@ -817,7 +870,7 @@ def auberge(b, variant=0, largeur=28, profondeur=24):
         if S["porche"] == "kara":
             larg, hk = wp + 1.8, 3.2
             y0 = Yb + 0.15
-            top_p, dessus = _kara_hafu(b, 0, za_p, zA + 0.3, y0, larg, hk, S["toit"], S["hafu"], ep=0.7, rng=rng)
+            _, dessus = _kara_hafu(b, 0, za_p, zA + 0.3, y0, larg, hk, S["toit"], S["hafu"], ep=0.7, rng=rng)
             # tympan d'enduit sous la courbe (caché en haut par la planche), ornement doré (kaeru-mata)
             hw = larg / 2
             tm = vr(mur, rng, 0.02)
@@ -828,9 +881,9 @@ def auberge(b, variant=0, largeur=28, profondeur=24):
             b.wedge((-1.1, Yb, za_p + 0.1), (0.0, Yb + 1.3, za_p + 0.45), col("or"), down="-x", name="Kaeru_mata")
             b.wedge((0.0, Yb, za_p + 0.1), (1.1, Yb + 1.3, za_p + 0.45), col("or"), down="+x", name="Kaeru_mata")
         else:
-            top_p = _toit_tsumairi(b, -wp / 2, wp / 2, zpo - 0.4, zA, Yb, 0.62, S["toit"], S["cadre"], deb=0.9, deb_av=0.6,
-                                   deb_ar=0.0, ep=0.7, hafu=S["hafu"], gegyo="or", rng=rng, treillis="bois_clair",
-                                   pignon_z=(zpo - 0.4, zpo + 0.6))
+            _toit_tsumairi(b, -wp / 2, wp / 2, zpo - 0.4, zA, Yb, 0.62, S["toit"], S["cadre"], deb=0.9, deb_av=0.6,
+                           deb_ar=0.0, ep=0.7, hafu=S["hafu"], gegyo="or", rng=rng, treillis="bois_clair",
+                           pignon_z=(zpo - 0.4, zpo + 0.6))
         lc, ln = S["lampion"]
         for s in (-1, 1):
             _chochin(b, s * (xpo - 1.3), Yb - 0.9, zpo, r=0.75, h=1.7, corps=lc, neon=ln)
@@ -890,6 +943,8 @@ def auberge(b, variant=0, largeur=28, profondeur=24):
                 for k, (yy, hh) in enumerate(((YS + 2.6, 3.0), (H1 + 1.8, 3.0), (H2 + 1.6, 2.6))):
                     for zc in ((zA + 4.5) * side, (zb - 4.5) * side):
                         _fenetre_simple(b, zc, yy, 3.0, hh, cadre, lumiere=((k + int(zc > 0) + side) % 3 == 0))
+                zmid = ((zA + 4.5) + (zb - 4.5)) / 2 * side
+                b.box((zmid - 0.4, YS, -0.25), (zmid + 0.4, H3 - 0.8, 0.3), cadre, name="Poteau")
         with b.at((0, 0, zb), yaw=180):
             for yy in (H1 + 1.8, H2 + 1.6):
                 for xc in (-W / 4, W / 4):
@@ -899,10 +954,26 @@ def auberge(b, variant=0, largeur=28, profondeur=24):
     # --- toit ------------------------------------------------------------------------------------------------
     with b.group("Toit"):
         dav, dar, dco = 2.6, 1.3, 1.2
-        R = _toit_irimoya(b, x0 - dco, x1 + dco, zA - dav, zb + dar, H3, S["toit"], a_z0=dav + 2.0, a_z1=dar + 2.0,
-                          a_x0=dco + 3.2, a_x1=dco + 3.2, h1=2.2, h2=0.62 * ((zb - zA) / 2 - 2.0),
-                          tri=mur, rng=rng, gegyo=S["cadre"])
-        top = R["top"]
+        wc = min(10.0, wp + 1.2)                   # largeur du fronton chidori-hafu
+        if S.get("forme") == "hirairi":
+            pente = 0.5
+            top, _ = _toit_hirairi(b, x0, x1, zA, zb, H3, pente, S["toit"], mur, deb_av=dav, deb_ar=dar, deb_cote=dco,
+                                   ep=0.9, sori=0.5, rng=rng)
+            zc_ = zA + 1.4
+            ys = H3 + (zc_ - zA) * pente + 0.9 * math.hypot(1, pente)
+        else:
+            R = _toit_irimoya(b, x0 - dco, x1 + dco, zA - dav, zb + dar, H3, S["toit"], a_z0=dav + 2.0, a_z1=dar + 2.0,
+                              a_x0=dco + 3.2, a_x1=dco + 3.2, h1=2.2, h2=0.62 * ((zb - zA) / 2 - 2.0),
+                              tri=mur, rng=rng, gegyo=S["cadre"])
+            top = R["top"]
+            zc_ = R["zi0"] + 0.6
+            ys = R["ya"] + 0.6 * R["pente"]
+        if S.get("chidori"):
+            # fronton triangulaire (chidori-hafu) posé sur le pan avant, au-dessus du porche
+            t2 = _toit_tsumairi(b, -wc / 2, wc / 2, zc_, zc_ + 7.0, ys - 0.3, 0.6, S["toit"], mur, deb=0.9, deb_av=1.3,
+                                deb_ar=0.0, ep=0.8, sori=0.5, hafu=S["hafu"], gegyo="or", rng=rng,
+                                treillis=S["chidori"], pignon_z=(zc_, zc_ + 4.0))
+            top = max(top, t2)
         if S["tour"]:
             # tour de guet (bōrō) sur le faîtage : chambre vitrée éclairée, petit toit irimoya
             tw, tdp = 7.0, 6.0
@@ -1125,6 +1196,10 @@ def sanctuaire(b, variant=0):
             half = run - (yy - ya + 0.7) / pente - 0.2
             if half > 0.8:
                 b.box((-half, yy - 0.12, zg - 0.34), (half, yy + 0.12, zg + 0.0), tc, name="Kitsune_goshi")
+        # plaque (hengaku) laquée noir et or au milieu du fronton
+        b.box((-0.95, ya + 0.75, zg - 0.7), (0.95, ya + 3.35, zg - 0.3), col("or"), name="Hengaku_cadre")
+        p = b.box((-0.75, ya + 0.95, zg - 0.86), (0.75, ya + 3.15, zg - 0.66), col("noir_laque"), name="Hengaku")
+        p.label = {"face": "Front", "text": "藤", "color": col("or"), "font": "brush"}
         # coins de la jupe relevés : petits coins dont le haut est à l'angle (pointe de l'avant-toit)
         tc_ = shade(col(S["toit"]), 0.8)
         for sx in (-1, 1):
@@ -1201,3 +1276,454 @@ def sanctuaire(b, variant=0):
         for s in (-1, 1):
             _toro(b, s * 7.6, -10.2, S["lanterne"], lumiere=True, h=1.0)
     return {"emprise": (28.0, 24.0), "hauteur": round(top, 2)}
+
+
+# ---------------------------------------------------------------------------
+# MAISON DE THÉ (chaya)
+# ---------------------------------------------------------------------------
+CHAUME = "#B39463"          # toit de chaume
+CHAUME_FONCE = "#7E6440"
+
+_MAISONS_THE = [
+    # 0 : dango — toit bleu nuit, noren rouges 団子, ombrelle vermillon, lampions rouges
+    dict(toit="tuile", mur="enduit", cadre="bois_fonce", noren=("noren_rouge", "blanc", "団子"), ombrelle="vermillon",
+         lampion=("rouge", False), chaume=False, menus=("団子", "茶", "甘味"), andon=False),
+    # 1 : salon de thé du col de montagne, toit de chaume à faîtage croisé, noren violets 茶, lanterne andon
+    dict(toit=CHAUME, mur="enduit_creme", cadre="bois", noren=("noren_violet", "blanc", "茶"), ombrelle="rouge",
+         lampion=("lampion_papier", True), chaume=True, menus=("茶", "団子"), andon=True),
+    # 2 : douceurs — toit ardoise, noren bleus 甘味, lanternes de papier éclairées
+    dict(toit="tuile_ardoise", mur="enduit", cadre="bois_fonce", noren=("noren_bleu", "blanc", "甘味"), ombrelle="vermillon",
+         lampion=("lampion_papier", True), chaume=False, menus=("甘味", "団子", "茶"), andon=False, nobori=True),
+    # 3 : maison de thé aux glycines : tonnelle fleurie devant, toit bleu clair, noren violets 藤
+    dict(toit="tuile_claire", mur="enduit", cadre="bois_fonce", noren=("noren_violet", "blanc", "藤"), ombrelle="rouge",
+         lampion=("orange_lampion", True), chaume=False, menus=("茶", "甘味"), andon=False, tonnelle=True),
+]
+
+
+def _banc_rouge(b, x, z, w, *, d=1.6, h=1.6, rng=None):
+    """Banc bas (endai) couvert de feutre rouge (hi-mōsen)."""
+    for xx in (x - w / 2 + 0.45, x + w / 2 - 0.45):
+        b.box((xx - 0.22, 0, z - d / 2 + 0.2), (xx + 0.22, h - 0.3, z + d / 2 - 0.2), col("bois_fonce"), name="Pied")
+    b.box((x - w / 2, h - 0.3, z - d / 2), (x + w / 2, h, z + d / 2), col("bois_moyen"), name="Banc")
+    b.box((x - w / 2 + 0.25, h, z - d / 2 - 0.12), (x + w / 2 - 0.25, h + 0.15, z + d / 2 + 0.12),
+          vr(FEUTRE, rng, 0.03) if rng is not None else col(FEUTRE), material="Fabric", studs="top", name="Feutre")
+    return h + 0.15
+
+
+def _ombrelle(b, x, z, couleur, *, r=3.0, y=6.4):
+    """Grande ombrelle de cérémonie (nodate-gasa) : pied lesté, mât, toile en trois disques stud, nervures claires."""
+    b.box((x - 0.5, 0, z - 0.5), (x + 0.5, 0.45, z + 0.5), col("pierre_fonce"), studs="top", name="Lest")
+    b.cyl((x, (0.45 + y + 0.9) / 2, z), 0.14, y + 0.9 - 0.45, col("bois_fonce"), axis="y", name="Mat")
+    cc = col(couleur)
+    b.cyl((x, y - 0.06, z), r * 0.86, 0.12, col("blanc"), axis="y", collide=False, name="Nervures")
+    b.cyl((x, y + 0.14, z), r, 0.28, cc, axis="y", studs="top", collide=False, name="Toile")
+    b.cyl((x, y + 0.45, z), r * 0.7, 0.34, shade(cc, 0.96), axis="y", studs="top", collide=False, name="Toile")
+    b.cyl((x, y + 0.79, z), r * 0.38, 0.34, shade(cc, 0.92), axis="y", studs="top", collide=False, name="Toile")
+    b.ball((x, y + 1.05, z), 0.3, col("noir"), collide=False, name="Pommeau")
+
+
+def _nobori(b, x, z, texte, fond, encre, *, h=6.8, larg=1.3):
+    """Bannière nobori : mât lesté, bras en haut, toile verticale dans le plan YZ (texte lisible des deux sens
+    de la rue)."""
+    b.box((x - 0.45, 0, z - 0.45), (x + 0.45, 0.4, z + 0.45), col("pierre_fonce"), studs="top", name="Lest")
+    b.cyl((x, (0.4 + h) / 2, z), 0.12, h - 0.4, col("bois_fonce"), axis="y", name="Mat")
+    b.box((x - 0.07, h - 0.45, z - larg - 0.15), (x + 0.07, h - 0.3, z + 0.1), col("bois_fonce"), collide=False, name="Bras")
+    for sx, face in ((-1, "Left"), (1, "Right")):
+        xa, xb = sorted((x + sx * 0.0, x + sx * 0.09))
+        p = b.box((xa, 1.4, z - larg - 0.1), (xb, h - 0.45, z - 0.15), col(fond), collide=False, material="Fabric",
+                  name="Nobori")
+        p.label = {"face": face, "text": texte, "color": col(encre), "font": "brush", "vertical": True}
+
+
+def _croix_faitage(b, x0, x1, z, y, n=3, couleur="bois_fonce", long=2.0):
+    """Bois croisés posés sur le faîtage d'un toit de chaume (umanori)."""
+    for i in range(n):
+        x = x0 + (i + 0.5) * (x1 - x0) / n
+        for k, a in enumerate((32, -32)):
+            b.part("block", (0.28, long, 0.28), (x, y + 0.55 * long / 2.0, z + (0.16 if k else -0.16)), rot_x(a),
+                   col(couleur), collide=False, name="Umanori")
+
+
+def maison_the(b, variant=0):
+    """Maison de thé (chaya) d'environ 16 × 12 : salle ouverte sur la rue (comptoir, bouilloire, menus), bancs
+    couverts de feutre rouge sous l'avant-toit, grande ombrelle rouge, noren 団子 / 茶 / 甘味 / 藤, lanternes ;
+    toit de tuiles ou de chaume ; tonnelle de glycine en variante 3."""
+    rng = b.rng
+    S = _style(_MAISONS_THE, variant, {"toit": ["tuile", CHAUME, "tuile_ardoise", "tuile_claire"]})
+    W, D = 16.0, 12.0
+    x0, x1, zf, zb = -W / 2, W / 2, -D / 2, D / 2
+    zh = -0.6                              # ligne des poteaux avant (la salle est derrière)
+    H = 7.4
+    cadre = col(S["cadre"])
+    mur = S["mur"]
+    with b.group("Salle"):
+        b.box((x0 - 0.2, 0, zf + 0.5), (x1 + 0.2, 0.3, zb + 0.2), vr("pierre", rng, 0.03), studs="top", name="Dallage")
+        b.box((x0 + 0.7, 0.3, zh + 0.75), (x1 - 0.7, 0.6, zb - 0.8), vr("terre", rng, 0.03), studs="top", name="Doma")
+        m = vr(mur, rng, 0.02)
+        b.box((x0, 0.3, zb - 0.8), (x1, H, zb), m, name="Mur_fond")
+        for xa in (x0, x1 - 0.7):
+            b.box((xa, 0.3, zh + 0.6), (xa + 0.7, H, zb - 0.8), m, name="Mur")
+            b.box((xa - 0.1, 0.3, zh + 0.5), (xa + 0.8, 1.6, zb - 0.7), cadre, name="Plinthe")
+        xs_po = [x0 + 0.35, x0 + W / 3, x1 - W / 3, x1 - 0.35]
+        for xx in xs_po:
+            b.box((xx - 0.35, 0.3, zh - 0.35), (xx + 0.35, H - 0.6, zh + 0.35), cadre, name="Poteau")
+        b.box((x0 - 0.1, H - 1.2, zh - 0.4), (x1 + 0.1, H, zh + 0.4), cadre, name="Kamoi")
+        # comptoir, bouilloire, étagère à jarres, menus
+        b.box((x0 + 2.0, 0.6, zb - 3.0), (x1 - 2.0, 3.0, zb - 1.8), vr("bois", rng, 0.03), name="Comptoir")
+        b.box((x0 + 1.8, 3.0, zb - 3.2), (x1 - 1.8, 3.35, zb - 1.7), col("bois_clair"), studs="top", name="Plateau")
+        b.cyl((x0 + 4.0, 3.95, zb - 2.45), 0.6, 1.2, col("noir"), axis="y", name="Bouilloire")
+        b.cyl((x0 + 4.0, 4.65, zb - 2.45), 0.25, 0.3, col("noir"), axis="y", name="Couvercle")
+        for i in range(3):
+            b.cyl((x1 - 3.2 - i * 1.4, 3.35 + 0.5, zb - 2.45), 0.45, 1.0, vr(THE_VERT if i != 1 else "bois_clair", rng, 0.05),
+                  axis="y", studs="top", name="Jarre")
+        b.box((x0 + 1.2, 4.6, zb - 1.4), (x1 - 1.2, 4.9, zb - 0.8), col("bois_clair"), studs="top", name="Etagere")
+        for i, t in enumerate(S["menus"]):
+            xx = -2.4 + i * 2.4
+            p = b.box((xx - 0.8, 5.2, zb - 0.95), (xx + 0.8, 7.0 - 0.3, zb - 0.8), col("papier"), name="Menu")
+            p.label = {"face": "Front", "text": t, "color": col("noir"), "font": "brush", "vertical": len(t) > 1}
+        nf, ne, nt = S["noren"]
+        _noren(b, xs_po[1] + 0.45, xs_po[2] - 0.45, H - 1.2, 2.4, zh - 0.55, nf, ne, nt, n=len(nt) if len(nt) > 1 else 3)
+
+    with b.group("Toit"):
+        if S["chaume"]:
+            top, dessous = _toit_hirairi(b, x0, x1, zh, zb, H, 0.85, S["toit"], mur, deb_av=2.4, deb_ar=1.4, deb_cote=0.9,
+                                         ep=1.3, sori=0.7, rng=rng, faitage=CHAUME_FONCE, oni=False, blanc=False)
+            zm = (zh + zb) / 2
+            yr = H + (zm - zh) * 0.85 + 1.3 * math.hypot(1, 0.85)
+            _croix_faitage(b, x0 + 1.0, x1 - 1.0, zm, yr + 0.5, n=4)
+            top = max(top, yr + 2.0)
+        else:
+            top, dessous = _toit_hirairi(b, x0, x1, zh, zb, H, 0.5, S["toit"], mur, deb_av=2.8, deb_ar=1.2, deb_cote=0.7,
+                                         ep=0.8, sori=0.45, rng=rng, fait=0.8)
+
+    with b.group("Terrasse"):
+        lc, ln = S["lampion"]
+        for xx in (x0 + 0.6, x1 - 0.6):
+            zl = zh - 1.6
+            _chochin(b, xx, dessous(zl), zl, r=0.62, h=1.4, corps=lc, neon=ln)
+        yb_ = _banc_rouge(b, -4.0, -2.5, 4.4, rng=rng)
+        b.cyl((-5.0, yb_ + 0.25, -2.5), 0.28, 0.5, col("blanc"), axis="y", collide=False, name="Tasse")
+        b.box((-4.2, yb_, -2.8), (-3.2, yb_ + 0.15, -2.2), col("bois_clair"), collide=False, name="Plateau")
+        _dango(b, -3.7, yb_ + 0.15, -2.5)
+        if S.get("tonnelle"):
+            # tonnelle de glycine devant la terrasse droite : poteaux, pannes, grappes mauves
+            _banc_rouge(b, 4.6, -5.6, 4.4, rng=rng)
+            pts = [(1.6, -7.4), (7.6, -7.4), (1.6, -4.2), (7.6, -4.2)]
+            for (px, pz) in pts:
+                b.box((px - 0.22, 0, pz - 0.22), (px + 0.22, 6.0, pz + 0.22), col("bois"), name="Poteau_tonnelle")
+            for pz in (-7.4, -4.2):
+                b.box((1.2, 6.0, pz - 0.25), (8.0, 6.45, pz + 0.25), col("bois"), name="Panne")
+            for i in range(4):
+                px = 2.0 + i * 1.8
+                b.box((px - 0.15, 6.45, -7.9), (px + 0.15, 6.75, -3.75), col("bois_clair"), studs="top", name="Latte")
+            gl = (("glycine_fonce", "glycine"), ("glycine", "glycine_claire"), ("glycine", "glycine_pale"))
+            for i in range(7):
+                px = 2.0 + (i % 4) * 1.8 + (0.0 if i < 4 else 0.9)
+                pz = -6.6 if i < 4 else -5.0
+                hh = 1.2 + 0.45 * ((i * 7) % 3)
+                c1, c2 = gl[i % 3]
+                # grappe en cascade : haut large et foncé, pointe plus fine et plus claire
+                b.box((px - 0.5, 6.45 - hh, pz - 0.5), (px + 0.5, 6.5, pz + 0.5), col(c1), collide=False, name="Grappe")
+                b.box((px - 0.3, 6.45 - hh - 1.0, pz - 0.3), (px + 0.3, 6.45 - hh + 0.1, pz + 0.3), col(c2), collide=False,
+                      name="Grappe")
+        else:
+            _banc_rouge(b, 4.4, -4.3, 3.6, rng=rng)
+            _ombrelle(b, 6.2, -5.3, S["ombrelle"], r=2.2, y=5.5)
+        if S.get("nobori"):
+            for xx in (x0 + 0.9, x1 - 0.9):
+                _nobori(b, xx, -4.3, S["noren"][2], "noren_rouge" if xx > 0 else "noren_bleu", "blanc")
+        if S.get("andon"):
+            # lanterne-enseigne andon posée près de l'entrée
+            b.box((-7.4, 0.3, -6.6), (-6.0, 0.8, -5.2), col("bois_fonce"), studs="top", name="Andon_pied")
+            b.box((-7.2, 0.8, -6.4), (-6.2, 3.6, -5.4), col("lampion_papier"), material="Neon", name="Andon")
+            p = b.box((-7.3, 1.1, -6.55), (-6.1, 3.3, -6.42), col("papier"), name="Andon_face")
+            p.label = {"face": "Front", "text": S["noren"][2], "color": col("noir"), "font": "brush", "vertical": True}
+            b.box((-7.35, 3.6, -6.55), (-6.05, 3.9, -5.25), col("bois_fonce"), studs="top", name="Andon_toit")
+    return {"emprise": (W, D), "hauteur": round(top, 2)}
+
+
+# ---------------------------------------------------------------------------
+# KURA (entrepôt)
+# ---------------------------------------------------------------------------
+
+_KURAS = [
+    # 0 : kura blanc, soubassement namako, toit bleu nuit à deux pans, porte sous un petit auvent
+    dict(mur="enduit", toit="tuile", forme="hirairi", hachimaki=False, signe=None, haut=False),
+    # 1 : kura noir de marchand, pignon sur rue, bandeau épais sous l'avant-toit
+    dict(mur="#2E2D33", toit="tuile_ardoise", forme="tsumairi", hachimaki=True, signe=None, haut=False),
+    # 2 : kura crème à bandeau épais, pignon sur rue marqué 茶
+    dict(mur="enduit_creme", toit="tuile_fonce", forme="tsumairi", hachimaki=True, signe="茶", haut=False),
+    # 3 : kura blanc, namako sur tout le rez, toit bleu clair, grand 薬 peint sur la façade
+    dict(mur="enduit", toit="tuile_claire", forme="hirairi", hachimaki=False, signe="薬", haut=True),
+]
+
+
+def _namako(b, xa, xb, ya, yb, joint, *, pas=1.6, w=0.24):
+    """Treillis diagonal du soubassement namako (repère de façade, plan z = 0) : joints blancs à ±45°
+    (profondeurs différentes : pas de faces coplanaires), coupés au bord du panneau ; les bouts se cachent
+    sous le cadre (rebord, socle, pilastres), qui dépasse davantage."""
+    jc = col(joint)
+    W_, H_ = xb - xa, yb - ya
+    for sgn, (z0_, z1_) in ((1, (-0.12, 0.02)), (-1, (-0.16, 0.0))):
+        t = (W_ / 2 % pas) - pas * math.ceil((H_ + W_) / pas) if sgn > 0 else (W_ / 2 % pas)
+        while t <= W_ + H_ + pas:
+            if sgn > 0:
+                u1, u2 = max(0.0, t), min(W_, t + H_)
+                p1, p2 = (u1, u1 - t), (u2, u2 - t)
+            else:
+                u1, u2 = max(0.0, t - H_), min(W_, t)
+                p1, p2 = (u1, t - u1), (u2, t - u2)
+            L = (u2 - u1) * math.sqrt(2)
+            if L > 0.9:
+                cx = xa + (p1[0] + p2[0]) / 2
+                cy = ya + (p1[1] + p2[1]) / 2
+                b.part("block", (L, w, z1_ - z0_), (cx, cy, (z0_ + z1_) / 2), rot_z(45 * sgn), jc, name="Namako")
+            t += pas
+
+
+def _fenetre_kura(b, x, y, s, mur, *, volets=True):
+    """Petite fenêtre lourde de kura : encadrement épais d'enduit, ouverture sombre, barreaux de fer,
+    volets d'enduit ouverts de part et d'autre."""
+    m = col(mur)
+    b.box((x - s / 2 - 0.45, y - 0.45, -0.45), (x + s / 2 + 0.45, y + s + 0.45, 0.2), shade(m, 0.95), name="Encadrement")
+    b.box((x - s / 2, y, -0.55), (x + s / 2, y + s, -0.3), col(INTERIEUR), name="Ouverture")
+    for xx in (x - s / 6, x + s / 6):
+        b.box((xx - 0.09, y - 0.1, -0.68), (xx + 0.09, y + s + 0.1, -0.5), col(FER), name="Barreau")
+    if volets:
+        for sx in (-1, 1):
+            xa, xb = sorted((x + sx * (s / 2 + 0.5), x + sx * (s / 2 + 0.5 + s * 0.55)))
+            b.box((xa, y - 0.05, -0.75), (xb, y + s + 0.05, -0.2), shade(m, 1.02), name="Volet")
+
+
+def kura(b, variant=0):
+    """Entrepôt (kura) d'environ 12 × 10 × 14 : murs épais d'enduit (blanc, crème ou noir), soubassement sombre
+    à treillis diagonal namako, rebord, pilastres d'angle, porte lourde à encadrement à gradins sous un petit
+    auvent, petites fenêtres à barreaux et volets, lourd toit de tuiles à deux pans (faîtage sur rue ou pignon
+    sur rue), bandeau épais (hachimaki) en variante, grand caractère peint en variante."""
+    rng = b.rng
+    S = _style(_KURAS, variant, {"toit": ["tuile", "tuile_ardoise", "tuile_fonce", "tuile_claire"]})
+    W, D = 12.0, 10.0
+    x0, x1, z0, z1 = -W / 2, W / 2, -D / 2, D / 2
+    YN = 6.6 if S["haut"] else 4.0            # haut du soubassement namako
+    H = 9.6                                   # haut des murs
+    mur = S["mur"]
+    noir = mur.startswith("#")
+    joint = "enduit"
+    with b.group("Corps"):
+        b.box((x0 - 0.3, 0, z0 - 0.3), (x1 + 0.3, 0.8, z1 + 0.3), vr("pierre_fonce", rng, 0.03), studs="top", name="Socle")
+        b.box((x0, 0.8, z0), (x1, YN, z1), col(NAMAKO), name="Namako_mur")
+        b.box((x0 - 0.3, YN - 0.1, z0 - 0.3), (x1 + 0.3, YN + 0.35, z1 + 0.3), shade(col("enduit"), 0.96), studs="top",
+              name="Rebord")
+        b.box((x0 + 0.15, YN + 0.35, z0 + 0.15), (x1 - 0.15, H - (0.8 if S["hachimaki"] else 0.0), z1 - 0.15),
+              vr(mur, rng, 0.02), name="Murs")
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                xa, xb = sorted((sx * (W / 2 + 0.26), sx * (W / 2 - 0.45)))
+                za, zb_ = sorted((sz * (D / 2 + 0.26), sz * (D / 2 - 0.45)))
+                b.box((xa, 0.8, za), (xb, YN - 0.1, zb_), col(joint), name="Pilastre")
+        if S["hachimaki"]:
+            b.box((x0 - 0.15, H - 1.6, z0 - 0.15), (x1 + 0.15, H - 0.8, z1 + 0.15),
+                  col("enduit_gris") if noir else shade(col(mur), 0.97), name="Hachimaki")
+            b.box((x0 - 0.4, H - 0.8, z0 - 0.4), (x1 + 0.4, H, z1 + 0.4),
+                  shade(col("enduit_gris"), 0.92) if noir else shade(col(mur), 0.95), name="Hachimaki")
+    # treillis namako : façade (de part et d'autre de la porte), côtés et arrière
+    with b.group("Namako"):
+        wp = 4.6                                   # largeur de l'encadrement de porte
+        with b.at((0, 0, z0)):
+            _namako(b, x0 + 0.45, -wp / 2 - 0.05, 0.8, YN - 0.1, joint, pas=1.6)
+            _namako(b, wp / 2 + 0.05, x1 - 0.45, 0.8, YN - 0.1, joint, pas=1.6)
+        for side in (-1, 1):
+            with b.at((x1 if side > 0 else x0, 0, 0), yaw=-90 * side):
+                _namako(b, -D / 2 + 0.45, D / 2 - 0.45, 0.8, YN - 0.1, joint, pas=1.8 if S["haut"] else 1.6)
+        if not S["haut"]:
+            with b.at((0, 0, z1), yaw=180):
+                _namako(b, x0 + 0.45, x1 - 0.45, 0.8, YN - 0.1, joint, pas=2.0)
+    with b.group("Porte"), b.at((0, 0, z0)):
+        yp = 6.2 if S["haut"] else 7.4
+        b.box((-wp / 2, 0.8, -0.5), (wp / 2, yp, 0.1), shade(col("enduit"), 0.94), name="Encadrement")
+        b.box((-wp / 2 + 0.5, 0.8, -0.75), (wp / 2 - 0.5, yp - 0.5, -0.5), col("enduit"), name="Gradin")
+        b.box((-1.5, 0.8, -0.95), (1.5, yp - 1.1, -0.75), col("bois_fonce"), name="Porte")
+        for xx in (-0.5, 0.5):
+            b.box((xx - 0.08, 0.9, -1.05), (xx + 0.08, yp - 1.2, -0.9), col("bois"), name="Planche")
+        for yy in (2.2, 4.6):
+            b.box((-1.4, yy, -1.12), (1.4, yy + 0.3, -0.9), col(FER), name="Penture")
+        b.box((-0.25, 3.3, -1.25), (0.25, 3.9, -1.0), col("or"), name="Serrure")
+        b.box((-2.0, 0, -2.0), (2.0, 0.55, -0.3), vr("pierre", rng, 0.03), studs="top", name="Marche")
+        # petit auvent de porte (kiriyoke)
+        b.box((-wp / 2 - 0.6, yp + 0.05, -2.0), (wp / 2 + 0.6, yp + 0.35, 0.2), shade(col(S["toit"]), 0.72), name="Rive")
+        b.wedge((-wp / 2 - 0.6, yp + 0.35, -2.0), (wp / 2 + 0.6, yp + 1.2, 0.2), col(S["toit"]), down="-z", studs="top",
+                name="Auvent")
+    with b.group("Fenetres"):
+        with b.at((0, 0, z0 + 0.15)):
+            if S["forme"] == "hirairi":
+                for xx in (-4.0, 4.0):
+                    _fenetre_kura(b, xx, 7.6 if S["haut"] else 7.2, 1.5, mur, volets=False)
+        for side in (-1, 1):
+            with b.at(((x1 - 0.15) if side > 0 else (x0 + 0.15), 0, 0), yaw=-90 * side):
+                _fenetre_kura(b, 0, 6.6 if not S["haut"] else 7.5, 1.6, mur)
+        if S["signe"] and S["forme"] == "hirairi":
+            with b.at((0, 0, z0 + 0.15)):
+                p = b.box((-1.0, 7.5, -0.25), (1.0, 9.1, 0.1), vr(mur, rng, 0.02), name="Signe")
+                p.label = {"face": "Front", "text": S["signe"], "color": col("noir"), "font": "brush"}
+    with b.group("Toit"):
+        if S["forme"] == "hirairi":
+            top, _ = _toit_hirairi(b, x0 + 0.15, x1 - 0.15, z0 + 0.15, z1 - 0.15, H, 0.52, S["toit"], mur, deb_av=1.3,
+                                   deb_ar=1.3, deb_cote=1.0, ep=1.0, sori=0.55, rng=rng)
+        else:
+            top = _toit_tsumairi(b, x0 + 0.15, x1 - 0.15, z0 + 0.15, z1 - 0.15, H, 0.55, S["toit"], mur, deb=1.1,
+                                 deb_av=1.2, deb_ar=1.0, ep=1.0, sori=0.55, hafu=None, gegyo=None, rng=rng)
+            # fenêtre du pignon, et caractère peint
+            with b.at((0, 0, z0 + 0.15)):
+                if S["signe"]:
+                    p = b.box((-1.0, H + 0.3, -0.25), (1.0, H + 2.15, 0.1), vr(mur, rng, 0.02), name="Signe")
+                    p.label = {"face": "Front", "text": S["signe"], "color": col("noir" if not noir else "blanc"),
+                               "font": "brush"}
+                else:
+                    _fenetre_kura(b, 0, H + 0.75, 1.2, mur, volets=False)
+    return {"emprise": (W, D), "hauteur": round(top, 2)}
+
+
+# ---------------------------------------------------------------------------
+# TEMIZUYA (pavillon des ablutions)
+# ---------------------------------------------------------------------------
+
+_TEMIZUYAS = [
+    # 0 : bois naturel et tuiles d'ardoise (comme la référence), plaque de bois clair
+    dict(toit="tuile_ardoise", poteau="bois_moyen", poutre="bois_fonce", bassin="pierre_fonce",
+         plaque=("清水", "bois_clair", "noir"), chaume=False, lanterne=False),
+    # 1 : poteaux vermillon, toit de cuivre patiné, plaque laquée noir et or
+    dict(toit="cuivre_vert", poteau="vermillon", poutre="vermillon", bassin="pierre",
+         plaque=("清水", "noir_laque", "or"), chaume=False, lanterne=False),
+    # 2 : bois sombre, toit bleu nuit, plaque blanche, lanterne de pierre à côté
+    dict(toit="tuile", poteau="bois_fonce", poutre="bois_fonce", bassin="pierre_claire",
+         plaque=("清水", "blanc", "noir"), chaume=False, lanterne=True),
+    # 3 : rustique : toit de chaume, bassin de pierre sombre
+    dict(toit=CHAUME, poteau="bois", poutre="bois_fonce", bassin="pierre_fonce",
+         plaque=("清水", "bois_clair", "noir"), chaume=True, lanterne=False),
+]
+
+
+def temizuya(b, variant=0):
+    """Pavillon des ablutions (temizuya) d'environ 10 × 7 : dallage, quatre poteaux sur socles, poutres, toit à
+    deux pans (tuiles, cuivre ou chaume), grand bassin de pierre plein d'eau, bec de bambou et filet d'eau,
+    louches posées sur le bord, plaque 清水 suspendue à la poutre avant."""
+    rng = b.rng
+    S = _style(_TEMIZUYAS, variant, {"toit": ["tuile_ardoise", "cuivre_vert", "tuile", CHAUME]})
+    poteau, poutre = col(S["poteau"]), col(S["poutre"])
+    PX, PZ = 3.9, 2.4
+    H = 6.6
+    with b.group("Pavillon"):
+        b.box((-5.0, 0, -3.5), (5.0, 0.3, 3.5), vr("pierre_claire", rng, 0.03), studs="top", name="Dallage")
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                b.box((sx * PX - 0.5, 0.3, sz * PZ - 0.5), (sx * PX + 0.5, 0.8, sz * PZ + 0.5), col("pierre"), studs="top",
+                      name="Socle")
+                b.cyl((sx * PX, (0.8 + H) / 2, sz * PZ), 0.32, H - 0.8, poteau, axis="y", name="Poteau")
+        for sz in (-1, 1):
+            b.box((-PX - 0.7, H - 0.6, sz * PZ - 0.3), (PX + 0.7, H, sz * PZ + 0.3), poutre, name="Poutre")
+        for sx in (-1, 1):
+            b.box((sx * PX - 0.25, H - 0.55, -PZ - 0.35), (sx * PX + 0.25, H - 0.05, PZ + 0.35), poutre, name="Poutre")
+        # plaque 清水 suspendue sous la poutre avant
+        t, f, e = S["plaque"]
+        for xx in (-1.0, 1.0):
+            b.box((xx - 0.06, 5.75, -PZ - 0.06), (xx + 0.06, H - 0.5, -PZ + 0.06), col("noir"), collide=False, name="Cordon")
+        b.box((-1.7, 4.45, -PZ - 0.3), (1.7, 5.85, -PZ + 0.0), poutre, collide=False, name="Cadre")
+        p = b.box((-1.5, 4.6, -PZ - 0.45), (1.5, 5.7, -PZ - 0.25), col(f), collide=False, name="Plaque")
+        p.label = {"face": "Front", "text": t, "color": col(e), "font": "brush"}
+    with b.group("Bassin"):
+        st = col(S["bassin"])
+        b.box((-2.6, 0.3, -1.2), (2.6, 1.8, 1.2), vr(st, rng, 0.03), name="Bassin")
+        b.box((-2.6, 1.8, -1.2), (2.6, 2.6, -0.8), st, studs="top", name="Rebord")
+        b.box((-2.6, 1.8, 0.8), (2.6, 2.6, 1.2), st, studs="top", name="Rebord")
+        for xa in (-2.6, 2.2):
+            b.box((xa, 1.8, -0.8), (xa + 0.4, 2.6, 0.8), shade(st, 0.97), studs="top", name="Rebord")
+        b.box((-2.2, 1.8, -0.8), (2.2, 2.38, 0.8), col("eau"), material="Glass", reflectance=0.15, name="Eau")
+        # bec de bambou (kakei) et filet d'eau
+        b.cyl((1.4, 1.95, 1.9), 0.2, 3.3, col("bambou_fonce"), axis="y", name="Support")
+        b.cyl((1.4, 3.45, 0.85), 0.17, 2.3, col("bambou"), axis="z", name="Kakei")
+        b.box((1.32, 2.35, -0.38), (1.48, 3.3, -0.22), col("eau_fonce"), transparency=0.35, collide=False, name="Filet")
+        # louches (hishaku) posées en travers du bassin
+        for xx in (-1.6, -0.5, 0.6):
+            b.box((xx - 0.06, 2.62, -1.05), (xx + 0.06, 2.72, 1.05), col("bois_clair"), collide=False, name="Manche")
+            b.cyl((xx, 2.82, -1.0), 0.28, 0.4, col("bois_clair"), axis="y", collide=False, name="Godet")
+    with b.group("Toit"):
+        if S["chaume"]:
+            top, _ = _toit_hirairi(b, -PX - 0.3, PX + 0.3, -PZ - 0.3, PZ + 0.3, H, 0.85, S["toit"], S["poutre"], deb_av=1.5,
+                                   deb_ar=1.5, deb_cote=1.1, ep=1.2, sori=0.7, rng=rng, faitage=CHAUME_FONCE, oni=False,
+                                   blanc=False, fait=0.8)
+            _croix_faitage(b, -PX, PX, 0.0, H + 2.7 * 0.85 + 1.2 * math.hypot(1, 0.85) + 0.35, n=3, long=1.3)
+            top += 0.9
+        else:
+            top, _ = _toit_hirairi(b, -PX - 0.3, PX + 0.3, -PZ - 0.3, PZ + 0.3, H, 0.6, S["toit"], S["poutre"], deb_av=1.4,
+                                   deb_ar=1.4, deb_cote=1.2, ep=0.7, sori=0.5, rng=rng, fait=0.6)
+    if S["lanterne"]:
+        with b.group("Lanterne"):
+            _toro(b, -4.4, -2.9, "pierre", lumiere=True, h=0.75)
+    return {"emprise": (10.0, 7.0), "hauteur": round(top, 2)}
+
+
+# ---------------------------------------------------------------------------
+# YATAI (échoppe ambulante)
+# ---------------------------------------------------------------------------
+
+_YATAIS = [
+    # 0 : soba — noren bleus 蕎麦, lampion rouge, toit de tuiles bleu nuit, bols
+    dict(noren=("noren_bleu", "blanc", "蕎麦"), toit="tuile", bois="bois", lampion=("rouge", False), plat="bols"),
+    # 1 : dango — noren rouges 団子, lanterne de papier, toit de bardeaux, brochettes
+    dict(noren=("noren_rouge", "blanc", "団子"), toit="bois_moyen", bois="bois_clair", lampion=("lampion_papier", True),
+         plat="dango"),
+    # 2 : thé — noren violets 茶, lanterne orange, toit d'ardoise, bouilloire
+    dict(noren=("noren_violet", "blanc", "茶"), toit="tuile_ardoise", bois="bois_moyen", lampion=("orange_lampion", True),
+         plat="the"),
+    # 3 : douceurs — noren noirs 甘味, toit vermillon, lanterne de papier
+    dict(noren=("noir", "blanc", "甘味"), toit="vermillon", bois="bois", lampion=("lampion_papier", True), plat="dango"),
+]
+
+
+def yatai(b, variant=0):
+    """Échoppe ambulante (yatai) d'environ 8 × 5 : caisse sur deux grandes roues et deux pieds, brancards,
+    comptoir stud, quatre montants, petit toit à deux pans, noren 蕎麦 / 団子 / 茶 / 甘味, lanterne, marchandises."""
+    rng = b.rng
+    S = _style(_YATAIS, variant, {"toit": ["tuile", "bois_moyen", "tuile_ardoise", "vermillon"]})
+    bois = col(S["bois"])
+    bf = col("bois_fonce")
+    with b.group("Chariot"):
+        for sx in (-1, 1):
+            b.cyl((sx * 3.55, 1.25, 0.8), 1.25, 0.35, bf, axis="x", name="Roue")
+            b.cyl((sx * 3.55, 1.25, 0.8), 0.95, 0.42, col("bois_moyen"), axis="x", name="Jante")
+            b.cyl((sx * 3.62, 1.25, 0.8), 0.32, 0.6, col(FER), axis="x", name="Moyeu")
+            b.box((sx * 2.7 - 0.18, 0, -1.15), (sx * 2.7 + 0.18, 1.45, -0.8), bf, name="Pied")
+            b.box((sx * 2.4 - 0.15, 1.5, 1.9), (sx * 2.4 + 0.15, 1.8, 3.1), bf, name="Brancard")
+        b.cyl((0, 1.25, 0.8), 0.14, 7.0, col(FER), axis="x", name="Essieu")
+        b.box((-3.1, 1.45, -1.2), (3.1, 3.6, 2.0), vr(bois, rng, 0.03), name="Caisse")
+        for xx in (-1.55, 1.55):
+            b.box((xx - 1.3, 1.85, -1.32), (xx + 1.3, 3.2, -1.15), shade(bois, 0.85), name="Panneau")
+        b.box((-3.4, 3.6, -2.0), (3.4, 3.95, 2.2), col("bois_clair"), studs="top", name="Comptoir")
+        for sx in (-1, 1):
+            for zz in (-1.05, 1.8):
+                b.box((sx * 3.0 - 0.15, 3.95, zz - 0.15), (sx * 3.0 + 0.15, 6.1, zz + 0.15), bf, name="Montant")
+        for zz in (-1.05, 1.8):
+            b.box((-3.25, 6.1, zz - 0.2), (3.25, 6.5, zz + 0.2), bf, name="Traverse")
+    with b.group("Etal"):
+        if S["plat"] == "bols":
+            for i, xx in enumerate((-2.2, -1.1, 0.0, 1.1)):
+                b.cyl((xx, 4.2, -0.9), 0.42, 0.5, col(("noir", "rouge", "noir", "rouge")[i]), axis="y", studs="top",
+                      collide=False, name="Bol")
+            b.cyl((2.3, 4.55, 0.9), 0.7, 1.2, col("metal"), axis="y", name="Marmite")
+        elif S["plat"] == "dango":
+            b.box((-2.6, 3.95, -1.0), (1.0, 4.3, -0.2), col("bois_moyen"), studs="top", name="Plateau")
+            for xx in (-2.2, -1.4, -0.6, 0.2):
+                _dango(b, xx, 4.3, -0.6)
+            b.cyl((2.2, 4.25, 0.8), 0.65, 0.6, col("noir"), axis="y", name="Brasero")
+        else:
+            b.cyl((-1.8, 4.55, 0.6), 0.65, 1.2, col("noir"), axis="y", name="Bouilloire")
+            for xx in (-0.2, 0.6, 1.4):
+                b.cyl((xx, 4.17, -0.9), 0.25, 0.45, col("blanc"), axis="y", collide=False, name="Tasse")
+    with b.group("Toit"):
+        top, dessous = _toit_hirairi(b, -3.25, 3.25, -1.25, 2.0, 6.5, 0.45, S["toit"], S["bois"], deb_av=0.9, deb_ar=0.6,
+                                     deb_cote=0.55, ep=0.5, sori=0.55, rng=rng, oni=False, blanc=False, fait=0.5)
+        nf, ne, nt = S["noren"]
+        _noren(b, -2.8, 2.8, 6.1, 1.15, -1.35, nf, ne, nt, n=len(nt) if len(nt) > 1 else 3)
+        lc, ln = S["lampion"]
+        _chochin(b, 3.35, dessous(-1.8), -1.8, r=0.55, h=1.2, corps=lc, neon=ln)
+    return {"emprise": (8.0, 5.0), "hauteur": round(top, 2)}
