@@ -1,0 +1,8 @@
+.cache/
+build/
+__pycache__/
+apercus/
+textures/panneaux/
+export/*.blend1
+export/*.rbxmx
+export/*.glb
