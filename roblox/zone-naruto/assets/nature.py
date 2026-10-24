@@ -164,9 +164,10 @@ def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.bois(-5, 6.5, -1, 0.5, 7.5, 0, e, collide=False, name="Branche")
             k.bois(1.5, 9.5, 0, 6, 10.5, 1, e, collide=False, name="Branche")
             k.bois(-4, 12.5, 0.5, 0, 13.5, 1.5, e, collide=False, name="Branche")
+            k.bois(-0.5, 4, 0.5, 0.5, 5, 4.5, e, collide=False, name="Branche")
             # plateaux : (centre x, bas, centre z, largeur, profondeur, épaisseur, rotation)
-            pads = [(-5.5, 7.5, -0.5, 7, 6, 1.5, 12), (5.5, 10.5, 0.5, 6.5, 5.5, 1.5, -18), (-4, 13.5, 1, 5.5, 5, 1.5, 24),
-                    (0.5, 16.5, 1, 7, 6, 2, -8)]
+            pads = [(-5.5, 7.5, -0.5, 7.5, 6.5, 1.5, 12), (5.5, 10.5, 0.5, 7, 6, 1.5, -18), (-4, 13.5, 1, 6, 5.5, 1.5, 24),
+                    (0.5, 16.5, 1, 7.5, 6.5, 2, -8), (0, 5, 4.5, 4.5, 4, 1.5, -30)]
             for (cx, y0, cz, sx, sz, h, yaw) in pads:
                 k.touffe(cx, y0, cz, sx, h, sz, vary(PIN, rng, 0.04), yaw)
                 k.touffe(cx, y0 + h, cz, sx - 2, 1, sz - 2, vary(PIN_CLAIR, rng, 0.04), yaw)
@@ -215,7 +216,7 @@ def cerisier(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.touffe(0.5, 13, 0.5, 7, 2, 7, S(mix(s0, sc, 0.4)), 45)
             k.touffe(0, 15, 0, 3.5, 1, 3.5, S(sc))
             k.touffe(-3.5, 14, -1.5, 3, 1.5, 3, S(mix(s0, sc, 0.3)), 45)
-            k.touffe(3.5, 14, 2, 2.5, 1, 2.5, S(s0), 20)
+            k.touffe(3.5, 14, 2, 2.5, 1.5, 2.5, S(s0), 20)
             k.touffe(3, 7, -3.5, 1.5, 1.5, 1.5, S(s0))
             k.touffe(-3.5, 7.25, 2.5, 1.5, 1.5, 1.5, S(sf))
             _petales(b, k, rng, [(4.5, -3, 1, 1), (-5.5, 2.5, 1.5, 1), (1.5, 6, 1, 1), (-3, -5.5, 1, 1.5), (7, 3.5, 1, 1)], sols)
@@ -245,18 +246,23 @@ def cerisier(b, variant: int = 0, taille: float = 1.0) -> dict:
             k.touffe(0, 11, 0, 9, 1, 9, SAKURA_OMBRE)
             k.touffe(0, 12, 0, 13, 2.5, 13, S(sf))
             k.touffe(0, 12.5, 0, 12, 3, 12, S(sf45), 45)
-            k.touffe(0, 14.5, 0, 8, 2, 8, S(s0))
+            k.touffe(0, 14.5, 0, 9.5, 2, 9.5, S(s0))
+            k.touffe(0.5, 15, -0.5, 8, 2, 8, S(mix(s0, sc, 0.3)), 45)
             k.touffe(0, 16.5, 0, 4, 1, 4, S(sc), 45)
-            for i in range(12):
-                ang = i * 30 + 15 + (7 if i % 3 == 1 else 0)
+            # rameaux : 20 lames fines (anneau extérieur long, anneau intérieur plus court) : un rideau rose irrégulier
+            for i in range(20):
+                ext = i < 12
+                n, j = (12, i) if ext else (8, i - 12)
+                ang = j * 360 / n + (8 if ext else 30)
                 a = math.radians(ang)
-                ybas = (3.0, 7.0, 5.0, 2.5, 8.0, 4.0, 6.0, 3.5, 7.5, 4.5, 2.5, 6.5)[i]
-                ray = 6.3 if i % 2 == 0 else 5.4
-                lg = (1.5, 1.0, 2.0)[i % 3] / 2
-                col = S((sf, s0, sf45, mix(s0, sc, 0.5))[i % 4])
+                ybas = ((5.0, 8.0, 6.5, 4.0, 9.0, 5.5, 7.5, 4.5, 8.5, 6.0, 3.5, 7.0)[j] if ext
+                        else (8.5, 9.5, 7.5, 10.0, 8.0, 9.0, 7.0, 10.0)[j])
+                ray = 6.6 if ext else 4.8
+                lg = (0.5, 0.4, 0.6)[i % 3]
+                col = S((sf, s0, sf45, mix(s0, sc, 0.5), s0)[i % 5])
                 with b.at(k.p(math.sin(a) * ray, 0, math.cos(a) * ray), yaw=ang):
-                    k.feuille(-lg, ybas, -0.5, lg, 13, 0.5, col, studs="none")
-            _petales(b, k, rng, [(4.5, -4.5, 1, 1), (-5, 3, 1.5, 1), (3, 5.5, 1, 1), (-3, -5, 1, 1.5), (8.5, 1, 1, 1)], sols)
+                    k.feuille(-lg, ybas, -0.4, lg, 13, 0.4, col, studs="none")
+            _petales(b, k, rng, [(4.5, -4.5, 1, 1), (-5, 3, 1.5, 1), (3, 5.5, 1, 1), (8.5, 1, 1, 1)], sols)
         else:  # compact : boule rose soutenu, tronc court et coudé
             k.bois(-1, 0, -1, 1, 4, 1, e)
             k.bois(-1.5, 3.5, -0.5, 0.5, 7, 1.5, e)
@@ -433,22 +439,22 @@ def buisson(b, variant: int = 0) -> dict:
         return vary(name, rng, a)
 
     with b.group("Buisson"):
-        if v == 0:
-            k.feuille(-2, 0, -1.5, 2, 2, 1.5, F("feuille"))
-            k.feuille(-1.5, 2, -1, 1, 3, 1, F("feuille_claire"))
-            k.feuille(1.5, 0, -0.5, 3, 1.5, 2, F("feuille_fonce"))
-            k.feuille(-3, 0, -1, -1.5, 1, 0.5, F("feuille_fonce"))
-            k.feuille(-0.5, 3, -0.5, 0.5, 3.5, 0.5, F("herbe_claire"))
-        elif v == 1:  # azalée (tsutsuji) : dômes taillés piqués de fleurs roses
-            k.feuille(-2.5, 0, -1.5, 2.5, 2, 1.5, F("feuille_fonce"))
-            k.feuille(-1.5, 2, -1, 1.5, 2.5, 1, F("feuille"))
-            k.feuille(2, 0, -1, 3.5, 1.5, 1, F("feuille_fonce"))
-            for (x, y, z, col) in ((-1.8, 2.0, -1.2, AZALEE), (0.6, 2.5, 0.2, AZALEE_CLAIR), (1.6, 1.5, -1.3, AZALEE),
-                                   (-0.9, 1.2, -1.6, AZALEE_CLAIR)):
-                b.box((x - 0.4, y - 0.4, z - 0.4), (x + 0.4, y + 0.3, z + 0.4), col, studs="top", collide=False, name="Fleur")
+        if v == 0:  # boule verte
+            k.touffe(0, 0, 0, 4, 2, 3.5, F("feuille"))
+            k.touffe(0.25, 0, -0.25, 3.5, 2.5, 3.5, vary(mix(c("feuille"), c("feuille_claire"), 0.3), rng, 0.04), 45)
+            k.touffe(-0.25, 2, 0.25, 2.5, 1, 2, F("feuille_claire"))
+            k.touffe(2.25, 0, 1, 2, 1.5, 2, F("feuille_fonce"), 30)
+            k.touffe(-2.25, 0, -0.75, 1.5, 1, 1.5, F("feuille_fonce"), -20)
+            k.touffe(0, 3, 0, 1, 0.5, 1, F("herbe_claire"), 45)
+        elif v == 1:  # azalée (tsutsuji) : dôme taillé piqué de fleurs roses
+            k.touffe(0, 0, 0, 5, 2, 3, F("feuille_fonce"))
+            k.touffe(0, 0, 0, 3.5, 2.5, 3.5, vary(mix(c("feuille_fonce"), c("feuille"), 0.5), rng, 0.04), 45)
+            for (x, y, z, col) in ((-1.2, 2.0, -0.3, AZALEE), (0.6, 2.25, 0.5, AZALEE_CLAIR), (1.7, 1.75, -0.6, AZALEE),
+                                   (-0.2, 2.2, -0.9, AZALEE_CLAIR), (-2.3, 1.3, 0.4, AZALEE_CLAIR), (1.0, 1.0, -1.4, AZALEE)):
+                b.box((x - 0.4, y - 0.4, z - 0.4), (x + 0.4, y + 0.4, z + 0.4), col, studs="top", collide=False, name="Fleur")
         elif v == 2:  # hortensia (ajisai) : feuillage sombre, grosses boules bleues et mauves
-            k.feuille(-2, 0, -1.5, 2, 2.5, 1.5, F("feuille_fonce"))
-            k.feuille(-1, 0, 1, 2.5, 2, 2.5, F("feuille"))
+            k.touffe(0, 0, 0, 4, 2.5, 3, F("feuille_fonce"))
+            k.touffe(0.5, 0, 1, 3, 2, 3, F("feuille"), 45)
             for (x, y, z, col) in ((-1.1, 2.5, -0.7, HORTENSIA), (1.1, 2.5, 0.2, HORTENSIA_MAUVE), (-0.4, 2.0, -1.5, HORTENSIA_MAUVE),
                                    (1.6, 2.0, 1.6, HORTENSIA)):
                 b.box((x - 0.7, y - 0.5, z - 0.7), (x + 0.7, y + 0.6, z + 0.7), vary(col, rng, 0.05), studs="top",
@@ -456,8 +462,8 @@ def buisson(b, variant: int = 0) -> dict:
         else:  # haie taillée : pavé vert foncé, dessus clair, bouts arrondis
             k.feuille(-3, 0, -1, 3, 2, 1, F("feuille_fonce"))
             k.feuille(-2.5, 2, -0.5, 2.5, 2.5, 0.5, F("feuille"))
-            k.feuille(-4, 0, -0.5, -2.5, 1.5, 0.5, F("feuille"))
-            k.feuille(2.5, 0, -0.5, 4, 1.5, 0.5, F("feuille"))
+            k.touffe(-3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
+            k.touffe(3, 0, 0, 1.5, 1.5, 1.5, F("feuille"), 45)
     return _infos(b, n0)
 
 
@@ -478,6 +484,8 @@ def rocher_deco(b, variant: int = 0) -> dict:
     with b.group("Rochers"):
         if v == 0:
             R(0, 1.25, 0, 4, 2.5, 3.5, gris[0], 12)
+            with b.at((0, 0, 0), yaw=12):
+                b.wedge((-3, 0, -1.25), (-2, 1.75, 1.5), gris[2], down="-x", name="Rocher")
             R(-0.3, 3.0, 0.2, 3, 1.0, 2.5, gris[3], 18)
             R(-0.6, 3.65, 0.4, 1.8, 0.3, 1.5, MOUSSE, 18, collide=False, name="Mousse")
             R(2.9, 0.6, 1.4, 1.8, 1.2, 1.6, gris[1], -20)
@@ -487,6 +495,8 @@ def rocher_deco(b, variant: int = 0) -> dict:
             b.box((-1.8, 0, -2.2), (-1.4, 0.8, -1.8), c("herbe_claire"), collide=False, shadow=False, name="Brin")
         elif v == 1:
             R(0, 1.5, 0, 4, 3, 3, gres[0], -10)
+            with b.at((0, 0, 0), yaw=-10):
+                b.wedge((-1.5, 0, 1.5), (1.25, 2.25, 2.75), gres[2], down="+z", name="Rocher")
             R(0.4, 3.5, -0.2, 2.5, 1, 2, gres[1], 5)
             R(-2.4, 0.75, 1.0, 2, 1.5, 2.5, gres[2], 30)
             R(2.4, 0.5, 1.3, 1.6, 1.0, 1.4, gres[3], -35)

@@ -9,7 +9,8 @@ au retour, elle est donc soignée aussi.
 - deux piliers massifs en enduit crème (assises « pixel » en trois tons), montants de bois sombre, socle de
   pierre à deux degrés, chapiteau à deux degrés ;
 - un linteau à poutres sombres : bandeau crème portant 忍 en pixels rouges de part et d'autre d'un grand
-  cadre (gaku) où la spirale de la feuille de Konoha est en relief ; le tout sur les deux faces ;
+  cadre laqué rouge à coins dorés (gaku), qui monte jusque sous l'avant-toit et porte la spirale de la feuille
+  de Konoha en relief ; le tout sur les deux faces, lisible à l'endroit des deux côtés ;
 - un grand toit de tuiles vert-de-gris au profil japonais (pente basse douce, pente haute raide), rangs de
   tuiles en deux tons, abouts ronds, faîtage, épis et pignons sombres à disque doré ;
 - deux immenses vantaux vert pâle ouverts vers l'extérieur (あ à gauche, ん à droite, sur la face tournée
@@ -424,7 +425,7 @@ def porte_konoha(b, variant: int = 0, ouverture: float = 72, hauteur: float = 46
                 za, zb = sorted((zf, zf + sens * 0.2))
                 b.box((-xg + bd - 0.45, y_g0 + bd - 0.45, za), (xg - bd + 0.45, y_g1 - bd - 0.35, zb), OR,
                       collide=False, name="Filet")
-                za, zb = sorted((zf, zf + sens * 0.4))
+                za, zb = sorted((zf + sens * 0.05, zf + sens * 0.4))
                 b.box((-xg + bd, y_g0 + bd, za), (xg - bd, y_g1 - bd - 0.8, zb), PLAQUE, name="Panneau")
                 for gx in (-xg + 1.1, xg - 1.1):
                     for gy in (y_g0 + 1.1, y_g1 - 1.5):
@@ -482,7 +483,7 @@ def porte_konoha(b, variant: int = 0, ouverture: float = 72, hauteur: float = 46
         b.box((-xr + 1, y1 + 1.7, -2.5), (xr - 1, y1 + 3.0, 2.5), shade(FAITAGE, 1.1), studs="top", name="Faitage")
         for s in (-1, 1):
             xa, xb = sorted((s * (xr - 3.5), s * (xr + 1)))
-            b.box((xa, y1 - 3.0, -3.0), (xb, y1 + 4.0, 3.0), FAITAGE, name="Epi")
+            b.box((xa, y1 - 3.6, -3.0), (xb, y1 + 4.0, 3.0), FAITAGE, name="Epi")
             b.wedge((xa, y1 + 4.0, -2.2), (xb, y1 + 8.0, 2.2), shade(FAITAGE, 0.9), down="-x" if s > 0 else "+x",
                     name="Epi")
             b.cyl((s * (xr + 1.2), y1 + 0.8, 0), 1.6, 0.4, OR, axis="x", name="Epi", collide=False)

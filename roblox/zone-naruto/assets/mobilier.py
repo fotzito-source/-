@@ -59,12 +59,19 @@ PALETTES_LAMPIONS = [
 
 
 def _corps_lampion(b, x, y, z, col, neon: bool, r: float = 0.95, h: float = 1.7) -> None:
-    """Lampion rond en papier : corps, deux capuchons sombres (y = bas du lampion)."""
+    """Lampion rond en papier (y = bas) : boule + ceinture cylindrique (forme bombée), deux bandes
+    noires, capuchons sombres, gland. 6 pièces."""
     noir = c("noir")
-    b.cyl((x, y + 0.15, z), r * 0.62, 0.3, noir, collide=False, name="Capuchon")
-    b.cyl((x, y + 0.3 + h / 2, z), r, h, c(col), material="Neon" if neon else "SmoothPlastic",
-          collide=False, shadow=False, name="Lampion")
-    b.cyl((x, y + 0.45 + h, z), r * 0.62, 0.3, noir, collide=False, name="Capuchon")
+    corps = c(col)
+    mat = "Neon" if neon else "SmoothPlastic"
+    cy = y + 0.35 + h / 2
+    rb = h / 2 + 0.05                      # rayon de la boule (hauteur du corps)
+    b.ball((x, cy, z), rb, corps, material=mat, collide=False, shadow=False, name="Lampion")
+    b.cyl((x, cy, z), r, h * 0.45, corps, material=mat, collide=False, shadow=False, name="Lampion")
+    b.cyl((x, cy, z), r + 0.04, 0.12, noir, collide=False, shadow=False, name="Bande")
+    b.cyl((x, y + 0.2, z), r * 0.6, 0.4, noir, collide=False, name="Capuchon")
+    b.cyl((x, y + 0.5 + h, z), r * 0.6, 0.4, noir, collide=False, name="Capuchon")
+    b.box((x - 0.08, y - 0.5, z - 0.08), (x + 0.08, y, z + 0.08), c("rouge_fonce"), collide=False, shadow=False, name="Gland")
 
 
 def guirlande_lampions(b, p0, p1, n: int = 8, creux: float = 3.0, variant: int = 0) -> dict:
@@ -81,35 +88,47 @@ def guirlande_lampions(b, p0, p1, n: int = 8, creux: float = 3.0, variant: int =
             y = p[1] - creux * 4 * t * (1 - t)
             col, neon = pal[i % len(pal)]
             b.box((p[0] - 0.06, y - 0.7, p[2] - 0.06), (p[0] + 0.06, y, p[2] + 0.06), c("noir"), collide=False, shadow=False, name="Attache")
-            _corps_lampion(b, p[0], y - 0.7 - 2.3, p[2], col, neon)
+            _corps_lampion(b, p[0], y - 0.7 - 3.0, p[2], col, neon, r=1.25, h=2.2)
     return {"lampions": n}
 
 
 def poteau_electrique(b, variant: int = 0) -> dict:
-    """Poteau électrique (bois ou béton), traverse perpendiculaire à la rue, isolateurs, transformateur."""
+    """Poteau électrique (bois ou béton) : fût, deux traverses le long de Z local (perpendiculaires
+    à la rue une fois posé), isolateurs blancs, transformateur gris, plaque, échelons. ~30 pièces.
+    `attaches` = points d'accroche des câbles (repère local)."""
     bois = variant % 2 == 0
     col = c("bois") if bois else c("pave")
-    h = 24
+    h = 24 if variant % 4 < 2 else 26
+    attaches = []
     with b.group("Poteau"):
-        b.box((-0.9, 0, -0.9), (0.9, 1, 0.9), c("pave_fonce"), studs="top", name="Socle")
-        b.cyl((0, h / 2, 0), 0.6, h, col, axis="y", name="Fut")
-        b.cyl((0, h + 0.15, 0), 0.7, 0.3, shade(col, 0.8), axis="y", name="Tete")
-        # traverse le long de Z local (perpendiculaire à la rue une fois posé)
-        b.box((-0.3, h - 3, -3.2), (0.3, h - 2.4, 3.2), c("bois_fonce"), name="Traverse")
-        attaches = []
-        for z in (-2.6, 0.0, 2.6):
-            b.cyl((0, h - 2.0, z), 0.22, 0.8, c("blanc"), axis="y", collide=False, name="Isolateur")
-            attaches.append((0, h - 1.6, z))
-        # transformateur (côté ruelle, +Z local... ici côté opposé à la rue : +Z)
+        b.box((-1, 0, -1), (1, 1, 1), c("pave_fonce"), studs="top", name="Socle")
+        b.cyl((0, 0.5 + h / 2, 0), 0.6, h - 1, col, axis="y", name="Fut")
+        b.cyl((0, h + 0.2, 0), 0.7, 0.4, shade(col, 0.75), axis="y", name="Tete")
+        nb = 2 if variant % 3 != 1 else 1
+        for k in range(nb):
+            y = h - 1.8 - k * 3.2
+            L = 3.4 - k * 0.8
+            b.box((-0.35, y - 0.6, -L), (0.35, y, L), c("bois_fonce"), name="Traverse")
+            for z in (-L + 0.4, -0.9, 0.9, L - 0.4):
+                b.cyl((0, y + 0.35, z), 0.22, 0.7, c("blanc"), axis="y", collide=False, name="Isolateur")
+                attaches.append((0.0, round(y + 0.6, 2), z))
         if variant % 3 != 2:
-            b.box((-0.2, h - 8.4, 0.5), (0.2, h - 7.8, 1.6), c("metal_fonce"), name="Support")
-            b.cyl((0, h - 7.0, 1.9), 1.0, 2.6, c("metal"), axis="y", name="Transformateur")
-            b.cyl((0, h - 5.55, 1.9), 1.1, 0.3, c("metal_fonce"), axis="y", name="Couvercle")
-        # échelons
-        for k in range(5):
-            y = 6 + k * 2.4
-            b.box((-0.15, y, -1.0), (0.15, y + 0.3, 1.0), c("metal_fonce"), collide=False, name="Echelon")
-    return {"emprise": (2, 7), "hauteur": h + 0.3, "attaches": attaches}
+            # transformateur côté arrière (+Z), sur une console
+            yt = h - 10
+            b.box((-0.3, yt - 0.4, 0.5), (0.3, yt, 2.6), c("metal_fonce"), name="Console")
+            b.cyl((0, yt + 1.5, 1.9), 1.1, 3.0, c("citerne"), axis="y", name="Transformateur")
+            b.cyl((0, yt + 3.15, 1.9), 1.2, 0.3, c("metal_fonce"), axis="y", name="Couvercle")
+            b.cyl((0, yt + 1.0, 1.9), 1.16, 0.3, c("metal_fonce"), axis="y", collide=False, name="Cercle")
+            b.box((-0.08, yt + 3.3, 1.85), (0.08, h - 2.4, 1.95), c("noir"), collide=False, name="Fil")
+        # plaque d'identification et échelons
+        pl = b.box((-0.45, 8.0, -0.75), (0.45, 9.6, -0.45), c("panneau"), collide=False, name="Plaque")
+        pl.label = {"face": "Front", "text": "電", "color": c("noir"), "font": "sans", "vertical": True}
+        for k in range(6):
+            y = 6 + k * 2.2
+            zz = 0.9 if k % 2 else -0.9
+            b.box((-0.15, y, zz - 0.4 if zz < 0 else zz - 0.3), (0.15, y + 0.3, zz + 0.3 if zz < 0 else zz + 0.4),
+                  c("metal_fonce"), collide=False, name="Echelon")
+    return {"emprise": (2, 2 * 3.4), "hauteur": h + 0.4, "attaches": attaches}
 
 
 def lampion(b, variant: int = 0) -> dict:
@@ -172,7 +191,8 @@ def caisses(b, variant: int = 0) -> dict:
         for (x, y, z), s in pile:
             yaw = float(rng.uniform(-12, 12))
             b.boxc((x, y + s / 2, z), (s, s, s), c("bois_clair"), yaw=yaw, studs="top", name="Caisse")
-            b.boxc((x, y + s / 2, z), (s + 0.12, s * 0.22, s + 0.12), c("bois"), yaw=yaw, collide=False, name="Cerclage")
+            for f in (0.2, 0.8):
+                b.boxc((x, y + s * f, z), (s + 0.12, s * 0.14, s + 0.12), c("bois"), yaw=yaw, collide=False, name="Cerclage")
     return {"emprise": (5, 3), "hauteur": 4.0}
 
 
@@ -193,7 +213,7 @@ def poteaux_entrainement(b, variant: int = 0) -> dict:
         for x in (-4.5, 0, 4.5):
             b.cyl((x, 2.6, 0), 0.9, 4.6, c("bois"), axis="y", name="Souche")
             b.cyl((x, 4.95, 0), 0.75, 0.1, c("bois_clair"), axis="y", collide=False, name="Coupe")
-            b.box((x - 0.95, 2.6, -0.95), (x + 0.95, 2.9, 0.95), shade(c("bois"), 0.75), collide=False, name="Corde")
+            b.cyl((x, 3.2, 0), 0.97, 0.5, c("panneau"), axis="y", collide=False, name="Corde")
     return {"emprise": (14, 3.2), "hauteur": 5.0}
 
 
@@ -214,12 +234,17 @@ def distributeur(b, variant: int = 0) -> dict:
 
 
 def boite_lettres(b, variant: int = 0) -> dict:
+    """Boîte aux lettres japonaise : fût rouge arrondi sur socle, chapeau bombé, fente, plaque 〒."""
+    rouge = (c("rouge"), shade(c("rouge"), 0.9))[variant % 2]
     with b.group("BoiteLettres"):
-        b.box((-0.25, 0, -0.25), (0.25, 3.0, 0.25), c("metal_fonce"), name="Pied")
-        b.box((-0.9, 3.0, -0.7), (0.9, 4.8, 0.7), c("rouge"), name="Boite")
-        b.box((-0.6, 4.2, -0.75), (0.6, 4.4, -0.7), c("noir"), collide=False, name="Fente")
-        b.box((-1.0, 4.8, -0.8), (1.0, 5.1, 0.8), shade(c("rouge"), 0.8), studs="top", name="Toit")
-    return {"emprise": (2, 1.6), "hauteur": 5.1}
+        b.box((-0.9, 0, -0.9), (0.9, 0.4, 0.9), c("pave_fonce"), studs="top", name="Socle")
+        b.cyl((0, 0.4 + 2.2, 0), 0.8, 4.4, rouge, axis="y", name="Boite")
+        b.cyl((0, 4.95, 0), 0.95, 0.3, shade(rouge, 0.8), axis="y", name="Chapeau")
+        b.ball((0, 5.1, 0), 0.75, shade(rouge, 0.8), collide=False, name="Dome")
+        b.box((-0.45, 4.0, -0.86), (0.45, 4.2, -0.6), c("noir"), collide=False, name="Fente")
+        pl = b.box((-0.4, 2.4, -0.88), (0.4, 3.4, -0.6), c("blanc"), collide=False, name="Plaque")
+        pl.label = {"face": "Front", "text": "〒", "color": c("rouge"), "font": "sans", "vertical": False}
+    return {"emprise": (1.9, 1.9), "hauteur": 5.85}
 
 
 def cloture(b, longueur: float = 12, variant: int = 0) -> dict:
@@ -287,3 +312,20 @@ def etal_marche(b, variant: int = 0) -> dict:
         _corps_lampion(b, 4.5, 4.6, -3.0, "rouge", False, r=0.6, h=1.2)
         b.box((4.45, 6.1, -3.05), (4.55, 7.5, -2.95), c("noir"), collide=False, name="Attache")
     return {"emprise": (10, 8), "hauteur": 9.2}
+
+
+def _vitrine(b, variant: int = 0) -> dict:
+    """Aperçu jetable : une sélection d'objets alignés le long de X."""
+    b.box((-34, 0, -10), (34, 0.2, 10), c("sable"), studs="top")
+    objets = [(lanterne_pierre, -30), (reverbere, -25), (banc, -19), (caisses, -12), (tonneaux, -7),
+              (distributeur, -2), (boite_lettres, 2.5), (panneau_kanji, 6), (lampion, 9.5), (etal_marche, 17),
+              (poteau_electrique, 27)]
+    for f, x in objets:
+        with b.at((x, 0.2, 0)):
+            f(b, variant=variant)
+    with b.at((-12, 0.2, 7)):
+        cloture(b, longueur=24, variant=variant)
+    with b.at((14, 0.2, 7)):
+        poteaux_entrainement(b, variant=variant)
+    guirlande_lampions(b, (27, 21.4, 0), (-30, 16, -6), n=10, creux=3, variant=variant)
+    return {"emprise": (68, 20), "hauteur": 25}
