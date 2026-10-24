@@ -149,9 +149,6 @@ def _visage(b, kind: int, xc: float, y0: float, zw: float) -> int:
         g.rows([(35, 40, 14), (40, 43, 12), (43, 45, 9)], 5, K_CHEV_C)
         g.rect(-1, 36, 0, 47, 4, K_CREUX)          # raie
         g.rect(-15, 30, 15, 35, 5.5, K_BANDEAU)    # bandeau frontal
-        g.rect(-7, 29, 7, 36, 6.5, K_PLAQUE)       # plaque
-        for u, v in [(-3, 31), (-2, 31), (-1, 31), (0, 31), (1, 32), (1, 33), (0, 34), (-1, 34), (-2, 33)]:
-            g.rect(u, v, u + 1, v + 1, 6, K_CREUX)  # petite spirale gravée
     elif kind == 2:  # cheveux courts en épis, sourcils froncés
         g.rows([(28, 40, 16), (40, 42, 14)], 4.5, K_CHEV)
         g.sym(12, 17, 16, 30, 4.5, K_CHEV)
@@ -199,7 +196,6 @@ def _visage(b, kind: int, xc: float, y0: float, zw: float) -> int:
         g.rows([(37, 41, 14), (41, 43, 11), (43, 44, 7)], 5.5, K_CHEV_C)
         g.sym(4, 38, 5, 43, 4.5, K_CHEV)
         g.rect(-1, 36, 1, 45, 4, K_CREUX)          # raie
-        g.poly([(0, 26), (1, 27), (0, 28), (-1, 27)], 6, K_CREUX)  # losange au milieu du front
     return g.emit(b, xc, y0, zw)
 
 
@@ -348,7 +344,7 @@ def _banniere(b, x, y_haut, z_av, haut=24.0, larg=7.0):
     # plaque blanche au 火, comme le disque de la résidence du Hokage
     yp = y1 - haut * 0.36
     plaque = b.boxc((x, yp, z_av + 0.55), (larg - 1.4, larg - 1.4, 0.3), c("blanc"), yaw=180, collide=False)
-    plaque.label = {"face": "Front", "text": "火", "color": c("lettre_rouge"), "bg": None, "font": "brush"}
+    plaque.label = {"face": "Front", "text": "守", "color": c("lettre_rouge"), "bg": None, "font": "brush"}
     b.box((x - larg / 2, y1 - 1.2, z_av + 0.4), (x + larg / 2, y1, z_av + 0.6), c("rouge_fonce"), collide=False)
     b.box((x - larg / 2 - 0.2, y1 - haut - 1, z_av - 0.05), (x + larg / 2 + 0.2, y1 - haut, z_av + 0.45),
           c("rouge_fonce"), collide=False)
@@ -728,16 +724,16 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             # remplissage au-dessus des voussoirs (en retrait)
             bx(P - 8, HP + 9, 0, XP + 1.5, YR, 3.75, PIERRE_F, studs="top")
             bx(P - 18, HP + 10.5, 0, P - 8, YR, 3.75, PIERRE_F, studs="top")
-        # clé de voûte avec la spirale de la feuille de Konoha
+        # clé de voûte avec un motif de losange générique
         b.box((-(P - 27), HP + 10, 0), (P - 27, YL + 0.5, 7), PIERRE, studs="top")
-        spirale = ["..####..",
-                   ".#....#.",
-                   "#..##..#",
+        spirale = ["...##...",
+                   "..#..#..",
+                   ".#.##.#.",
                    "#.#..#.#",
-                   "#.#.##.#",
-                   "#.#....#",
-                   "##.####.",
-                   "#......."]
+                   "#.#..#.#",
+                   ".#.##.#.",
+                   "..#..#..",
+                   "...##..."]
         m = np.array([[ch == "#" for ch in row] for row in spirale])
         for i, j, w, h in mask_rects(m):
             yt = YL - 1.5 - j

@@ -141,6 +141,14 @@ def _masque(ch: str, cases: int = 22) -> np.ndarray:
     return f() if f else glyph_mask(ch, cases, font="sans", threshold=0.5)
 
 
+def embleme_shuriken(n: int = 24) -> np.ndarray:
+    """Shuriken à quatre branches, percé au centre : emblème générique « ninja » (n × n pixels)."""
+    y, x = np.mgrid[0:n, 0:n] + 0.5 - n / 2
+    r, th = np.hypot(x, y), np.arctan2(y, x) + np.pi / 4
+    R = n / 2 - 0.5
+    return (r <= R * (0.28 + 0.72 * np.abs(np.cos(2 * th)) ** 5)) & (r > R * 0.16)
+
+
 def spirale_feuille(n: int = 24) -> np.ndarray:
     """Emblème de la feuille de Konoha en pixels (n × n, lignes = haut → bas), dessiné sans police :
     spirale ronde qui part de la queue et tourne dans le sens horaire vers le centre, pointe triangulaire à
@@ -400,7 +408,7 @@ def porte_konoha(b, variant: int = 0, ouverture: float = 72, hauteur: float = 46
         b.box((-xo, y_b0, -5.5), (xo, y_b1, 5.5), PLAQUE, name="Bandeau")
         b.box((-xl, y_b1, -PD - 0.5), (xl, y_top, PD + 0.5), BOIS_SOMBRE, name="Poutre_haute")
         ninb = masque_nin()
-        feuille = spirale_feuille(26)
+        feuille = embleme_shuriken(26)  # emblème générique (pas le symbole de la licence)
         yc = (y_b0 + y_b1) / 2
         xg = 17.0                                  # demi-largeur du cadre central
         xn = (xg + xo - 3) / 2                     # centre des 忍

@@ -4,7 +4,7 @@ Repère de chaque asset : origine au centre de l'emprise, y = 0 au sol, l'avant 
 
 - `residence_hokage` : le grand bâtiment rond et rouge. Tambour principal (un seul cylindre), bandeau
   blanc et couronnes de fenêtres, tambour supérieur en retrait, terrasses à garde-corps, édicule et antenne
-  sur le toit. En façade (-Z), le grand disque blanc portant 火 en pixels rouges, au-dessus d'un porche
+  sur le toit. En façade (-Z), le grand disque blanc portant 守 en pixels rouges, au-dessus d'un porche
   à colonnes et à escalier. Deux ailes rectangulaires (murs rouges « pixel », chaînages blancs, toits de
   tuiles stud à pignon blanc) l'encadrent à gauche et à droite.
 - `tour_bleue` : la haute tour blanche à colombages de bois, coiffée d'un cône de tuiles bleues en gradins.
@@ -26,7 +26,7 @@ from textures import glyph_mask, mask_rects
 # Couleurs locales (en plus de la palette)
 ROUGE_SOMBRE = "#A93A30"      # soubassement, poteaux, contour du disque
 ROUGE_TAMBOUR2 = "#BF4236"    # tambour supérieur, un rien plus sombre que le principal
-LETTRE = "#D3302A"            # 火
+LETTRE = "#D3302A"            # 守
 CREME_SOL = "#EADFC8"         # dallage des terrasses
 OR = "#E8B84A"                # boule de faîte
 VITRE = "#33536A"
@@ -89,7 +89,7 @@ def _glyphe(b, mask, cell, xc, yc, z_face, prof, color, **kw):
 
 
 def _masque_feu(cells: int = 15) -> np.ndarray:
-    m = glyph_mask("火", cells, font="sans", bold=0.4, threshold=0.5)
+    m = glyph_mask("守", cells, font="sans", bold=0.4, threshold=0.5)
     p = np.pad(m, 1)
     voisins = p[:-2, 1:-1].astype(int) + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]
     return m & (voisins > 0)          # retire les pixels isolés
@@ -325,7 +325,7 @@ def residence_hokage(b, variant: int = 0) -> dict:
                     b.cyl((x, 23.6, z), 0.18, 8.0, c("metal"), collide=False)
                     with b.at((x, 0, z), yaw=-d):
                         p = b.box((0.25, 23.0, -0.05), (0.25 + 1.6, 27.4, 0.05), c(toit), collide=False, name="Oriflamme")
-                        p.label = {"face": "Front", "text": "火", "color": blanc, "bg": c(toit), "font": "brush",
+                        p.label = {"face": "Front", "text": "守", "color": blanc, "bg": c(toit), "font": "brush",
                                    "vertical": True}
 
         # -- Tuyaux gris à l'arrière du tambour ---------------------------------------------------
@@ -380,7 +380,7 @@ def residence_hokage(b, variant: int = 0) -> dict:
             for x in (-4.6, 4.6):
                 _lampion(b, x, 8.0, zf + 0.6, c("orange_lampion"))
             p = b.box((6.1, 3.0, zf + 0.0), (7.5, 7.0, zf + 0.2), c("panneau"), collide=False, name="Enseigne")
-            p.label = {"face": "Front", "text": "火影", "color": c("rouge_fonce"), "bg": c("panneau"),
+            p.label = {"face": "Front", "text": "役場", "color": c("rouge_fonce"), "bg": c("panneau"),
                        "font": "brush", "vertical": True}
             for x in (-10.4, 10.4):
                 _jardiniere(b, x, -R - 2.6, 0.0, rng)

@@ -109,7 +109,8 @@ on peut aussi exécuter `rendu.py` dans la session Blender ouverte.
 
 ## Remarque sur la propriété intellectuelle
 
-Roblox retire les jeux qui utilisent une licence sans autorisation (exemple : Shinobi Life 2 en 2020).
-Les éléments les plus reconnaissables sont la spirale de la feuille sur la porte, les visages du rocher
-et la combinaison « tour rouge + 火 ». Ils sont isolés dans leurs fonctions et faciles à remplacer.
-Aucune marque n'est écrite (pas de « Naruto », « Konoha », « Ichiraku » sur les panneaux).
+Roblox retire les jeux qui utilisent une licence sans autorisation. La zone s'en tient donc à une
+inspiration générique : emblème de shuriken sur la porte (pas la feuille de Konoha), kanji neutre
+守 (« protéger ») sur la résidence et la bannière du rocher, panneau 役場 (« mairie »), visages du
+rocher anonymes (sans bandeau frontal ni marque), aucun nom de la licence sur les panneaux.
+Pour le titre, les miniatures et le nom de la zone, éviter aussi « Naruto », « Konoha », « Hokage ».
