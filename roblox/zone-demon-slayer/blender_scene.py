@@ -345,8 +345,14 @@ def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> di
     return {"objects": len(accs), "parts": len(parts), "labels": len(labels), "tris": sum(tris.values()), "tris_by_object": tris}
 
 
+CIEL_JOUR = ((0.74, 0.86, 0.98), (0.50, 0.72, 0.97), (0.16, 0.42, 0.86))
+# Crépuscule « glycines » : horizon rose-violet, zénith bleu nuit, soleil bas et orangé
+CIEL_CREPUSCULE = ((0.62, 0.40, 0.55), (0.30, 0.22, 0.48), (0.04, 0.05, 0.16))
+
+
 def setup_world(sun_elev: float = 50, sun_azim: float = 215, strength: float = 1.0, view: str = "Standard", look: str = "None",
-                exposure: float = -0.3) -> None:
+                exposure: float = -0.3, ciel=CIEL_JOUR, soleil=(1.0, 0.95, 0.86), soleil_energie: float = 4.2,
+                ciel_force: float = 0.9) -> None:
     sc = bpy.context.scene
     world = bpy.data.worlds.new("Ciel")
     sc.world = world
@@ -364,20 +370,20 @@ def setup_world(sun_elev: float = 50, sun_azim: float = 215, strength: float = 1
     cr = ramp.color_ramp
     cr.interpolation = "EASE"
     cr.elements[0].position = 0.0
-    cr.elements[0].color = (0.74, 0.86, 0.98, 1)
+    cr.elements[0].color = (*ciel[0], 1)
     cr.elements[1].position = 0.55
-    cr.elements[1].color = (0.16, 0.42, 0.86, 1)
+    cr.elements[1].color = (*ciel[2], 1)
     mid = cr.elements.new(0.12)
-    mid.color = (0.50, 0.72, 0.97, 1)
+    mid.color = (*ciel[1], 1)
     nt.links.new(sep.outputs["Z"], ramp.inputs["Fac"])
     nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
-    bg.inputs["Strength"].default_value = 0.9 * strength
+    bg.inputs["Strength"].default_value = ciel_force * strength
     nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
 
     sun_data = bpy.data.lights.new("Soleil", "SUN")
-    sun_data.energy = 4.2 * strength
+    sun_data.energy = soleil_energie * strength
     sun_data.angle = math.radians(1.2)
-    sun_data.color = (1.0, 0.95, 0.86)
+    sun_data.color = soleil
     sun = bpy.data.objects.new("Soleil", sun_data)
     sc.collection.objects.link(sun)
     # direction : élévation / azimut (azimut mesuré depuis +Y Blender, sens horaire vu du dessus)

@@ -15,9 +15,9 @@ from kit import shade
 from palette import c, vary
 
 
-def _shide(b, x, y_haut, z, longueur: float = 2.6) -> None:
+def _shide(b, x, y_haut, z, longueur: float = 4.0) -> None:
     """Papier shide en zigzag : quatre petits blocs blancs décalés, suspendus à une corde."""
-    w, h = 0.9, longueur / 4
+    w, h = 1.4, longueur / 4
     for k in range(4):
         dx = (0.35 if k % 2 else -0.35)
         b.box((x + dx - w / 2, y_haut - (k + 1) * h, z - 0.06), (x + dx + w / 2, y_haut - k * h, z + 0.06),
@@ -71,7 +71,7 @@ def grand_torii(b, variant: int = 0, ouverture: float = 74, hauteur: float = 44,
     rng = b.rng
     verm, verm_f, noir = c("vermillon"), c("vermillon_fonce"), c("noir_laque")
     xp = ouverture / 2 + 2.6          # axe des piliers : bien hors du couloir
-    rp = 2.4
+    rp = 3.0
     H = hauteur
     with b.group("Torii"):
         for s in (-1, 1):
@@ -81,10 +81,10 @@ def grand_torii(b, variant: int = 0, ouverture: float = 74, hauteur: float = 44,
             b.cyl((x, 1.2 + H / 2, 0), rp, H - 1.2, verm, name="Pilier")
             b.cyl((x, H - 7.2, 0), rp + 0.25, 0.8, noir, name="Bague")
         # nuki (traverse basse, traverse les piliers et dépasse)
-        y_nuki = H - 8
-        b.box((-xp - 6, y_nuki, -1.3), (xp + 6, y_nuki + 2.6, 1.3), verm, name="Nuki")
+        y_nuki = H - 9
+        b.box((-xp - 6, y_nuki, -1.6), (xp + 6, y_nuki + 3.4, 1.6), verm, name="Nuki")
         # gakuzuka + plaque (gaku) avec 藤
-        b.box((-1.3, y_nuki + 2.6, -1.0), (1.3, H, 1.0), verm_f, name="Gakuzuka")
+        b.box((-1.3, y_nuki + 3.4, -1.0), (1.3, H, 1.0), verm_f, name="Gakuzuka")
         plaque = b.box((-4.2, y_nuki + 2.0, -1.6), (4.2, H + 0.6, -1.15), noir, name="Gaku")
         plaque.label = {"face": "Front", "text": "藤", "color": c("or"), "bg": None, "font": "brush"}
         plaque2 = b.box((-4.2, y_nuki + 2.0, 1.15), (4.2, H + 0.6, 1.6), noir, name="Gaku")
@@ -92,15 +92,15 @@ def grand_torii(b, variant: int = 0, ouverture: float = 74, hauteur: float = 44,
         b.box((-4.6, H + 0.6, -1.8), (4.6, H + 1.0, 1.8), c("or"), collide=False, name="Cadre")
         # shimaki (poutre sous le kasagi) + kasagi laqué noir aux extrémités relevées
         L = xp + 9
-        b.box((-L, H, -1.8), (L, H + 2.2, 1.8), verm, name="Shimaki")
-        b.box((-L - 1, H + 2.2, -2.4), (L + 1, H + 3.6, 2.4), noir, studs="top", name="Kasagi")
+        b.box((-L, H, -2.0), (L, H + 3.0, 2.0), verm, name="Shimaki")
+        b.box((-L - 1, H + 3.0, -2.6), (L + 1, H + 5.0, 2.6), noir, studs="top", name="Kasagi")
         for s in (-1, 1):
             xa, xb = sorted((s * (L + 1), s * (L + 6)))
-            b.wedge((xa, H + 2.2, -2.4), (xb, H + 5.2, 2.4), noir, down="+x" if s < 0 else "-x", name="Kasagi_bout")
-            xa, xb = sorted((s * (L - 6), s * (L + 1)))
-            b.box((xa, H + 3.6, -2.4), (xb, H + 4.4, 2.4), noir, name="Kasagi_releve")
+            b.wedge((xa, H + 3.0, -2.6), (xb, H + 7.0, 2.6), noir, down="+x" if s < 0 else "-x", name="Kasagi_bout")
+            xa, xb = sorted((s * (L - 8), s * (L + 1)))
+            b.box((xa, H + 5.0, -2.6), (xb, H + 5.9, 2.6), noir, name="Kasagi_releve")
         # corde sacrée sous le nuki (au-dessus de 33 studs au-dessus du couloir)
-        _shimenawa(b, -xp + rp, xp - rp, y_nuki - 0.6, 0, creux=1.0)
+        _shimenawa(b, -xp + rp, xp - rp, y_nuki - 1.2, 0, creux=1.8, r=1.3)
 
     with b.group("Gardiens"):
         for s in (-1, 1):
@@ -142,4 +142,19 @@ def grand_torii(b, variant: int = 0, ouverture: float = 74, hauteur: float = 44,
             b.box((x0, 7.2, -0.3), (x1, 8.0, 0.3), verm, name="Lisse")
             b.box((x0, 4.6, -0.3), (x1, 5.2, 0.3), verm, name="Lisse")
         # raccord entre torii et clôture : lanternes déjà posées ; petits buissons
-    return {"emprise": (2 * mur, 16), "hauteur": H + 5.2, "ouverture": ouverture}
+    # bannières verticales (nobori) de part et d'autre de l'allée, côté extérieur
+    with b.group("Nobori"):
+        couleurs = [c("vermillon"), c("glycine_fonce"), c("blanc"), c("noren_bleu")]
+        textes = ["藤", "奉納", "藤", "祭"]
+        for s in (-1, 1):
+            for k in range(4):
+                x = s * (xp + 27 + k * 4.5)
+                z = 4 + k * 1.5
+                b.box((x - 0.4, 0, z - 0.4), (x + 0.4, 0.6, z + 0.4), c("pierre_fonce"), name="Socle")
+                b.cyl((x, 7.5, z), 0.18, 15, c("bois_fonce"), collide=False, name="Hampe")
+                b.box((x - 0.18, 14.4, z - 0.18), (x - s * 2.6, 14.8, z + 0.18), c("bois_fonce"), collide=False, name="Traverse")
+                xa, xb = sorted((x - s * 0.2, x - s * 2.6))
+                ban = b.box((xa, 5.0, z - 0.08), (xb, 14.4, z + 0.08), couleurs[(k + (s > 0)) % 4], collide=False, name="Banniere")
+                fg = (40, 30, 30) if couleurs[(k + (s > 0)) % 4] == c("blanc") else (250, 246, 236)
+                ban.label = {"face": "Back", "text": textes[k], "color": fg, "bg": None, "font": "brush", "vertical": True}
+    return {"emprise": (2 * mur, 16), "hauteur": H + 7.0, "ouverture": ouverture}

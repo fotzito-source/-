@@ -61,6 +61,9 @@ def main() -> None:
     ap.add_argument("--sans-export", action="store_true")
     ap.add_argument("--echantillons", type=int, default=48)
     ap.add_argument("--res", default="1920x1080")
+    ap.add_argument("--ambiance", choices=("jour", "crepuscule"), default="jour",
+                    help="crepuscule : rendus bonus au soleil couchant (le jeu, lui, garde son éclairage)")
+    ap.add_argument("--suffixe", default="", help="ajouté au nom des images (ex. -crepuscule)")
     args = ap.parse_args(argv)
 
     write_stud_textures()
@@ -76,8 +79,14 @@ def main() -> None:
     bs.reset_scene()
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
-    bs.setup_world()
-    bs.setup_brume()
+    if args.ambiance == "crepuscule":
+        # soleil bas derrière la montagne, ciel violet : les lanternes (Neon) ressortent
+        bs.setup_world(sun_elev=9, sun_azim=8, view="AgX", look="AgX - Punchy", exposure=0.4,
+                       ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.58, 0.38), soleil_energie=3.0, ciel_force=0.8)
+        bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
+    else:
+        bs.setup_world()
+        bs.setup_brume()
 
     out = HERE / "rendus"
     out.mkdir(exist_ok=True)
@@ -95,11 +104,11 @@ def main() -> None:
                 cam.data.type = "ORTHO"
                 cam.data.ortho_scale = 540
                 cam.data.clip_end = 2000
-                bs.render(cam, out / f"{name}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
+                bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:
                 pos, tgt, fov = VUES[name]
                 cam = bs.add_camera(name, pos, tgt, fov=fov)
-                bs.render(cam, out / f"{name}.png", res=(w, h), samples=samples)
+                bs.render(cam, out / f"{name}{args.suffixe}.png", res=(w, h), samples=samples)
             bpy.data.objects.remove(cam, do_unlink=True)
             print(f"vue {name} : {time.time() - t0:.0f} s")
 
