@@ -181,7 +181,7 @@ class _Arbre:
 
     `interdit = (x0, y0)` : aucune grappe dont l'emprise entre dans |x| < x0 ne descend sous y0 (arche)."""
 
-    def __init__(self, b, t=1.0, teinte="mauve", budget=90, interdit=None):
+    def __init__(self, b, t=1.0, teinte="mauve", budget=90, interdit=None, melange=None):
         self.b = b
         self.t = float(t)
         self.rng = b.rng
@@ -189,6 +189,7 @@ class _Arbre:
         self.budget = budget
         self.g = TEINTES.get(teinte, TEINTES["mauve"])
         self.interdit = interdit
+        self.melange = melange  # (teinte, proportion) : une grappe sur n prend cette autre teinte
         self.plafonds = []  # (cx, cz, sx, sz, yaw, y_bas, y_haut, masse)
         self.masses = []    # (cx, cz, w, d, rot, y_bas, y_haut du corps)
         self.bois = []      # (p0, p1, demi-épaisseur)
@@ -418,6 +419,8 @@ class _Arbre:
         """Couleurs des n segments, prises sur la rampe foncé → mauve → clair → pointe : départ s0 (plus ou moins
         sombre selon la grappe), pointe toujours pâle."""
         nuit, fonce, mauve, claire, pale = self.g
+        if self.melange and self.rng.uniform() < self.melange[1]:
+            nuit, fonce, mauve, claire, pale = TEINTES[self.melange[0]]
         if s0 is None:
             s0 = float(self.rng.uniform(0.08, 0.45))
         stops = ((0.0, fonce), (0.33, mauve), (0.68, claire), (1.0, pale))
@@ -446,7 +449,7 @@ class _Arbre:
             self.grappe(float(q[0]), float(q[2]), Lg, larg, y=float(q[1]) - 0.2, embed=0.3)
             self.bois = bois
 
-    def frange(self, im, n, L, larg=1.5, vague=0.55, mode="rideau", nseg=None, ep=0.5, differe=False):
+    def frange(self, im, n, L, larg=1.5, vague=0.55, mode="rideau", nseg=None, ep=0.5, differe=False, faces=None):
         """n grappes autour de la masse n° im, longueurs entre L[0] et L[1] (sous la masse) qui ondulent autour
         d'elle (ourlet festonné) avec une part d'aléatoire.
         mode "rideau" : rubans tangents au bord, qui partent du haut du flanc et l'habillent ;
@@ -477,6 +480,8 @@ class _Arbre:
                 tx, tz = px[k + 1] - px[k], pz[k + 1] - pz[k]
                 dx, dz = _monde(lx, lz, rot)
                 wtx, wtz = _monde(tx, tz, rot)
+                if faces == "z" and abs(wtx) < 0.75 * math.hypot(wtx, wtz):
+                    continue  # seulement les bords qui regardent ±Z (vers le coureur)
                 yaw = math.degrees(math.atan2(-wtz, wtx)) + float(rng.uniform(-10, 10))
                 th = math.atan2(lz / az, lx / ax)
                 s = 0.5 + 0.5 * math.sin(3 * th + ph2)
@@ -530,8 +535,9 @@ class _Arbre:
 def _franges(T, specs, ep=0.5):
     """Pose les franges de plusieurs masses à tour de rôle (une grappe de chaque masse, puis la suivante…) :
     si le budget s'épuise, toutes les masses restent habillées de façon égale."""
-    files = [T.frange(im, n, L, larg, mode=mode, nseg=nseg[0] if nseg else None, ep=ep, differe=True)
-             for (im, n, L, larg, mode, *nseg) in specs]
+    files = [T.frange(im, n, L, larg, mode=mode, nseg=opt[0] if opt else None, ep=ep, differe=True,
+                      faces=opt[1] if len(opt) > 1 else None)
+             for (im, n, L, larg, mode, *opt) in specs]
     k = 0
     while any(files) and T.reste() >= 2:
         f = files[k % len(files)]
@@ -804,95 +810,79 @@ COULOIR_X = 31.0  # |x| < 31 : couloir (30) + marge ; rien sous `hauteur` au-des
 
 def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0) -> dict:
     """Arche de glycines qui enjambe le couloir de course (comme le tunnel de glycines) : deux troncs tordus enracinés
-    en x = ±portee/2 (jamais à |x| < 32), branches qui montent et se rejoignent au-dessus du couloir, plafond de fleurs
-    et rideaux de grappes. Au-dessus de |x| < 31, rien ne descend sous `hauteur` (la caméra Roblox ne saute pas) ;
-    sur les côtés, de longs rideaux de grappes retombent sur les trottoirs.
-    0 berceau symétrique, 1 asymétrique (un côté plus haut, plafond penché), 2 tunnel profond (deux rangées de lobes),
-    3 glycines blanches et mauves mêlées, sommet en pointe. ≤ 220 pièces."""
+    en x = ±portee/2 (jamais à |x| < 32), branches maîtresses qui montent et s'entrelacent au-dessus du couloir,
+    bandeau de fleurs bombé et deux rideaux de grappes face au coureur (avant -Z et arrière +Z, les deux sens de
+    course), masses latérales d'où retombent de longs rideaux sur les trottoirs.
+    Au-dessus de |x| < 31, rien ne descend sous `hauteur` (la caméra Roblox ne saute pas).
+    0 berceau symétrique, 1 asymétrique violet (un côté plus haut), 2 tunnel profond (grappes aussi dessous),
+    3 sommet en pointe, glycines mauves et blanches mêlées. ≤ 220 pièces."""
     v = variant % 4
     rng = b.rng
     P = max(float(portee) / 2, 37.5)       # les troncs restent hors de |x| < 32
     H = float(hauteur)
     X0 = COULOIR_X
-    D = (18.0, 16.0, 26.0, 20.0)[v]       # profondeur (le long du couloir, axe Z)
-    teinte = ("mauve", "violet", "mauve", "blanc")[v]
-    T = _Arbre(b, 1.0, teinte, budget=220, interdit=(X0, H))
+    D = (16.0, 16.0, 24.0, 18.0)[v]       # profondeur du bandeau (le long du couloir, axe Z)
+    teinte = ("mauve", "violet", "mauve", "mauve")[v]
+    T = _Arbre(b, 1.0, teinte, budget=220, interdit=(X0, H), melange=("blanc", 0.4) if v == 3 else None)
     asym = (0.0, 3.5, 0.0, 0.0)[v]         # côté +x plus haut de `asym`
-    pointe = (0.0, 0.0, 0.0, 3.0)[v]       # sommet relevé (arc brisé)
+    pointe = (0.0, 0.0, 0.0, 3.5)[v]       # sommet relevé (arc brisé)
 
     def masse(cx, y0, cz, w, d, h, rot, det):
         # famille de hauteurs propre à chaque masse (aucune voisine ne la partage)
         T.masse(cx, math.floor(y0 * 2) / 2 + T.famille(cx, cz, w, d, rot), cz, w, d, h, rot, det)
 
+    def y_plafond(x):
+        """Dessous du bandeau : bombé, plus haut au milieu (pointe en v3), relevé côté +x en v1."""
+        f = min(1.0, abs(x) / (P - 6))
+        return H + 9.0 - 3.5 * f ** 2 + pointe * (1 - f) + (asym * f if x > 0 else 0.0)
+
     with b.group("ArcheGlycines"):
         with b.group("Bois"):
             for s in (-1, 1):
                 dh = asym if s > 0 else 0.0
-                z0 = rng.uniform(-0.6, 0.6)
+                z0 = float(rng.uniform(-0.6, 0.6))
                 X = lambda dx: s * (P + dx)  # noqa: E731  (dx < 0 : vers le couloir)
-                tA = [(X(0.0), 0, z0 - 1.2), (X(-1.6), 9.5, z0 + 1.0), (X(-2.8), 20, z0 - 0.9), (X(-3.4), 29, z0 + 0.6),
-                      (X(-3.6), H + 2.5 + dh, z0)]
-                tB = [(X(1.8), 0, z0 + 2.0), (X(-0.6), 7, z0 - 1.8), (X(-0.4), 15.5, z0 + 1.9), (X(-2.8), 24.5, z0 - 1.4),
-                      (X(-3.0), H - 1 + dh, z0 + 0.8)]
-                tC = [(X(0.6), 0, z0 - 3.4), (X(1.6), 10, z0 - 1.6), (X(-0.8), 21, z0 - 2.6)]
-                T.tige(tA, 3.2, T.ecorce(0), (10 * s, 32 * s, 54 * s, 76 * s))
-                T.tige(tB, 2.4, T.ecorce(1), (-15 * s, 20 * s, -30 * s, 8 * s))
-                T.tige(tC, 1.6, T.ecorce(2), (25 * s, 50 * s))
+                T.tige([(X(0.0), 0, z0 - 1.2), (X(-1.6), 9.5, z0 + 1.2), (X(-2.6), 19, z0 - 1.0), (X(-3.3), 28, z0 + 0.7),
+                        (X(-3.6), H + 3.0 + dh, z0)], 3.4, T.ecorce(0), (10 * s, 32 * s, 54 * s, 76 * s))
+                T.tige([(X(1.9), 0, z0 + 2.2), (X(-0.4), 7, z0 - 2.0), (X(-0.2), 15.5, z0 + 2.0), (X(-2.6), 24.5, z0 - 1.6),
+                        (X(-3.0), H + dh, z0 + 0.9)], 2.5, T.ecorce(1), (-15 * s, 20 * s, -30 * s, 8 * s))
+                T.tige([(X(0.8), 0, z0 - 3.4), (X(1.8), 10, z0 - 1.4), (X(-0.6), 21, z0 - 2.8)], 1.7, T.ecorce(2),
+                       (25 * s, 50 * s))
                 T.racines(X(0.4), z0, [(90 * s + a, lg, h, lw) for (a, lg, h, lw) in
-                                       ((-10, 4.5, 2.6, 2.4), (60, 3.6, 2.0, 2.0), (-80, 3.8, 2.2, 2.0),
-                                        (150, 3.2, 1.8, 1.8))])
-                # branches au-dessus de `hauteur` : la maîtresse rejoint l'autre côté et s'y entrelace
+                                       ((-10, 4.8, 2.8, 2.6), (65, 3.8, 2.2, 2.2), (-85, 4.0, 2.4, 2.2))])
+                # maîtresse : monte au-dessus de `hauteur`, passe le milieu et s'entrelace avec l'autre
                 yb = H + dh
-                ytop = H + 11.5 + pointe + dh * 0.5
-                T.tige([(X(-3.6), yb + 1.0, z0), (X(-12), yb + 6.5, z0 - 0.8), (X(-23), yb + 9.5 + pointe * 0.6, 0.6),
-                        (-s * 2.5, ytop, 0.0)], 2.4, T.ecorce(0), (12 * s, -14 * s, 20 * s), name="Branche")
-                for sz in (-1, 1):
-                    zd = (D / 2 - 2.0) * sz
-                    T.tige([(X(-3.4), yb + 1.5, z0 + 0.6 * sz), (X(-10), yb + 6.0, zd * 0.7), (X(-18), yb + 8.6, zd)],
-                           1.6, T.ecorce(1), (20 * sz,), name="Branche")
+                T.tige([(X(-3.6), yb + 1.5, z0), (X(-12), y_plafond(s * (P - 12)) + 1.0, z0 - 0.8),
+                        (X(-24), y_plafond(s * (P - 24)) + 1.4, 0.6), (-s * 3.0, y_plafond(0) + 1.8, -0.4 * s)],
+                       2.6, T.ecorce(0), (12 * s, -14 * s, 20 * s), name="Branche")
+                # branche secondaire vers l'avant ou l'arrière (une de chaque côté, en quinconce)
+                zd = (D / 2 - 2.5) * s
+                T.tige([(X(-3.4), yb + 2.0, z0), (X(-11), y_plafond(s * (P - 11)) + 0.8, zd)], 1.7, T.ecorce(1),
+                       (20 * s,), name="Branche")
         with b.group("Fleurs"):
-            # plafond au-dessus du couloir : lobes le long de la maîtresse
-            for i, xc in enumerate((-0.64, -0.32, 0.0, 0.32, 0.64)):
-                x = xc * P
-                s = 1 if x >= 0 else -1
-                dh = asym if x > 0 else 0.0
-                # hauteur de la branche maîtresse à cet endroit (approchée), moins 1
-                f = abs(x) / P
-                y0 = H + 10.0 - 4.5 * f ** 2 + pointe * (1 - f) + dh * f - 1.0
-                if v == 2:  # deux rangées de lobes décalées (tunnel profond)
-                    for zr in (-D / 4, D / 4):
-                        masse(x + rng.uniform(-1, 1) + zr * 0.1, y0 + rng.uniform(-0.5, 0.5), zr, 13, D / 2 + 1, 2.5,
-                              rng.uniform(-10, 10), 2)
-                else:
-                    masse(x, y0, rng.uniform(-1, 1), 14, D, 3.0 if i == 2 else 2.5, rng.uniform(-8, 8), 3 if i == 2 else 2)
-            # lobes au bout des branches de biais (avant et arrière)
+            # bandeau au-dessus du couloir : un grand lobe central et deux lobes latéraux, un peu tournés
+            xl = P - 17.0
+            masse(0.0, y_plafond(0), float(rng.uniform(-0.8, 0.8)), 22, D, 3.0, float(rng.uniform(-4, 4)), 3)
+            for s in (-1, 1):
+                masse(s * xl, y_plafond(s * xl), float(rng.uniform(-0.8, 0.8)), 20, D - 1, 2.5,
+                      float(rng.uniform(-5, 5)), 2)
+            # au-dessus des troncs, à la limite du couloir (dessous ≥ hauteur), puis masses latérales hors couloir
             for s in (-1, 1):
                 dh = asym if s > 0 else 0.0
-                for sz in (-1, 1):
-                    zd = (D / 2 - 2.0) * sz
-                    masse(s * (P - 18), H + dh + 7.6, zd, 9, 7, 2.0, rng.uniform(-15, 15), 1)
-            # raccord au-dessus des troncs, à la limite du couloir (bas à hauteur + 1,5)
-            for s in (-1, 1):
-                dh = asym if s > 0 else 0.0
-                masse(s * (P - 6), H + 1.5 + dh, 0.0, 8, D - 4, 2.5, 0, 1)
-            # masses latérales autour des troncs (hors couloir : |x| ≥ 31) et lobes extérieurs plus bas
-            for s in (-1, 1):
-                dh = asym if s > 0 else 0.0
+                masse(s * (P - 5.5), H + 1.5 + dh, 0.0, 9, D - 3, 3.0, 0, 2)
                 wl = min(10.0, 2 * (P - 2 - X0))
-                masse(s * (P - 2), H - 4.0 + dh, 0.0, wl, D - 2, 3.0, 0, 2)
-                masse(s * (P + 4), H - 7.0 + dh, 2.5 * s, 7, 10, 2.0, 0, 1)
-            for (im, fx, fz, sx, sz, yaw, ton) in ((2, 0.45, -0.5, 3.4, 2.6, 20, 2), (1, -0.4, 0.45, 3.0, 2.4, -25, 1),
-                                                   (3, 0.4, 0.5, 3.0, 2.4, 35, 2), (len(T.masses) - 3, 0.3, -0.4, 3.0, 2.2, 10, 1)):
+                masse(s * (P - 2), H - 5.0 + dh, 0.0, wl, D, 3.0, 0, 2)
+                masse(s * (P + 4), H - 8.0 + dh, 2.0 * s, 7, D - 5, 2.5, 0, 1)
+            for (im, fx, fz, sx, sz, yaw, ton) in ((0, 0.45, -0.5, 3.4, 2.6, 20, 2), (1, -0.4, 0.45, 3.0, 2.4, -25, 1),
+                                                   (2, 0.4, 0.5, 3.0, 2.4, 35, 2), (5, 0.3, -0.4, 3.0, 2.2, 10, 1)):
                 T.feuilles_sur(im, fx, fz, sx, sz, yaw, ton)
         with b.group("Grappes"):
-            nm = len(T.masses)
             specs = []
-            for im in range(nm):
-                cx = T.masses[im][0]
-                if abs(cx) >= X0 + 2:      # côtés : longs rideaux sur les trottoirs
-                    specs.append((im, 16, (8.0, 15.0), 2.2, "rideau"))
-                else:                      # plafond : grappes courtes, la zone interdite les borne
-                    specs.append((im, 18, (4.0, 9.0), 2.0, "rideau"))
+            for im, (cx, _cz, _w, _d, _r, _y0, _y1) in enumerate(T.masses):
+                if abs(cx) >= X0 + 2:      # côtés : longs rideaux sur les trottoirs, tout autour
+                    specs.append((im, 14, (8.0, 15.0), 2.2, "rideau"))
+                else:                      # bandeau : rideaux avant et arrière, bornés par la zone interdite
+                    specs.append((im, 22, (4.0, 9.5), 2.1, "rideau", None, "z"))
             _franges(T, specs, ep=0.6)
             T.remplir((3.0, 8.0), 1.1)
     return _infos(b, T.n0)

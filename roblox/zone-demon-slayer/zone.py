@@ -478,7 +478,7 @@ def build_zone(seed: int = 7) -> Builder:
     sol_cotes(b)
     falaises_laterales(b)
     place(b, "porte", "grand_torii", (0, 0, Z_PORTE), group="Monuments/Porte", emprise=(260, 16, 48),
-          ouverture=74, hauteur=44, mur=X_FALAISE)
+          ouverture=74, hauteur=48, mur=X_FALAISE)
     place(b, "montagne", "montagne_glycines", (0, 0, Z_MONTAGNE), group="Monuments/Montagne", emprise=(440, 68, 120),
           passage=68, largeur=2 * X_FOND + 40, profondeur=PROF_MONTAGNE, hauteur=120)
     poses_g = rangee(b, -1, RANGEE_GAUCHE)

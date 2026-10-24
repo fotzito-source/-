@@ -197,6 +197,7 @@ def _grappes(F, u0, u1, y_top, d, rng, masses=(), long_max=10.0, long_min=2.0, e
     claires à la pointe, de longueurs très variables. Elles s'arrêtent au-dessus des masses rocheuses
     qui avancent davantage (`masses`) et au-dessus de `sol`. Renvoie le plus bas y atteint."""
     y_bas = y_top
+    alt = bool(rng.random() < 0.5)
     u = u0 + float(rng.uniform(0.0, 0.3))
     tons = ("glycine_nuit", "glycine_fonce", "glycine", "glycine_claire", "glycine_pale")
     while u < u1 - 0.9:
@@ -207,7 +208,8 @@ def _grappes(F, u0, u1, y_top, d, rng, masses=(), long_max=10.0, long_min=2.0, e
             u += w
             continue
         L = long_min + (long_max - long_min) * float(rng.random()) ** 0.6
-        dd = d + float(rng.choice([0.0, 0.0, 0.3]))
+        dd = d + (0.35 if alt else 0.0)
+        alt = not alt
         low = _bas_libre(masses, u, u + w, y_top, dd) if masses else -1e9
         if sol is not None:
             low = max(low, sol)
@@ -236,7 +238,7 @@ def _grappes(F, u0, u1, y_top, d, rng, masses=(), long_max=10.0, long_min=2.0, e
 
 
 def _glycine_corniche(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=10.0, sol=None, haut=1.0,
-                      ov=None, grappes=True, densite=0.82, ov_max=None, devant=True):
+                      ov=None, grappes=True, densite=0.95, ov_max=None, devant=True):
     """Masse de glycine posée sur une corniche (dessus à y, de d_back à d_front) : nuage de blocs qui
     déborde, frange sombre, puis rideau de grappes. Le rideau pend devant la roche la plus saillante
     qu'il rencontre (`devant`), sinon il s'arrête au-dessus des masses (obstacles).
@@ -258,31 +260,42 @@ def _glycine_corniche(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=10
     F.box(u0, u1, y, y + h1, d_back, d_c + ov, vary("glycine_fonce", rng, 0.04), studs="top")
     depth = d_c + ov - d_back
     if w > 4 and depth > 2.5:
-        for kk in range(min(3, 1 + int(w // 9))):
-            ww = min(w - 1.0, max(2.5, float(rng.uniform(0.25, 0.5)) * w))
-            ua = u0 + 0.5 + float(rng.uniform(0, max(0.0, w - ww - 1.0)))
-            e0 = d_back + float(rng.uniform(0.3, 1.2))
-            e1 = d_c + ov - float(rng.choice([0.3, 0.6, 1.2]))
-            if e1 - e0 < 1.0:
+        # bosses en nuage, dans des créneaux disjoints (jamais de faces confondues entre bosses)
+        nk = min(3, 1 + int(w // 9))
+        slot = (w - 1.0) / nk
+        for kk in range(nk):
+            ww = slot * float(rng.uniform(0.6, 0.95))
+            ua = u0 + 0.5 + kk * slot + float(rng.uniform(0, slot - ww))
+            e1 = d_c + ov - float(rng.choice([0.3, 0.6, 1.0]))
+            e0 = max(d_back + 0.3, e1 - float(rng.uniform(3.0, 6.5)))
+            if e1 - e0 < 1.0 or ww < 1.5:
                 continue
             h2 = float(rng.choice([1.5, 2.0, 2.5, 3.0])) * haut
             col = ("glycine", "glycine_claire", "glycine")[kk]
             F.box(ua, ua + ww, y + h1, y + h1 + h2, e0, e1, vary(col, rng, 0.04), studs="top")
-            if ww > 4.5 and rng.random() < 0.45:
-                w3 = ww * float(rng.uniform(0.35, 0.55))
-                ub = ua + float(rng.uniform(0.3, ww - w3 - 0.3))
-                F.box(ub, ub + w3, y + h1 + h2, y + h1 + h2 + 1.2, e0 + 0.5, e1 - 0.5,
-                      vary("glycine_claire" if col == "glycine" else "glycine_pale", rng, 0.04), studs="top")
     if not grappes:
         return None
-    hf = float(rng.choice([1.0, 1.5, 2.0]))
-    if sol is not None:
-        hf = min(hf, max(0.5, y - sol - 0.3))
-    F.box(u0 + 0.2, u1 - 0.2, y - hf, y, d_c + 0.2, d_c + ov - 0.15, vary("glycine_nuit", rng, 0.04), collide=False)
-    ep = max(0.5, min(1.0, ov - 0.5))
-    y_bas = _grappes(F, u0 + 0.3, u1 - 0.3, y - hf, d_c + 0.3, rng, masses, long_max, long_min=min(3.0, long_max),
-                     ep=ep, sol=sol, densite=densite, larg=(1.5, 2.0, 2.5, 3.0, 3.5))
-    return (u0, u1, min(y_bas, y - hf), y, d_c + ov)
+    # rideau : pans sombres à l'ourlet irrégulier sous le débord, grappes sous chaque pan
+    ep = max(0.5, min(1.0, ov - 0.85))
+    y_bas = y
+    u = u0 + 0.2
+    i = 0
+    while u < u1 - 0.6:
+        ws = min(float(rng.choice([2.5, 3.5, 4.5])), u1 - 0.2 - u)
+        if u1 - 0.2 - (u + ws) < 1.5:
+            ws = u1 - 0.2 - u
+        hf = float(rng.choice([1.0, 1.5, 2.5, 3.5]))
+        if sol is not None:
+            hf = min(hf, max(0.5, y - sol - 0.3))
+        F.box(u, u + ws, y - hf, y, d_c + 0.2, d_c + ov - 0.15,
+              vary(("glycine_nuit", "glycine_fonce")[i % 2], rng, 0.04), collide=False)
+        y_bas = min(y_bas, y - hf,
+                    _grappes(F, u + 0.05, u + ws - 0.05, y - hf, d_c + 0.3, rng, masses, long_max,
+                             long_min=min(3.0, long_max), ep=ep, sol=sol, densite=densite,
+                             larg=(1.5, 2.0, 2.5, 3.0, 3.5)))
+        u += ws
+        i += 1
+    return (u0, u1, y_bas, y, d_c + ov)
 
 
 def _touffe(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=5.0, sol=None) -> int:
@@ -789,7 +802,7 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
             if tranche and tB > t0 + 8:
                 _glycine_corniche(_Face(b, "z", ZA, 1), x0, x1, tB, -5.0, 0.0, rng, (),
                                   long_max=min(16.0, tB - t0 - 8.5), sol=t0 + 8.0, ov=1.5)
-            elif tB > t0 + 8 and rng.random() < 0.85:
+            elif tB > t0 + 8 and rng.random() < 0.7:
                 F_B = _Face(b, "z", ZA, 1)
                 obst = []
                 if tB - t0 > 30 and x1 - x0 >= 8:
@@ -858,8 +871,7 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
                 (_cedre if cedre else _pin)(b, xx, tC, zz, rng, s=sc)
             if tC > tB + 8 and rng.random() < 0.7:
                 F_C = _Face(b, "z", ZB, 1)
-                _glycine_corniche(F_C, x0 + 0.5, x1 - 0.5, tC, -8.0, 0.0, rng, (), densite=0.6,
-                                  long_max=min(8.0, tC - tB - 8.5), sol=tB + 8.0)
+                _glycine_corniche(F_C, x0 + 0.5, x1 - 0.5, tC, -8.0, 0.0, rng, (), grappes=False, ov=1.0)
 
     return {"emprise": (largeur, profondeur), "hauteur": hauteur, "passage": passage, "debord_avant": 19,
             "torii": n_torii}
