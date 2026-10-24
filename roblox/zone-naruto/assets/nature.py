@@ -121,12 +121,13 @@ def arbre(b, variant: int = 0, taille: float = 1.0) -> dict:
             _racines(k, rac, [(0.5, -0.5, 2.5, 0.5, 1.5, "+x"), (-0.5, -2.5, 0.5, -0.5, 1.0, "-z"),
                               (-2, 0.5, -0.5, 1.5, 1.0, "-x")])
             k.bois(-2.5, 4.5, -0.5, -1, 5.5, 0.5, tr, collide=False, name="Branche")
-            k.feuille(-3.5, 4, -1, -2, 6, 1, F("feuille_claire"))
+            k.feuille(-4.5, 4.25, -1.5, -2, 6.25, 1.5, F("feuille"))
+            k.feuille(-4, 6.25, -1, -2.5, 6.75, 1, F("feuille_claire"))
             k.bloc(0, 7.5, 0, 6, 1, 6, OMBRE)
-            k.bloc(0, 8.5, 0, 8, 2, 8, F("feuille_fonce"), 45)
-            k.bloc(0, 10, 0, 11, 3.5, 11, F("feuille"))
-            k.bloc(0.5, 10.5, -0.5, 10, 4, 10, M("feuille", "feuille_claire", 0.35), 45)
-            k.bloc(0, 13.5, 0, 7, 2.5, 7, F("feuille_claire"))
+            k.bloc(0, 8.5, 0, 9, 2, 9, F("feuille_fonce"), 45)
+            k.bloc(0, 10, 0, 13, 3.5, 13, F("feuille"))
+            k.bloc(0.5, 10.5, -0.5, 12, 4, 12, M("feuille", "feuille_claire", 0.35), 45)
+            k.bloc(0, 13.5, 0, 8, 2.5, 8, F("feuille_claire"))
             k.bloc(0.5, 16, 0, 4, 1.5, 4, F("herbe_claire"), 45)
             k.bloc(-4.5, 9, 4.5, 3, 2.5, 3, F("feuille_fonce"), 20)
         elif v == 1:  # élancé : colonne torsadée (étages alternés droits / 45°), légère inclinaison
