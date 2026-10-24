@@ -31,11 +31,11 @@ from textures import mask_rects
 # ---------------------------------------------------------------------------
 PIERRE = mix(c("creme"), c("roche_claire"), 0.30)      # pierre taillée claire du portail
 PIERRE_F = mix(c("creme"), c("roche_claire"), 0.80)
-PEAU = mix(c("roche_claire"), c("creme"), 0.50)        # visages : le grès le plus clair
-PEAU_C = mix(c("roche_claire"), c("creme"), 0.80)      # arcades, nez, yeux (accrochent la lumière)
+PEAU = mix(c("roche_claire"), c("creme"), 0.55)        # visages : le grès le plus clair
+PEAU_C = mix(c("roche_claire"), c("creme"), 0.85)      # arcades, nez, yeux (accrochent la lumière)
 CREUX = mix(c("roche_ombre"), c("roche_fonce"), 0.15)  # orbites, bouche, rainures
-CHEV = mix(c("roche"), c("roche_claire"), 0.15)        # cheveux
-CHEV_C = mix(c("roche"), c("roche_claire"), 0.60)
+CHEV = mix(c("roche"), c("roche_claire"), 0.25)        # cheveux
+CHEV_C = mix(c("roche"), c("roche_claire"), 0.55)
 BANDEAU = c("roche_fonce")
 TONS = {"F": c("roche_fonce"), "R": c("roche"), "C": c("roche_claire"), "O": c("roche_ombre")}
 FONCE = {"C": "R", "R": "F", "F": "O", "O": "O"}       # la bande des visages, un ton plus sombre
@@ -194,8 +194,11 @@ def _visage(b, kind: int, xc: float, y0: float, zw: float) -> int:
         g.rect(-13, 29, 13, 37, 5.5, K_CHEV_C)      # frange
         for u in range(-12, 12, 4):
             g.rect(u, 28, u + 2, 29, 5.5, K_CHEV_C)
-        g.rows([(37, 41, 13), (41, 43, 10)], 5.5, K_CHEV_C)
-        g.rect(-1, 37, 1, 44, 4.5, K_CREUX)
+        for u in (-10, -6, 5, 9):                     # mèches
+            g.rect(u, 30, u + 1, 37, 4.5, K_CHEV)
+        g.rows([(37, 41, 14), (41, 43, 11), (43, 44, 7)], 5.5, K_CHEV_C)
+        g.sym(4, 38, 5, 43, 4.5, K_CHEV)
+        g.rect(-1, 36, 1, 45, 4, K_CREUX)          # raie
         g.poly([(0, 26), (1, 27), (0, 28), (-1, 27)], 6, K_CREUX)  # losange au milieu du front
     return g.emit(b, xc, y0, zw)
 
@@ -241,13 +244,14 @@ def _strates(yr: float, top: float) -> list:
 
 
 def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5, 5.5, 6.5), larg=(10, 14, 18, 22, 26),
-           fissures=0.22, plat=None, sombre=1.0, sens=1, touffes=0.0):
+           fissures=0.22, plat=None, sombre=1.0, sens=1, touffes=0.0, lierre=0.0):
     """Peau rocheuse entre x0 et x1, de y0 à y1, adossée au plan z = zr (vers +Z si sens = 1, sinon vers -Z).
 
     Masses de roche (une saillie chacune) recoupées par les strates : les couleurs restent continues
     d'une masse à l'autre, les décrochements dessinent des fissures verticales et de petites corniches.
     """
     n = 0
+    Z = lambda d: zr + sens * d  # noqa: E731  (profondeur → z, vers l'extérieur de la paroi)
     coupes = [s[0] for s in strates if y0 + 6 < s[0] < y1 - 6]
     for c0, c1 in _colonnes(x0, x1, rng, larg):
         cols = [(c0, c1, False)]
@@ -271,15 +275,28 @@ def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5,
                     if prev is not None and rng.random() < 0.3:
                         sa = min(max(saillies), prev + 1)  # léger surplomb
                 # touffe d'herbe sur la petite corniche laissée par la masse du dessous
-                if prev is not None and sens > 0 and touffes and prev - sa >= 2 and bb - a >= 6 and rng.random() < touffes:
+                if prev is not None and touffes and prev - sa >= 1 and bb - a >= 6 and rng.random() < touffes:
                     lw = float(rng.choice([3, 4, 5]))
                     ux = a + 0.25 + float(rng.uniform(0, bb - a - lw - 0.5))
-                    b.box((ux, m0, zr + sa), (ux + lw, m0 + 0.6, zr + prev - 0.25), vary("herbe", rng, 0.05),
+                    b.box((ux, m0, Z(sa)), (ux + lw, m0 + 0.6, Z(prev - 0.25)), vary("herbe", rng, 0.05),
                           studs="top", collide=False)
-                    if rng.random() < 0.5:
-                        b.box((ux + 0.5, m0 + 0.6, zr + sa + 0.2), (ux + lw - 1, m0 + 1.4, zr + prev - 0.6),
+                    if prev - sa >= 2 and rng.random() < 0.5:
+                        b.box((ux + 0.5, m0 + 0.6, Z(sa + 0.2)), (ux + lw - 1, m0 + 1.4, Z(prev - 0.6)),
                               vary("feuille", rng, 0.05), studs="top", collide=False)
                 prev = sa
+                # lierre qui retombe du haut de la masse la plus haute
+                if lierre and m1 == ys[-1] and not fiss and m1 - m0 >= 8 and bb - a >= 5 and rng.random() < lierre:
+                    lw = float(rng.choice([2, 2.5, 3]))
+                    ux = a + 0.75 + float(rng.uniform(0, bb - a - lw - 1.5))
+                    ln = float(rng.choice([4, 6, 8, 10, 12]))
+                    ln = min(ln, m1 - m0 - 2)
+                    b.box((ux, m1 - ln, Z(sa)), (ux + lw, m1 + 0.35, Z(sa + 0.35)), vary("feuille_fonce", rng, 0.06),
+                          collide=False, shadow=False)
+                    b.box((ux - 0.25, m1, Z(sa - 1.25)), (ux + lw + 0.25, m1 + 0.35, Z(sa)), vary("feuille", rng, 0.05),
+                          studs="top", collide=False, shadow=False)
+                    if ln >= 8:
+                        b.box((ux + lw * 0.3, m1 - ln - 2.5, Z(sa)), (ux + lw * 0.7, m1 - ln, Z(sa + 0.35)),
+                              vary("feuille", rng, 0.06), collide=False, shadow=False)
                 for s0, s1, t in strates:
                     lo, hi = max(s0, m0), min(s1, m1)
                     if hi - lo < 0.05:
@@ -319,28 +336,61 @@ def _lampion(b, x, y_haut, z, r=1.3, h=2.6):
     b.cyl((x, y_haut - 1.5 - h - 0.2, z), r * 0.6, 0.4, c("noir"), axis="y", collide=False)
 
 
+def _banniere(b, x, y_haut, z_av, haut=24.0, larg=7.0):
+    """Grande bannière rouge au 火 (symbole du Hokage), suspendue sous la corniche par deux consoles."""
+    for dx in (-larg / 2 + 0.75, larg / 2 - 0.75):
+        b.box((x + dx - 0.4, y_haut - 1.5, -2.5), (x + dx + 0.4, y_haut, z_av + 1.2), c("bois_fonce"))
+    b.cyl((x, y_haut - 1.6, z_av + 0.75), 0.4, larg + 1.6, c("bois_fonce"), axis="x")
+    b.ball((x - larg / 2 - 0.9, y_haut - 1.6, z_av + 0.75), 0.55, c("orange_lampion"))
+    b.ball((x + larg / 2 + 0.9, y_haut - 1.6, z_av + 0.75), 0.55, c("orange_lampion"))
+    y1 = y_haut - 2.0
+    b.box((x - larg / 2, y1 - haut, z_av), (x + larg / 2, y1, z_av + 0.4), c("rouge"), collide=False)
+    # plaque blanche au 火, comme le disque de la résidence du Hokage
+    yp = y1 - haut * 0.36
+    plaque = b.boxc((x, yp, z_av + 0.55), (larg - 1.4, larg - 1.4, 0.3), c("blanc"), yaw=180, collide=False)
+    plaque.label = {"face": "Front", "text": "火", "color": c("lettre_rouge"), "bg": None, "font": "brush"}
+    b.box((x - larg / 2, y1 - 1.2, z_av + 0.4), (x + larg / 2, y1, z_av + 0.6), c("rouge_fonce"), collide=False)
+    b.box((x - larg / 2 - 0.2, y1 - haut - 1, z_av - 0.05), (x + larg / 2 + 0.2, y1 - haut, z_av + 0.45),
+          c("rouge_fonce"), collide=False)
+    for dx in (-larg / 2 + 1, 0, larg / 2 - 1):
+        b.box((x + dx - 0.3, y1 - haut - 2.4, z_av + 0.05), (x + dx + 0.3, y1 - haut - 1, z_av + 0.35),
+              c("jaune_lampion"), collide=False)
+
+
+def _hors_grille(v: float) -> float:
+    """Écarte une coordonnée de végétation de la grille de 0,05 stud de la roche (pas de faces confondues)."""
+    r = v / 0.05 - round(v / 0.05)
+    return v + 0.025 if abs(r) * 0.05 < 0.012 else v
+
+
+def _vbox(b, a, bb, col, **kw):
+    a = tuple(_hors_grille(v) if i != 1 or v != a[1] else v for i, v in enumerate(a))
+    bb = tuple(_hors_grille(v) for v in bb)
+    return b.box(a, bb, col, **kw)
+
+
 def _buisson(b, x, y, z, rng, s=1.0):
-    w, d = round((3.5 + rng.uniform(0, 2)) * s * 4) / 4 + 0.05, round((3 + rng.uniform(0, 1.5)) * s * 4) / 4 + 0.05
-    h = 2.5 * s + 0.05
-    b.box((x - w / 2, y, z - d / 2), (x + w / 2, y + h, z + d / 2), vary("feuille_fonce", rng, 0.05), studs="top", collide=False)
-    b.box((x - w / 2 + 0.8, y + h, z - d / 2 + 0.6), (x + w / 2 - 0.6, y + h + 1.3 * s, z + d / 2 - 0.5),
+    w, d = (3.5 + rng.uniform(0, 2)) * s, (3 + rng.uniform(0, 1.5)) * s
+    h = (2.4 + rng.uniform(0, 0.3)) * s
+    _vbox(b, (x - w / 2, y, z - d / 2), (x + w / 2, y + h, z + d / 2), vary("feuille_fonce", rng, 0.05), studs="top", collide=False)
+    _vbox(b, (x - w / 2 + 0.8, y + h, z - d / 2 + 0.6), (x + w / 2 - 0.6, y + h + 1.3 * s, z + d / 2 - 0.5),
           vary("feuille", rng, 0.05), studs="top", collide=False)
 
 
-def _arbre(b, x, y, z, rng, s=1.0):
+def _arbre(b, x, y, z, rng, s=1.0, tons=("feuille_fonce", "feuille", "feuille_claire")):
     """Arbre stud : tronc carré, trois plateaux de feuillage décalés."""
-    th = round((5 + rng.uniform(0, 3)) * s * 4) / 4 + 0.05
-    b.box((x - 0.8 * s, y, z - 0.8 * s), (x + 0.8 * s, y + th, z + 0.8 * s), c("tronc"))
-    w = round((9 + rng.uniform(0, 2)) * s * 4) / 4 + 0.05
+    th = (5 + rng.uniform(0, 3)) * s
+    _vbox(b, (x - 0.8 * s, y, z - 0.8 * s), (x + 0.8 * s, y + th, z + 0.8 * s), c("tronc"))
+    w = (9 + rng.uniform(0, 2)) * s
     y1 = y + th
-    b.box((x - w / 2, y1, z - w / 2), (x + w / 2, y1 + 3 * s, z + w / 2), vary("feuille_fonce", rng, 0.04), studs="top")
+    _vbox(b, (x - w / 2, y1, z - w / 2), (x + w / 2, y1 + 3 * s, z + w / 2), vary(tons[0], rng, 0.04), studs="top")
     dx, dz = rng.uniform(-1, 1, 2) * s
     w2 = w * 0.7
-    b.box((x + dx - w2 / 2, y1 + 3 * s, z + dz - w2 / 2), (x + dx + w2 / 2, y1 + 5.5 * s, z + dz + w2 / 2),
-          vary("feuille", rng, 0.04), studs="top", collide=False)
+    _vbox(b, (x + dx - w2 / 2, y1 + 3 * s, z + dz - w2 / 2), (x + dx + w2 / 2, y1 + 5.5 * s, z + dz + w2 / 2),
+          vary(tons[1], rng, 0.04), studs="top", collide=False)
     w3 = w * 0.38
-    b.box((x + dx * 0.5 - w3 / 2, y1 + 5.5 * s, z + dz * 0.5 - w3 / 2),
-          (x + dx * 0.5 + w3 / 2, y1 + 7 * s, z + dz * 0.5 + w3 / 2), vary("feuille_claire", rng, 0.04), studs="top",
+    _vbox(b, (x + dx * 0.5 - w3 / 2, y1 + 5.5 * s, z + dz * 0.5 - w3 / 2),
+          (x + dx * 0.5 + w3 / 2, y1 + 7 * s, z + dz * 0.5 + w3 / 2), vary(tons[2], rng, 0.04), studs="top",
           collide=False)
 
 
@@ -538,7 +588,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             # gradin 1 : noyau + bandes visibles au-dessus de la corniche (bande des visages)
             if kind in ("tunnel", "portail", "visages"):
                 b.box((x0, base, Z1), (x1, YL, ZF), c("roche_fonce"))
-                bandes(x0, x1, YL, t1 - 3, Z1, ZF, FONCE, 0.95)
+                bandes(x0, x1, YL, t1 - 3, Z1, ZF, FONCE, 0.9)
                 # rebord supérieur en léger surplomb
                 b.box((x0, t1 - 3, Z1), (x1, t1, ZF + 1.5 + float(rng.choice([0, 0.5]))),
                       vary("roche_claire", rng, 0.03), studs="top")
@@ -559,17 +609,17 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
 
             # peau avant
             if kind == "visages":
-                _paroi(b, x0, x1, 0, YR, ZF, strates, rng, touffes=0.6)
+                _paroi(b, x0, x1, 0, YR, ZF, strates, rng, touffes=0.7)
             elif kind == "portail":
                 _paroi(b, x0, x1, 0, YR, ZF, strates, rng, plat=-ZF)
             elif kind == "escalier":
                 _paroi(b, x0, x1, 0, t1, ZF, strates, rng, plat=-ZF)
             elif kind == "cote":
-                _paroi(b, x0, x1, 0, t1, ZF, strates, rng, touffes=0.6)
+                _paroi(b, x0, x1, 0, t1, ZF, strates, rng, touffes=0.7, lierre=0.5)
             # peau arrière (vue depuis la zone suivante)
             y_dos = YR if kind == "tunnel" else 0.0
             _paroi(b, x0, x1, y_dos, tb, -D + 4, strates, rng, saillies=(2, 2.5, 3, 3.5), larg=(16, 22, 28),
-                   fissures=0.12, sens=-1)
+                   fissures=0.12, sens=-1, touffes=0.5, lierre=0.4)
 
         # nervures de roche entre les têtes : elles cadrent les visages et dentellent la crête
         def t1_en(x):
@@ -584,7 +634,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             tt = t1_en(xr)
             extra = float(rng.choice([0, 3.5, 5.5, 7.5]))
             r0, r1 = xr - w / 2, xr + w / 2
-            bandes(r0, r1, YL, tt - 3, ZF, ZF + pr, FONCE, 0.97)
+            bandes(r0, r1, YL, tt - 3, ZF, ZF + pr, FONCE, 0.94)
             b.box((r0, tt - 3, ZF - (6 if extra else 0)), (r1, tt + extra, ZF + pr), vary("roche_claire", rng, 0.03),
                   studs="top")
             if extra >= 5:
@@ -694,6 +744,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             b.box((-4 + i, yt - h, 7), (-4 + i + w, yt, 7.4), c("roche_ombre"), collide=False)
         for side in (1, -1):
             _lanterne_pierre(b, side * (XP + 8), 9, s=1.25)
+            _banniere(b, side * (XP + 9.5), YR, 4.25)
         # lampions ronds sous l'arc
         for side in (1, -1):
             _lampion(b, side * (P - 13), HP + 6, 2.5)
@@ -778,7 +829,10 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
                 _buisson(b, xm, y, (za + zb) / 2, rng, s=0.8)
             elif g in (2, 3):
                 if rng.random() < 0.6:
-                    _arbre(b, xm + rng.uniform(-w / 5, w / 5), y + 1, (za + zb) / 2, rng, s=1.0 + 0.15 * (g == 3))
+                    tons = ("sakura_fonce", "sakura", "sakura_clair") if rng.random() < 0.14 else \
+                        ("feuille_fonce", "feuille", "feuille_claire")
+                    xt = float(np.clip(xm + rng.uniform(-w / 5, w / 5), -W + 7, W - 7))
+                    _arbre(b, xt, y + 1, (za + zb) / 2 + rng.uniform(-1.5, 1.5), rng, s=1.0 + 0.15 * (g == 3), tons=tons)
                 elif rng.random() < 0.6:
                     _buisson(b, xm, y + 1, (za + zb) / 2, rng, s=1.3)
             else:

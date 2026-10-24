@@ -63,7 +63,7 @@ def _fenetre(b, x, y, w, h, cadre, vitre, *, croix="v", cotes=True, appui=None, 
     if croix in ("v", "+"):
         b.box((x - 0.15, y, -0.35), (x + 0.15, y + h, 0.3), cadre, name="Meneau")
     if croix in ("h", "+"):
-        b.box((x - hw, y + h * 0.55 - 0.15, -0.3), (x + hw, y + h * 0.55 + 0.15, 0.3), cadre, name="Traverse")
+        b.box((x - hw + 0.05, y + h * 0.55 - 0.15, -0.3), (x + hw - 0.05, y + h * 0.55 + 0.15, 0.3), cadre, name="Traverse")
     if volets is not None:
         for s in (-1, 1):
             xa = x + s * (hw + 0.4)
@@ -77,7 +77,7 @@ def _porte(b, x, y, w, h, bois, fond, *, montants=True):
     """Porte pleine en bois (deux battants) avec chambranle."""
     hw = w / 2
     b.box((x - hw, y, -0.2), (x + hw, y + h, 0.3), col(fond), name="Porte")
-    b.box((x - 0.1, y, -0.3), (x + 0.1, y + h, 0.3), col(bois), name="Porte")
+    b.box((x - 0.1, y + 0.05, -0.3), (x + 0.1, y + h, 0.3), col(bois), name="Porte")
     b.box((x - hw - 0.5, y + h, -0.5), (x + hw + 0.5, y + h + 0.5, 0.3), col(bois), name="Chambranle")
     if montants:
         b.box((x - hw - 0.5, y, -0.5), (x - hw, y + h, 0.3), col(bois), name="Chambranle")
@@ -100,8 +100,12 @@ def _shoji(b, xa, xb, y0, y1, bois, papier=PAPIER, pas=0.95):
 
 
 def _noren(b, xa, xb, y_haut, h, z, fond, encre, texte, n=None, font="brush"):
-    """Rideau noren : tringle + lés séparés, un caractère par lé (texte plus court → lés unis)."""
+    """Rideau noren : tringle + lés séparés, un caractère par lé (texte plus court → centré, lés unis autour).
+    Vu de face (depuis -z), +x est à GAUCHE : le premier caractère va donc sur le lé de plus grand x."""
     n = n or max(2, len(texte))
+    chars = list(texte)[:n]
+    pad = n - len(chars)
+    chars = [""] * (pad // 2) + chars + [""] * (pad - pad // 2)
     gap = 0.18
     lw = (xb - xa - gap * (n - 1)) / n
     b.box((xa - 0.2, y_haut - 0.3, z - 0.2), (xb + 0.2, y_haut, z + 0.2), col(BOIS_SOMBRE), collide=False, name="Tringle")
@@ -110,7 +114,7 @@ def _noren(b, xa, xb, y_haut, h, z, fond, encre, texte, n=None, font="brush"):
         x = xa + i * (lw + gap)
         p = b.box((x, y_haut - 0.3 - h, z - 0.1), (x + lw, y_haut - 0.3, z + 0.1), fond, collide=False,
                   material="Fabric", name="Noren")
-        ch = texte[i] if i < len(texte) else ""
+        ch = chars[n - 1 - i]
         if ch.strip():
             p.label = {"face": "Front", "text": ch, "color": col(encre), "font": font}
 
@@ -164,10 +168,14 @@ def _balcon(b, xa, xb, y, prof, sol, garde, *, h=2.4, pas=1.1, plein=False, rng=
 def _garde_corps(b, pts, y, couleur=FER, h=2.2, pas=1.2):
     """Garde-corps le long d'une polyligne horizontale [(x, z), ...] (segments parallèles aux axes) posé en y."""
     g = col(couleur)
-    for (xa, za), (xb, zb) in zip(pts[:-1], pts[1:]):
-        lo_x, hi_x, lo_z, hi_z = min(xa, xb), max(xa, xb), min(za, zb), max(za, zb)
-        b.box((lo_x - 0.15, y + h - 0.3, lo_z - 0.15), (hi_x + 0.15, y + h, hi_z + 0.15), g, studs="top", name="Lisse")
-        L = max(hi_x - lo_x, hi_z - lo_z)
+    for i, ((xa, za), (xb, zb)) in enumerate(zip(pts[:-1], pts[1:])):
+        L = max(abs(xb - xa), abs(zb - za))
+        ux, uz = (xb - xa) / L, (zb - za) / L
+        s0 = -0.15 if i == 0 else 0.15          # les lisses se raboutent aux angles (pas de recouvrement)
+        a = (xa + ux * s0, za + uz * s0)
+        e = (xb + ux * 0.15, zb + uz * 0.15)
+        b.box((min(a[0], e[0]) - 0.15 * abs(uz), y + h - 0.3, min(a[1], e[1]) - 0.15 * abs(ux)),
+              (max(a[0], e[0]) + 0.15 * abs(uz), y + h, max(a[1], e[1]) + 0.15 * abs(ux)), g, studs="top", name="Lisse")
         n = max(1, int(round(L / pas)))
         for i in range(n):
             t = i / n
@@ -191,11 +199,11 @@ def _clim(b, x, y, corps="blanc"):
         b.box((xx - 0.1, y - 0.5, -1.0), (xx + 0.1, y, 0.2), col(FER), collide=False, name="Equerre")
 
 
-def _motif(b, xa, xb, ya, yb, base, rng, dens=0.14, cell=(2.0, 1.0), teintes=(0.93, 1.05, 0.96)):
+def _motif(b, xa, xb, ya, yb, base, rng, dens=0.14, cell=(2.0, 1.0), teintes=(0.94, 1.03, 0.965)):
     """Murs « pixel » : taches rectangulaires de teinte voisine (comme les murs stud de la référence).
     Plaquées à 0,08 stud du mur, sans chevauchement, à 0,5 stud des arêtes (pas de z-fighting)."""
     cw, ch = cell
-    xa, xb, ya, yb = xa + 0.5, xb - 0.5, ya + 0.3, yb - 0.3
+    xa, xb, ya, yb = xa + 0.57, xb - 0.5, ya + 0.43, yb - 0.3      # grille décalée : pas d'arête commune aux appuis
     nx, ny = int((xb - xa) / cw), int((yb - ya) / ch)
     if nx < 2 or ny < 1:
         return
@@ -269,11 +277,23 @@ def _citerne(b, x, y, z, r, h, couleur="citerne", pieds=1.4, cerclage=None):
     return y + pieds + 0.3 + h + r
 
 
+def _citerne_couchee(b, x, y, z, r, L, couleur="citerne"):
+    """Citerne horizontale sur deux berceaux (quand la hauteur manque)."""
+    cc = col(couleur)
+    for dx in (-L * 0.3, L * 0.3):
+        b.box((x + dx - 0.3, y, z - r * 0.8), (x + dx + 0.3, y + r * 0.7, z + r * 0.8), col(FER), name="Berceau")
+    b.cyl((x, y + r * 0.6 + r, z), r, L, cc, axis="x", name="Citerne")
+    for dx in (-L / 2, L / 2):
+        b.ball((x + dx, y + r * 0.6 + r, z), r * 0.97, cc, name="Dome")
+    b.cyl((x, y + r * 0.6 + r, z), r + 0.12, 0.35, shade(cc, 0.82), axis="x", name="Cerclage")
+    return y + r * 0.6 + 2 * r
+
+
 def _abri_toit(b, x, y, z, w, d, h, mur, toit, porte="bois"):
     """Petit édicule de toit (cage d'escalier) : boîte, porte, toit en appentis."""
     b.box((x - w / 2, y, z - d / 2), (x + w / 2, y + h, z + d / 2), col(mur), name="Edicule")
     with b.at((x, y, z - d / 2)):
-        b.box((-0.9, 0, -0.2), (0.9, 3.4, 0.3), col(porte), name="Porte")
+        b.box((-0.9, 0, -0.2), (0.9, min(3.4, h - 0.5), 0.3), col(porte), name="Porte")
     b.wedge((x - w / 2 - 0.4, y + h, z - d / 2 - 0.8), (x + w / 2 + 0.4, y + h + 1.2, z + d / 2 + 0.4), col(toit),
             down="-z", studs="top", name="Appentis")
 
@@ -368,7 +388,7 @@ def _toit_croupe(b, x0, x1, z0, z1, y, h, toit, *, r=None):
     """Toit « à croupes » en coins : pans avant/arrière au milieu, pans latéraux sur toute la profondeur,
     petit faîtage. Les angles montrent un triangle vertical (lecture « bloc » assumée)."""
     t = col(toit)
-    r = r or min((z1 - z0) / 2 - 0.5, (x1 - x0) / 2 - 0.5)
+    r = r or min(3.5, (z1 - z0) / 2 - 0.5, (x1 - x0) / 2 - 0.5)
     b.box((x0, y - 0.6, z0), (x1, y, z1), shade(t, 0.7), name="Rive")
     b.wedge((x0 + r, y, z0), (x1 - r, y + h, z0 + r), t, down="-z", studs="top", name="Pan")
     b.wedge((x0 + r, y, z1 - r), (x1 - r, y + h, z1), t, down="+z", studs="top", name="Pan")
@@ -557,16 +577,16 @@ def boutique(b, variant=0, largeur=24, profondeur=20):
         # étal ouvert : fond sombre, étagère, comptoir stud, marchandises
         with b.at((0, 0, zr)):
             b.box((e0, 0.4, -0.1), (e1, H0 - 1.2, 0.1), col(INTERIEUR), name="Fond")
-            b.box((e0 + 0.3, 4.6, -1.0), (e1 - 0.3, 4.9, -0.1), col("bois_clair"), studs="top", name="Etagere")
+            b.box((e0 + 0.3, 5.6, -0.9), (e1 - 0.3, 5.9, -0.1), col("bois_clair"), studs="top", name="Etagere")
             for i in range(max(2, int((e1 - e0) / 1.6))):
                 xx = e0 + 0.9 + i * 1.5
                 if xx > e1 - 0.8:
                     break
-                b.box((xx - 0.45, 4.9, -0.85), (xx + 0.45, 5.9 + 0.3 * (i % 2), -0.2),
+                b.box((xx - 0.45, 5.9, -0.8), (xx + 0.45, 6.8 + 0.3 * (i % 2), -0.2),
                       vr(("rouge", "jaune_pale", "toit_bleu_clair", "panneau")[i % 4], rng, 0.05), name="Article")
             b.box((e0 + 0.4, 0.4, -1.9), (e1 - 0.4, 3.0, -0.1), vr("bois", rng, 0.04), material="WoodPlanks", name="Comptoir")
             b.box((e0 + 0.2, 3.0, -2.1), (e1 - 0.2, 3.4, -0.1), col("bois_clair"), studs="top", name="Plateau")
-            _etal(b, S["etal"], e0 + 0.4, e1 - 0.4, 3.4, -2.0, rng)
+            _etal(b, S["etal"], e0 + 0.4, e1 - 0.4, 3.4, -2.3, rng)
             # portes coulissantes
             _shoji(b, p0, p1, 0.4, H0 - 1.2, S["cadre"])
         # noren devant l'entrée, accroché sous le linteau
@@ -602,7 +622,7 @@ def boutique(b, variant=0, largeur=24, profondeur=20):
         for k in range(1, n_et - 1):
             y = H0 + k * HE
             b.box((x0 - 0.35, y - 0.35, zf - 0.35), (x1 + 0.35, y + 0.35, zb + 0.35), cadre, studs="top", name="Bandeau")
-        b.box((x0 - 0.35, H - 0.7, zf - 0.35), (x1 + 0.35, H, zb + 0.35), cadre, name="Sabliere")
+        b.box((x0 - 0.35, H - 0.7, zf - 0.35), (x1 + 0.35, H - 0.05, zb + 0.35), cadre, name="Sabliere")
         # murs « pixel » : façade avant des étages, côtés
         with b.at((0, 0, zf)):
             _motif(b, x0, x1, H0, H - 0.7, mur, rng, 0.10)
@@ -731,6 +751,12 @@ def _volume(b, x0, x1, z0, z1, ya, yb, cc, coin=None, R=0.0, e=0.0, name="Mur", 
     return (cx, cz)
 
 
+def _n_fen(a, b_, pas=6.0):
+    """Nombre de fenêtres qui tiennent sur [a, b_] (0 si la place manque)."""
+    L = b_ - a
+    return 0 if L < 3.6 else max(1, int(L / pas))
+
+
 def _rangee(b, xa, xb, y, n, w, h, cadre, vitre, **kw):
     """n fenêtres réparties sur [xa, xb] (repère de façade)."""
     out = []
@@ -745,14 +771,14 @@ def _devanture(b, xa, xb, H0, S, rng, *, store=None):
     """Petite boutique de rez-de-chaussée (repère de façade) : vitrine, store, noren, kanban."""
     cadre = col(S["cadre"])
     w = xb - xa
-    b.box((xa, 0.8, -0.15), (xb, H0 - 2.2, 0.3), col(INTERIEUR), name="Vitrine")
+    b.box((xa, 1.0, -0.15), (xb, H0 - 2.2, 0.3), col(INTERIEUR), name="Vitrine")
     b.box((xa - 0.4, H0 - 2.2, -0.5), (xb + 0.4, H0 - 1.6, 0.3), cadre, name="Linteau")
-    b.box((xa - 0.6, 0.0, -0.9), (xb + 0.6, 0.8, 0.3), cadre, studs="top", name="Allege")
+    b.box((xa - 0.6, 0.0, -0.9), (xb + 0.6, 1.0, 0.3), cadre, studs="top", name="Allege")
     for xx in (xa - 0.4, xb):
-        b.box((xx, 0.8, -0.5), (xx + 0.4, H0 - 2.2, 0.3), cadre, name="Montant")
+        b.box((xx, 1.0, -0.5), (xx + 0.4, H0 - 2.2, 0.3), cadre, name="Montant")
     nf, ne, nt = S["noren"]
     _noren(b, xa + 0.3, xb - 0.3, H0 - 2.2, 2.4, -0.7, nf, ne, nt, n=max(2, int(round(w / 2.2))))
-    b.box((xa + 0.4, 0.8, -1.2), (xb - 0.4, 2.8, -0.15), col("bois"), material="WoodPlanks", name="Etal")
+    b.box((xa + 0.4, 1.0, -1.2), (xb - 0.4, 2.8, -0.15), col("bois"), material="WoodPlanks", name="Etal")
     for i in range(max(2, int(w / 1.8))):
         xx = xa + 1.0 + i * 1.7
         if xx > xb - 0.9:
@@ -769,7 +795,7 @@ def _devanture(b, xa, xb, H0, S, rng, *, store=None):
 
 def _entree(b, x, H0, S, *, distributeur=None):
     """Entrée d'immeuble : porte double, marquise, marche, lampe ; distributeur optionnel à côté."""
-    _porte(b, x, 0.4, 3.2, 5.6, S["cadre"], "bois")
+    _porte(b, x, 0.4, 3.2, 5.2, S["cadre"], "bois")
     b.box((x - 2.4, 0, -1.4), (x + 2.4, 0.4, 0.3), col("pave"), studs="top", name="Marche")
     b.wedge((x - 2.6, 6.6, -2.4), (x + 2.6, 7.4, 0.3), col(S["auvent"]), down="-z", studs="top", name="Marquise")
     b.box((x - 2.6, 6.2, -2.4), (x + 2.6, 6.6, 0.3), shade(col(S["auvent"]), 0.7), name="Marquise")
@@ -781,16 +807,20 @@ def _entree(b, x, H0, S, *, distributeur=None):
 _IMMEUBLES = [
     # 0 : angle arrondi, blanc, rives rouges, balcons à auvents verts, 2 citernes
     dict(mur="enduit", bord="rouge_hokage", auvent="toit_vert", cadre="bois_fonce", vitre="fenetre",
-         forme="arrondi", noren=("noren_rouge", "blanc", "米屋"), kanban=("お米", "panneau", "rouge_fonce")),
+         forme="arrondi", noren=("noren_rouge", "blanc", "米屋"), kanban=("お米", "panneau", "rouge_fonce"),
+         verticale=("米穀店", "blanc", "rouge_fonce")),
     # 1 : gradins — socle crème, attique bleu pâle en retrait sur une terrasse, rives bleues
     dict(mur="creme", mur2="bleu_pale", bord="toit_bleu", auvent="toit_bleu", cadre="poutre", vitre="fenetre",
-         forme="gradin", noren=("noren_bleu", "blanc", "本"), kanban=("書店", "blanc", "toit_bleu")),
+         forme="gradin", noren=("noren_bleu", "blanc", "本"), kanban=("書店", "blanc", "toit_bleu"),
+         verticale=("古本", "toit_bleu", "blanc")),
     # 2 : tour de Konoha — jaune pâle, colonne de bow-windows à petits toits de cuivre, jupe verte, citernes
     dict(mur="jaune_pale", bord="toit_vert", auvent="toit_vert", cadre="bois", vitre="fenetre",
-         forme="tour", noren=("noren_bleu", "blanc", "茶"), kanban=("茶屋", "panneau", "toit_vert_fonce")),
+         forme="tour", noren=("noren_bleu", "blanc", "茶"), kanban=("茶屋", "panneau", "toit_vert_fonce"),
+         verticale=("お茶", "toit_vert_fonce", "blanc")),
     # 3 : rotonde — rose pâle, tour ronde d'angle à toit en disques étagés, balcons pleins orange
     dict(mur="rose_pale", bord="toit_orange", auvent="toit_rouge", cadre="bois_fonce", vitre="fenetre",
-         forme="rotonde", noren=("noren_rouge", "blanc", "花"), kanban=("花", "blanc", "rouge")),
+         forme="rotonde", noren=("noren_rouge", "blanc", "菓子"), kanban=("和菓子", "blanc", "rouge"),
+         verticale=("甘味", "rouge", "blanc")),
 ]
 
 
@@ -808,6 +838,8 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
     H0 = 7.5 if n <= 5 else 7.0
     HE = 6.0 if n <= 5 else 5.5
     H = H0 + HE * (n - 1)
+    hwin = min(3.0, HE - 2.65)                         # fenêtres : le linteau passe sous le bandeau suivant
+    hpf = min(4.4, HE - 1.6)                           # portes-fenêtres de balcon
     mur, bord = S["mur"], col(S["bord"])
     cadre, vitre = col(S["cadre"]), S["vitre"]
     coin, R = None, 0.0
@@ -839,8 +871,8 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             cx, cz = x1 - R, zf + R
             # la tour ronde dépasse d'un niveau
             HT = min(HE, 36.0 - H)
-            b.cyl((cx, H + 0.9 + HT / 2, cz), R, HT, vr(mur, rng, 0.03), axis="y", name="Tour")
-            b.cyl((cx, H + 0.9 + 0.3, cz), R + 0.35, 0.6, cadre, axis="y", studs="top", name="Bandeau")
+            b.cyl((cx, H + 0.86 + HT / 2, cz), R, HT + 0.04, vr(mur, rng, 0.03), axis="y", name="Tour")
+            b.cyl((cx, H + 0.95 + 0.3, cz), R + 0.35, 0.6, cadre, axis="y", studs="top", name="Bandeau")
 
     # --- façade avant ------------------------------------------------------------------------
     with b.group("Facade"), b.at((0, 0, zf)):
@@ -848,63 +880,73 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
         xa_f = x0 + (R + 0.8 if coin == "g" else 1.2)
         xb_f = x1 - (R + 0.8 if coin == "d" else 1.2)
         mid = (xa_f + xb_f) / 2
+        # (positions bornées : sur les façades étroites, l'entrée reste dans l'emprise et la boutique rétrécit)
         if v in (0, 2):
-            _devanture(b, xa_f + 0.6, mid + 2.0, H0, S, rng)
-            _entree(b, mid + 5.0, H0, S, distributeur=(xb_f - 1.4) if (xb_f - mid) > 9.5 else None)
+            xe = min(mid + 5.0, xb_f - 2.0)
+            d1 = min(mid + 2.0, xe - 3.4)
+            if d1 - (xa_f + 0.6) >= 3.0:
+                _devanture(b, xa_f + 0.6, d1, H0, S, rng)
+            _entree(b, xe, H0, S, distributeur=(xb_f - 1.4) if (xb_f - 1.4 - xe) >= 3.8 else None)
         else:
-            _entree(b, xa_f + 2.8, H0, S, distributeur=(xa_f + 6.4) if v == 1 else None)
-            _devanture(b, xa_f + (8.4 if v == 1 else 5.6), xb_f - 0.6, H0, S, rng)
+            xe = xa_f + 2.8
+            dist = (xa_f + 6.4) if (v == 1 and xb_f - xa_f >= 15) else None
+            d0 = xa_f + (8.4 if dist is not None else 5.6)
+            _entree(b, xe, H0, S, distributeur=dist)
+            if xb_f - 0.6 - d0 >= 3.0:
+                _devanture(b, d0, xb_f - 0.6, H0, S, rng)
 
-        # tuyau principal (descend du toit jusqu'au sol en faisant un décrochement)
-        xt = (x1 - 0.8) if coin != "d" else (x0 + 0.8)
-        dx = -1.6 if coin != "d" else 1.6
-        yj = H0 + HE * max(1, n_bas - 3) + 0.9
-        _tuyau(b, [(xt, H_bas - 0.4), (xt, yj), (xt + dx, yj), (xt + dx, H0 - 0.1)], r=0.3, couleur="tuyau")
+        # tuyau principal à l'angle (du toit jusqu'au store), enseigne verticale juste à côté
+        sg_ = 1 if coin != "d" else -1
+        xt = (x1 - 0.6) if sg_ > 0 else (x0 + 0.6)
+        _tuyau(b, [(xt, H_bas - 0.4), (xt, 0.6)], r=0.3, couleur="tuyau")
+        b.cyl((xt, 0.3, -0.25), 0.4, 0.6, col("metal_fonce"), axis="y", collide=False, name="Regard")
+        vt, vf, ve = S["verticale"]
+        _enseigne_v(b, xt - sg_ * 1.1, H0 + 0.6, 2.0 * len(vt), vt, vf, ve, BOIS_SOMBRE, sortie=1.6,
+                    chapeau=S["auvent"])
 
         # étages
-        fa, fb = xa_f, xb_f - 1.4 * (coin != "d") + 1.4 * (coin == "d")
         if coin == "d":
             fa, fb = x0 + 2.6, x1 - R - 0.8
         elif coin == "g":
             fa, fb = x0 + R + 0.8, x1 - 2.6
         else:
             fa, fb = x0 + 1.4, x1 - 2.6
-        nf = max(2, int((fb - fa) / 5.6))
         bay = None
-        if forme == "tour":
+        if forme == "tour" and W >= 18:
             bw = min(8.0, W * 0.3)
             bay = (x0 + 2.0, x0 + 2.0 + bw)
             fa = bay[1] + 1.2
-            nf = max(2, int((fb - fa) / 5.6))
+        nf = _n_fen(fa, fb, 6.0)
         for k in range(1, n_bas):
             yb = H0 + (k - 1) * HE
             top = k == n_bas - 1
             balc = (forme == "arrondi" and k in (2, 4)) or (forme == "rotonde" and k % 2 == 1) \
-                or (forme == "gradin" and k == 1) or (forme == "tour" and k >= 2)
-            if balc and nf >= 2:
+                or (forme == "gradin" and k == 1) or (forme == "tour" and k >= 2 and (k % 2 == 0 or n_bas <= 5))
+            if balc and (fb - fa) >= 11:
                 if forme == "rotonde":
-                    bx0, bx1 = fa - 0.6, fa + (fb - fa) * 0.5
+                    bx0, bx1 = fa + 0.2, fa + (fb - fa) * 0.5
                 elif forme == "tour":
-                    bx0, bx1 = fb - (fb - fa) * 0.55, fb + 0.4
+                    bx0, bx1 = fb - (fb - fa) * 0.55, fb - 0.2
                 else:
-                    bx0, bx1 = mid - 4.2, mid + 4.2
-                _porte_fenetre(b, (bx0 + bx1) / 2, yb + 0.3, 2.6, 4.8, cadre, vitre)
+                    hb = min(4.2, (fb - fa) / 2 - 1.0)
+                    c0 = min(max(mid, fa + hb), fb - hb)
+                    bx0, bx1 = c0 - hb, c0 + hb
+                _porte_fenetre(b, (bx0 + bx1) / 2, yb + 0.3, 2.6, hpf, cadre, vitre)
                 plein = bord if forme == "rotonde" else False
                 _balcon(b, bx0, bx1, yb + 0.6, 2.4, "pave" if forme != "gradin" else "bois_clair",
-                        FER if not plein else bord, plein=plein, pas=1.0, h=2.2)
+                        FER if not plein else bord, plein=plein, pas=1.45, h=2.2)
                 if forme in ("arrondi", "tour"):
                     b.wedge((bx0 - 0.3, yb + HE - 1.1, -2.9), (bx1 + 0.3, yb + HE - 0.3, 0.3), col(S["auvent"]),
                             down="-z", studs="top", name="Auvent")
                 _plante(b, bx0 + 1.0, yb + 0.6, -1.2, r=0.7, pot=POT_TERRE, fleur=("rouge", "sakura", "jaune_lampion")[k % 3])
                 # fenêtres restantes hors balcon
-                rest = [(fa, bx0 - 0.8), (bx1 + 0.8, fb)]
-                for (ra, rb) in rest:
-                    m = int((rb - ra) / 5.0)
-                    if m >= 1:
-                        _rangee(b, ra, rb, yb + 1.8, m, 2.8, 3.0, cadre, vitre, croix="v", cotes=False)
-            else:
-                _rangee(b, fa, fb, yb + 1.8, nf, 2.8, 3.0 if not top else 2.8, cadre, vitre, croix="v", cotes=False,
-                        auvent=(S["auvent"] if (top and forme == "gradin") else None))
+                for (ra, rb) in ((fa, bx0 - 0.8), (bx1 + 0.8, fb)):
+                    m = _n_fen(ra, rb, 5.0)
+                    if m:
+                        _rangee(b, ra, rb, yb + 1.8, m, 2.8, hwin, cadre, vitre, croix="v", cotes=False)
+            elif nf:
+                _rangee(b, fa, fb, yb + 1.8, nf, 2.8, hwin if not top else min(2.8, hwin), cadre, vitre, croix="v",
+                        cotes=False, auvent=(S["auvent"] if (top and forme == "gradin") else None))
             # climatiseur sur un trumeau
             if k == 2 and nf >= 3 and not balc:
                 xs_ = fa + (fb - fa) / nf
@@ -917,16 +959,18 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             with b.at((0, 0, -2.4)):
                 for k in range(1, n_bas):
                     yb = H0 + (k - 1) * HE
-                    _fenetre(b, (ba + bb_) / 2, yb + 1.4, bb_ - ba - 2.0, 3.0, cadre, vitre, croix="+", cotes=True)
-                    b.wedge((ba - 0.6, yb + HE - 1.5, -1.6), (bb_ + 0.6, yb + HE - 0.4, 2.7), col(S["auvent"]),
+                    _fenetre(b, (ba + bb_) / 2, yb + 1.2, bb_ - ba - 2.0, 2.8, cadre, vitre, croix="+", cotes=True)
+                    b.wedge((ba - 0.6, yb + 4.5, -1.6), (bb_ + 0.6, yb + 5.6, 2.7), col(S["auvent"]),
                             down="-z", studs="top", name="Toit_bow")
         if coin is not None:
             cx, cz = (x0 + R, zf + R) if coin == "g" else (x1 - R, zf + R)
             yaw = 45 if coin == "g" else -45
+            HT = min(HE, 36.0 - H)
             with b.at((cx, 0, cz - zf), yaw=yaw), b.at((0, 0, -R)):
-                for k in range(1, n_bas + (1 if forme == "rotonde" else 0)):
+                for k in range(1, n_bas + (1 if (forme == "rotonde" and HT >= 4.6) else 0)):
                     yb = H0 + (k - 1) * HE + (0.9 if (forme == "rotonde" and k == n_bas) else 0)
-                    _fenetre(b, 0, yb + 1.8, 2.2, 3.0, cadre, vitre, croix="v", cotes=True)
+                    _fenetre(b, 0, yb + 1.8, 2.2, hwin if k < n_bas else min(hwin, HT - 2.6), cadre, vitre, croix="v",
+                             cotes=True)
                 _fenetre(b, 0, 2.4, 2.2, 3.4, cadre, vitre, croix="+", cotes=True)
 
     if forme == "gradin":
@@ -934,20 +978,26 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             with b.at((0, 0, gz0)):
                 for k in range(n_bas, n):
                     yb = H0 + (k - 1) * HE
-                    m = max(2, int((gx1 - gx0 - 2) / 5.0))
-                    if k == n_bas:
+                    if k == n_bas and (gx1 - gx0) >= 15:
                         bx0, bx1 = gx0 + 2.0, gx0 + 9.0
-                        _porte_fenetre(b, (bx0 + bx1) / 2, yb + 0.9, 3.0, 4.6, cadre, vitre)
-                        _rangee(b, bx1 + 0.8, gx1 - 1.0, yb + 1.8, max(1, m - 2), 2.8, 3.0, cadre, vitre, croix="+",
-                                cotes=True, volets=S["bord"])
+                        _porte_fenetre(b, (bx0 + bx1) / 2, yb + 0.9, 3.0, hpf - 0.4, cadre, vitre)
+                        m = _n_fen(bx1 + 0.8, gx1 - 1.0, 5.0)
+                        if m:
+                            ecart = (gx1 - 1.8 - bx1) / m
+                            _rangee(b, bx1 + 0.8, gx1 - 1.0, yb + 1.8, m, 2.8, hwin, cadre, vitre, croix="+",
+                                    cotes=True, volets=S["bord"] if ecart >= 7.4 else None)
                         b.wedge((bx0 - 1.5, yb + HE - 1.4, -2.6), (bx1 + 1.5, yb + HE - 0.4, 0.3), col(S["auvent"]),
                                 down="-z", studs="top", name="Auvent")
                     else:
-                        _rangee(b, gx0 + 1.0, gx1 - 1.0, yb + 1.8, m, 2.8, 3.0, cadre, vitre, croix="v", cotes=False)
+                        m = _n_fen(gx0 + 1.0, gx1 - 1.0, 5.0)
+                        if m:
+                            _rangee(b, gx0 + 1.0, gx1 - 1.0, yb + 1.8, m, 2.8, hwin, cadre, vitre, croix="v", cotes=False)
             with b.at((gx1, 0, 0), yaw=-90):
                 for k in range(n_bas, n):
-                    _rangee(b, gz0 + 1.5, zb - 1.5, H0 + (k - 1) * HE + 1.8, 2, 2.6, 3.0, cadre, vitre, croix="v",
-                            cotes=False)
+                    m = min(2, _n_fen(gz0 + 1.5, zb - 1.5, 5.0))
+                    if m:
+                        _rangee(b, gz0 + 1.5, zb - 1.5, H0 + (k - 1) * HE + 1.8, m, 2.6, hwin, cadre, vitre, croix=None,
+                                cotes=False)
 
     # --- côtés et arrière ------------------------------------------------------------------------
     with b.group("Cotes"):
@@ -961,15 +1011,14 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
                         lo = -D / 2 + R + 1.0
                     else:
                         hi = D / 2 - R - 1.0
-                ns = 2 if (hi - lo) >= 11 else 1
-                top_k = n_bas if not (forme == "gradin" and side > 0) else n_bas
-                for k in range(1, top_k):
-                    _rangee(b, lo, hi, H0 + (k - 1) * HE + 1.8, ns, 2.4, 3.0, cadre, vitre, croix="v", cotes=False)
+                ns = 2 if ((hi - lo) >= 11 and n <= 5 and W <= 28) else 1
+                for k in range(1, n_bas):
+                    _rangee(b, lo, hi, H0 + (k - 1) * HE + 1.8, ns, 2.4, hwin, cadre, vitre, croix=None, cotes=False)
                 if side > 0 and forme != "rotonde":
                     _tuyau(b, [(lo - 1.0, H_bas - 0.4), (lo - 1.0, 0.4)], r=0.3)
         with b.at((0, 0, zb), yaw=180):
             for k in range(1, n_bas):
-                _fenetre(b, 0, H0 + (k - 1) * HE + 1.8, 2.4, 3.0, cadre, vitre, croix="v", cotes=False)
+                _fenetre(b, 0, H0 + (k - 1) * HE + 1.8, 2.4, hwin, cadre, vitre, croix=None, cotes=False)
             _porte(b, -W / 4, 0, 2.6, 5.6, "bois", "bois_fonce")
             _clim(b, W / 4, 1.4, "citerne")
 
@@ -981,7 +1030,7 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             if forme == "rotonde":
                 cx, cz = x1 - R, zf + R
                 yy = H + 0.9 + min(HE, 36.0 - H)
-                for i, (rr, hh) in enumerate(((R + 0.9, 0.8), (R - 0.3, 1.0), (R - 1.6, 1.0), (R - 2.8, 1.0))):
+                for i, (rr, hh) in enumerate(((R + 0.9, 0.8), (R * 0.88, 1.0), (R * 0.62, 1.0), (R * 0.36, 1.0))):
                     b.cyl((cx, yy + hh / 2, cz), rr, hh, shade(col(S["auvent"]), 1.0 - 0.06 * i), axis="y",
                           studs="top", name="Toit_tour")
                     yy += hh
@@ -996,7 +1045,7 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             # terrasse du socle + attique
             yt0 = _toit_plat(b, x0, x1, zf, zb, H_bas, bord, acrotere=0)
             _garde_corps(b, [(x0 + 0.2, gz0), (x0 + 0.2, zf + 0.2), (x1 - 0.2, zf + 0.2), (x1 - 0.2, zb - 0.2),
-                             (gx1, zb - 0.2)], yt0, FER, pas=1.3)
+                             (gx1, zb - 0.2)], yt0, FER, pas=1.7)
             yt = _toit_plat(b, gx0, gx1, gz0, zb, H, bord)
             tank_zone = (gx0 + 2, gx1 - 2, gz0 + 2.5, zb - 2)
             top = yt
@@ -1006,32 +1055,381 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
             with b.at((0, yt0, 0)):
                 _banc(b, (gx1 + x1) / 2, zb - 5.0, 3.6, couleur="noren_rouge")
         else:  # tour : jupe de cuivre + terrasse
-            xa, xb, za, zb2, yt = _mansarde(b, x0, x1, zf, zb, H, S["bord"], jupe=3.2, hj=3.2, deb=0.8)
+            xa, xb, za, zb2, yt = _mansarde(b, x0, x1, zf, zb, H, S["bord"], jupe=3.2, hj=3.2 if n <= 5 else 2.6, deb=0.8)
             tank_zone = (xa + 1, xb - 1, za + 1, zb2 - 1)
             top = yt
         # citernes et édicule
         tx0, tx1, tz0, tz1 = tank_zone
         dispo = 41.8 - yt
-        hh = max(2.0, min(3.6, dispo - 4.0))
-        rr = 2.0 if hh >= 3.0 else 1.6
         nt = 2 if (tx1 - tx0) > 12 else 1
         if v == 3:
             nt = 1
         tops = [top]
-        for i in range(nt):
-            xc = tx0 + rr + 0.8 + i * (2 * rr + 1.6)
-            tops.append(_citerne(b, xc, yt, tz0 + rr + 1.0 + (i % 2) * 1.5, rr, hh, ("citerne", "blanc", "bleu_pale")[(v + i) % 3],
-                                 pieds=1.2))
-        _abri_toit(b, tx1 - 2.4, yt, tz1 - 2.4, 4.0, 4.0, 3.8, S.get("mur2", mur), S["bord"])
-        tops.append(yt + 5.0)
+        if dispo >= 6.6:
+            hh = min(3.6, dispo - 4.0)
+            rr = 2.0 if hh >= 3.0 else 1.6
+            for i in range(nt):
+                xc = tx0 + rr + 0.8 + i * (2 * rr + 1.6)
+                tops.append(_citerne(b, xc, yt, tz0 + rr + 1.0 + (i % 2) * 1.5, rr, hh,
+                                     ("citerne", "blanc", "bleu_pale")[(v + i) % 3], pieds=1.2))
+        else:
+            rr = 1.1 if dispo >= 3.0 else 0.8
+            tops.append(_citerne_couchee(b, tx0 + 3.5, yt, tz0 + 2.0, rr, 4.4, "citerne"))
+        hs = min(3.8, dispo - 1.4)
+        if hs >= 2.6:
+            _abri_toit(b, tx1 - 2.4, yt, tz1 - 2.4, 4.0, 4.0, hs, S.get("mur2", mur), S["bord"])
+            tops.append(yt + hs + 1.2)
         top = max(tops)
 
     return {"emprise": (W, D), "hauteur": round(top, 2)}
 
 
+# ---------------------------------------------------------------------------
+# RAMEN
+# ---------------------------------------------------------------------------
+
+_RAMENS = [
+    # 0 : le classique — toit rouge à deux pans, noren blancs « ラーメン » en rouge, lampions rouges
+    dict(toit="toit_rouge", mur="enduit", noren=("blanc", "rouge", " ラーメン "), lampion="rouge", tabouret="rouge",
+         forme="kirizuma", enseigne=("ラーメン", "panneau", "rouge_fonce"), extra="banc"),
+    # 1 : toit bleu, noren bleu « らーめん », enseigne « 麺 » en drapeau, caisses
+    dict(toit="toit_bleu", mur="creme", noren=("noren_bleu", "blanc", " らーめん "), lampion="orange_lampion",
+         tabouret="noren_bleu", forme="kirizuma", enseigne=("麺", "blanc", "noren_bleu"), extra="caisses"),
+    # 2 : toit de cuivre vert, noren rouges « 中華そば », grand bol sur le toit
+    dict(toit="toit_vert", mur="jaune_pale", noren=("noren_rouge", "blanc", " 中華そば "), lampion="rouge",
+         tabouret="toit_vert_fonce", forme="kirizuma", enseigne=("ラーメン", "rouge", "blanc"), extra="bol"),
+    # 3 : toit en appentis orange avec grand fronton-enseigne, noren noirs, nobori (bannière)
+    dict(toit="toit_orange", mur="enduit", noren=("noir", "blanc", " ラーメン "), lampion="rouge", tabouret="rouge",
+         forme="appentis", enseigne=("ラーメン", "jaune_lampion", "noir"), extra="nobori"),
+]
+
+
 def ramen(b, variant=0):
-    raise NotImplementedError
+    """Stand de ramen (esprit Ichiraku, sans le nom) : comptoir ouvert et 5 tabourets, noren courts « ラーメン »,
+    paire de lampions rouges, marmites fumantes et cheminée, petit toit stud avec enseigne. Environ 16 × 12."""
+    rng = b.rng
+    v = variant % 4
+    S = dict(_RAMENS[v])
+    if variant >= 4:
+        S["toit"] = _TOITS_ALT[variant % len(_TOITS_ALT)]
+        S["mur"] = _MURS_ALT[variant % len(_MURS_ALT)]
+    W, D = 16.0, 12.0
+    x0, x1, zf, zb = -W / 2, W / 2, -D / 2, D / 2
+    YE = 8.0                       # dessus de la rive (avant-toit)
+    bois, bois_f = col("bois"), col("bois_fonce")
+    zc = zf + 4.4                  # front du comptoir
+
+    with b.group("Structure"):
+        b.box((x0, 0, zf), (x1, 0.4, zb), col("bois_fonce"), studs="top", name="Plancher")
+        # cuisine : mur du fond et murs latéraux
+        b.box((x0, 0.4, zb - 0.8), (x1, YE - 0.6, zb), vr(S["mur"], rng, 0.03), name="Mur_fond")
+        for xa in (x0, x1 - 0.8):
+            b.box((xa, 0.4, zc - 0.6), (xa + 0.8, YE - 0.6, zb - 0.8), vr(S["mur"], rng, 0.03), name="Mur")
+        # poteaux avant et poutre (où pendent les noren)
+        for xa in (x0, x1 - 0.8):
+            b.box((xa, 0.4, zf + 0.1), (xa + 0.8, YE - 1.4, zf + 0.9), bois_f, name="Poteau")
+        b.box((x0, YE - 1.4, zf + 0.1), (x1, YE - 0.6, zf + 0.9), bois_f, name="Poutre")
+        # cloisons basses à claire-voie sur les côtés du coin repas
+        for xa in (x0, x1 - 0.5):
+            b.box((xa, 0.4, zf + 0.9), (xa + 0.5, 2.6, zc - 0.6), bois, material="WoodPlanks", name="Cloison")
+            b.box((xa - 0.1, 2.6, zf + 0.9), (xa + 0.6, 2.9, zc - 0.6), col("bois_clair"), studs="top", name="Lisse")
+
+    with b.group("Comptoir"):
+        b.box((x0 + 0.8, 0.4, zc), (x1 - 0.8, 3.2, zc + 1.0), vr("bois", rng, 0.03), material="WoodPlanks", name="Comptoir")
+        b.box((x0 + 0.8, 3.2, zc - 0.5), (x1 - 0.8, 3.6, zc + 1.4), col("bois_clair"), studs="top", name="Plateau")
+        # bols et baguettes sur le comptoir
+        for i, xx in enumerate((-5.0, -1.6, 1.8, 5.2)):
+            b.cyl((xx, 3.95, zc + 0.3), 0.55, 0.7, col(("blanc", "rouge_fonce", "blanc", "noir")[i]), axis="y", studs="top",
+                  collide=False, name="Bol")
+        # tabourets
+        for i in range(5):
+            xx = x0 + 2.0 + i * (W - 4.0) / 4
+            b.cyl((xx, 1.4, zc - 1.6), 0.22, 2.0, col(FER), axis="y", collide=False, name="Pied")
+            b.cyl((xx, 2.6, zc - 1.6), 0.75, 0.45, col(S["tabouret"]), axis="y", studs="top", name="Tabouret")
+
+    with b.group("Cuisine"):
+        # fourneau, marmites, cheminée et vapeur
+        b.box((x0 + 1.2, 0.4, zb - 3.0), (x0 + 8.0, 3.0, zb - 0.8), col("metal_fonce"), studs="top", name="Fourneau")
+        for i, (xx, rr, hh) in enumerate(((x0 + 2.4, 1.0, 1.8), (x0 + 4.6, 0.85, 1.3), (x0 + 6.7, 0.8, 1.1))):
+            b.cyl((xx, 3.0 + hh / 2, zb - 1.9), rr, hh, col("metal"), axis="y", name="Marmite")
+            b.cyl((xx, 3.0 + hh + 0.12, zb - 1.9), rr * 0.85, 0.25, col("citerne"), axis="y", collide=False, name="Bouillon")
+        xc = x0 + 2.4
+        b.cyl((xc, 9.0, zb - 1.5), 0.45, 9.0, col("metal_fonce"), axis="y", collide=False, name="Cheminee")
+        b.box((xc - 0.8, 13.5, zb - 2.3), (xc + 0.8, 13.9, zb - 0.7), col(FER), collide=False, name="Chapeau")
+        for j, (dx, dy, rr) in enumerate(((0.15, 14.6, 0.5), (-0.35, 15.5, 0.65), (0.35, 16.6, 0.8))):
+            b.ball((xc + dx, dy, zb - 1.5), rr, col("blanc"), transparency=0.55, collide=False, shadow=False, name="Vapeur")
+        # étagère à bols et menus au fond
+        b.box((x1 - 7.0, 4.6, zb - 1.6), (x1 - 1.0, 4.9, zb - 0.8), col("bois_clair"), studs="top", name="Etagere")
+        for i in range(3):
+            for j in range(2):
+                b.cyl((x1 - 6.0 + i * 2.0, 5.1 + j * 0.45, zb - 1.2), 0.6, 0.4, col(("blanc", "rouge")[j]), axis="y",
+                      collide=False, name="Bols")
+        for i, t in enumerate(("味噌", "塩", "醤油")):
+            p = b.box((x0 + 1.4 + (2 - i) * 2.6, 5.0, zb - 1.0), (x0 + 3.6 + (2 - i) * 2.6, 6.8, zb - 0.8), col("panneau"),
+                      collide=False, name="Menu")
+            p.label = {"face": "Front", "text": t, "color": col("noir"), "font": "brush", "vertical": len(t) > 1}
+
+    with b.group("Noren"):
+        nf, ne, nt = S["noren"]
+        _noren(b, x0 + 0.9, x1 - 0.9, YE - 1.4, 2.1, zf - 0.1, nf, ne, nt, n=len(nt))
+        for xx in (x0 + 0.4, x1 - 0.4):
+            _lampion(b, xx, YE - 0.6, zf - 0.75, r=0.85, couleur=S["lampion"], corde=0.4)
+
+    with b.group("Toit"):
+        t = col(S["toit"])
+        if S["forme"] == "kirizuma":
+            top = _toit_kirizuma(b, x0 - 0.6, x1 + 0.6, zf - 1.6, zb + 0.8, YE, 3.2, t)
+            yr = YE + 3.2
+            # enseigne posée sur le faîtage (deux faces)
+            et, ef, ee = S["enseigne"]
+            wsg = 3.0 if len(et) == 1 else 8.0
+            if S["extra"] != "bol":
+                for xx in (-wsg / 2 + 0.6, wsg / 2 - 0.6):
+                    b.box((xx - 0.2, yr, -0.6), (xx + 0.2, yr + 1.2, -0.2), bois_f, name="Support")
+                b.box((-wsg / 2 - 0.3, yr + 1.0, -0.75), (wsg / 2 + 0.3, yr + 3.8, -0.05), bois_f, name="Cadre")
+            if S["extra"] != "bol":
+                for zz, face in ((-0.95, "Front"), (-0.05, "Back")):
+                    p = b.box((-wsg / 2, yr + 1.3, zz), (wsg / 2, yr + 3.5, zz + 0.2), col(ef), name="Enseigne")
+                    p.label = {"face": face, "text": et, "color": col(ee), "font": "brush"}
+                top = max(top, yr + 3.8)
+        else:
+            # appentis : haut à l'avant, grand fronton qui porte l'enseigne
+            b.box((x0 - 0.6, YE - 0.6, zf - 1.6), (x1 + 0.6, YE, zb + 0.8), shade(t, 0.7), name="Rive")
+            b.wedge((x0 - 0.6, YE, zf - 1.6), (x1 + 0.6, YE + 3.0, zb + 0.8), t, down="+z", studs="top", name="Pan")
+            b.box((x0 - 0.6, YE, zf - 1.9), (x1 + 0.6, YE + 3.6, zf - 1.6), shade(t, 0.75), studs="top", name="Fronton")
+            et, ef, ee = S["enseigne"]
+            p = b.box((-6.0, YE + 0.5, zf - 2.15), (6.0, YE + 3.1, zf - 1.9), col(ef), name="Enseigne")
+            p.label = {"face": "Front", "text": et, "color": col(ee), "font": "brush"}
+            top = YE + 3.6
+
+    with b.group("Abords"):
+        ex = S["extra"]
+        if ex == "banc":
+            _banc(b, x1 - 2.6, zf - 2.0, 3.4, couleur="rouge")
+        elif ex == "caisses":
+            _caisses(b, x0 + 1.4, zf - 1.6, rng)
+            # drapeau « 麺 » accroché au poteau gauche, lisible des deux sens de la rue
+            et, ef, ee = S["enseigne"]
+            b.box((x0 + 0.2, 6.2, zf - 3.5), (x0 + 0.4, 6.4, zf + 0.4), col(FER), collide=False, name="Bras")
+            for xa, face in ((x0 + 0.05, "Left"), (x0 + 0.3, "Right")):
+                p = b.box((xa, 3.6, zf - 3.4), (xa + 0.25, 6.2, zf - 1.9), col(ef), collide=False, material="Fabric",
+                          name="Drapeau")
+                p.label = {"face": face, "text": et, "color": col(ee), "font": "brush"}
+        elif ex == "bol":
+            # grand bol de ramen sur le faîtage : bol, bouillon, naruto (rondelle rose), baguettes
+            yr = YE + 3.2
+            zm = (zf - 1.6 + zb + 0.8) / 2
+            b.box((-1.6, yr - 0.6, zm - 0.9), (1.6, yr + 1.0, zm + 0.9), col("bois_fonce"), name="Socle")
+            b.cyl((0, yr + 1.3, zm), 1.5, 0.6, col("rouge_fonce"), axis="y", name="Pied_bol")
+            b.cyl((0, yr + 2.6, zm), 2.6, 2.0, col("rouge"), axis="y", name="Bol")
+            b.cyl((0, yr + 2.0, zm), 2.75, 0.35, col("noir"), axis="y", name="Liseré")
+            b.cyl((0, yr + 3.68, zm), 2.35, 0.16, col("#F2C66D"), axis="y", name="Bouillon")
+            b.cyl((0.9, yr + 3.82, zm - 0.6), 0.75, 0.2, col("blanc"), axis="y", name="Naruto")
+            b.cyl((0.9, yr + 3.9, zm - 0.6), 0.38, 0.2, col("sakura_fonce"), axis="y", name="Naruto")
+            b.box((-1.6, yr + 3.76, zm + 0.2), (-0.4, yr + 3.86, zm + 1.6), col("feuille"), name="Negi")
+            b.part("block", (5.2, 0.2, 0.2), (-0.4, yr + 4.6, zm + 0.9), rot_z(-28), col("bois_clair"), name="Baguette")
+            b.part("block", (5.2, 0.2, 0.2), (-0.4, yr + 4.6, zm + 1.3), rot_z(-24), col("bois_clair"), name="Baguette")
+            top = max(top, yr + 5.9)
+        elif ex == "nobori":
+            for xx in (x0 + 2.2, x1 - 2.2):
+                b.cyl((xx, 0.2, zf - 2.9), 0.5, 0.4, col("pave_fonce"), axis="y", name="Lest")
+                b.cyl((xx, 3.9, zf - 2.9), 0.15, 7.8, col("bois_fonce"), axis="y", name="Mat")
+                b.box((xx - 0.1, 7.0, zf - 2.9), (xx + 0.1, 7.2, zf - 1.1), col("bois_fonce"), name="Bras")
+                for xa, face in ((xx - 0.12, "Left"), (xx, "Right")):
+                    p = b.box((xa, 2.2, zf - 2.75), (xa + 0.12, 7.0, zf - 1.1), col("rouge" if xx < 0 else "noren_bleu"),
+                              collide=False, material="Fabric", name="Nobori")
+                    p.label = {"face": face, "text": "ラーメン", "color": col("blanc"), "font": "brush", "vertical": True}
+    top = max(top, 13.9)  # cheminée (la vapeur, décorative, monte plus haut)
+    return {"emprise": (W, D), "hauteur": round(top, 2)}
+
+
+# ---------------------------------------------------------------------------
+# MAISON
+# ---------------------------------------------------------------------------
+
+_MAISONS = [
+    # 0 : rez en bois, étage blanc, toit rouge à deux pans, balcon à balustres, palissade en bois
+    dict(mur="enduit", rdc="bois", toit="toit_rouge", forme="kirizuma", garde="balustres", cloture="palissade",
+         cadre="bois_fonce", fleur="rouge"),
+    # 1 : étage rose pâle, pignon bleu sur rue avec œil-de-bœuf, balcon central + auvents, haie stud
+    dict(mur="rose_pale", rdc="bois_clair", toit="toit_bleu", forme="pignon", garde="balustres", cloture="haie",
+         cadre="poutre", fleur="jaune_lampion"),
+    # 2 : étage crème, toit irimoya vert cuivre, balcon à panneaux ajourés, clôture de bambou
+    dict(mur="creme", rdc="bois", toit="toit_vert", forme="irimoya", garde="panneau", cloture="bambou",
+         cadre="bois_fonce", fleur="sakura"),
+    # 3 : étage bleu pâle, toit à croupes orange, jardinières, muret de pierre
+    dict(mur="bleu_pale", rdc="bois_fonce", toit="toit_orange", forme="croupe", garde="balustres", cloture="muret",
+         cadre="bois", fleur="rouge"),
+]
+
+BAMBOU = "#B8C46A"
+BAMBOU_FONCE = "#93A24E"
+
+
+def _cloture(b, kind, xa, xb, z, porte, rng, *, cadre="bois_fonce"):
+    """Clôture basse le long de x (devant du jardin, en z), avec une ouverture [porte[0], porte[1]]."""
+    segs = [(xa, porte[0]), (porte[1], xb)]
+    for (a, c_) in segs:
+        if c_ - a < 0.6:
+            continue
+        if kind == "palissade":
+            for yy in (0.7, 1.9):
+                b.box((a, yy, z - 0.15), (c_, yy + 0.3, z + 0.15), col("bois"), name="Lisse")
+            n = max(2, int(round((c_ - a) / 1.3)))
+            for i in range(n + 1):
+                xx = a + 0.2 + i * (c_ - a - 0.4) / n
+                b.box((xx - 0.2, 0, z - 0.3), (xx + 0.2, 2.6, z - 0.15), col("bois_clair"), name="Planche")
+        elif kind == "haie":
+            b.box((a, 0, z - 0.6), (c_, 2.2, z + 0.6), vr("feuille", rng, 0.05), studs="top", name="Haie")
+            b.box((a + 0.3, 2.2, z - 0.4), (c_ - 0.3, 2.6, z + 0.4), vr("feuille_claire", rng, 0.05), studs="top", name="Haie")
+        elif kind == "bambou":
+            b.box((a, 0, z - 0.25), (c_, 2.8, z + 0.05), col(BAMBOU), name="Bambou")
+            n = max(2, int(round((c_ - a) / 0.8)))
+            for i in range(1, n):
+                xx = a + i * (c_ - a) / n
+                b.box((xx - 0.1, 0, z - 0.35), (xx + 0.1, 2.8, z - 0.25), col(BAMBOU_FONCE), name="Joint")
+            for yy in (0.8, 2.0):
+                b.cyl(((a + c_) / 2, yy, z - 0.5), 0.15, c_ - a, col("bois_fonce"), axis="x", name="Lien")
+        else:  # muret de pierre à chaperon de bois
+            b.box((a, 0, z - 0.5), (c_, 1.4, z + 0.5), vr("pave_fonce", rng, 0.04), studs="top", name="Muret")
+            b.box((a - 0.1, 1.4, z - 0.6), (c_ + 0.1, 1.8, z + 0.6), col(cadre), studs="top", name="Chaperon")
+    # poteaux de portail
+    for xx in porte:
+        b.box((xx - 0.35, 0, z - 0.35), (xx + 0.35, 3.2, z + 0.35), col(cadre), studs="top", name="Portail")
 
 
 def maison(b, variant=0, largeur=20, profondeur=18):
-    raise NotImplementedError
+    """Maison traditionnelle à 2 niveaux : rez en bois avec engawa et shoji, étage enduit avec balcon de bois
+    sur l'avant, toit à deux pans / pignon / irimoya / croupes avec faîtage, petit jardin clos et plante en pot."""
+    rng = b.rng
+    v = variant % 4
+    S = _style(_MAISONS, variant)
+    W, D = float(largeur), float(profondeur)
+    x0, x1, zf, zb = -W / 2, W / 2, -D / 2, D / 2
+    jard = 3.0 if D >= 15 else 2.0                 # profondeur du jardin
+    zg = zf + jard                                 # bord de l'engawa
+    zh = zg + 2.2                                  # façade de la maison
+    YS = 1.2                                       # niveau du plancher
+    H0 = YS + 7.0
+    HE = 6.4
+    H = H0 + HE
+    cadre = col(S["cadre"])
+    mur = S["mur"]
+    rdc = col(S["rdc"])
+    xm = 0.0
+
+    with b.group("Jardin"):
+        b.box((x0 + 0.2, 0, zf + 0.6), (x1 - 0.2, 0.3, zg), vr("herbe", rng, 0.03), studs="top", name="Pelouse")
+        pw = 2.6
+        px = xm + (-3.0 if v % 2 else 3.0)
+        for i in range(2):
+            zz = zf + 0.6 + i * (jard - 0.6) / 2 + 0.2
+            b.box((px - 0.9 + (i % 2) * 0.3, 0.3, zz), (px + 0.7 + (i % 2) * 0.3, 0.55, zz + (jard - 0.6) / 2 - 0.4),
+                  col("pave"), studs="top", name="Pas")
+        _cloture(b, S["cloture"], x0 + 0.35, x1 - 0.35, zf + 0.5, (px - pw / 2, px + pw / 2), rng, cadre=S["cadre"])
+        # plantes
+        sx = x0 + 2.0 if px > 0 else x1 - 2.0
+        _plante(b, sx, 0.3, zg - 1.2, r=1.0, pot=POT_BLEU if v % 2 else POT_TERRE, fleur=S["fleur"], rng=rng)
+        if v in (1, 3):
+            # petit arbre taillé
+            tx = x1 - 4.5 if px < 0 else x0 + 4.5
+            b.cyl((tx, 1.6, zg - 1.4), 0.3, 2.6, col("tronc"), axis="y", name="Tronc")
+            b.ball((tx, 3.6, zg - 1.4), 1.4, vr("feuille", rng, 0.06), collide=False, name="Feuillage")
+            b.ball((tx + 0.7, 4.6, zg - 1.6), 0.9, vr("feuille_claire", rng, 0.06), collide=False, name="Feuillage")
+
+    with b.group("RezDeChaussee"):
+        b.box((x0, 0, zh), (x1, YS, zb), col("pave_fonce"), studs="top", name="Soubassement")
+        b.box((x0, YS, zh), (x1, H0, zb), vr(rdc, rng, 0.03), material="WoodPlanks", name="Mur_rdc")
+        # engawa (véranda) et marche de pierre
+        b.box((x0, 0, zg), (x1, YS, zh), col("bois_clair"), studs="top", name="Engawa")
+        b.box((px - 1.3, 0, zg - 1.1), (px + 1.3, 0.6, zg), col("pave"), studs="top", name="Marche")
+        # poteaux du balcon au bord de l'engawa
+        npo = 3 if W < 22 else 4
+        for i in range(npo):
+            xx = x0 + 0.4 + i * (W - 0.8) / (npo - 1)
+            b.box((xx - 0.4, YS, zg + 0.1), (xx + 0.4, H0 - 0.6, zg + 0.9), cadre, name="Poteau")
+        with b.at((0, 0, zh)):
+            sw = min(W - 7.0, 10.0)
+            _shoji(b, xm - sw / 2, xm + sw / 2, YS, H0 - 0.8, S["cadre"], pas=1.1)
+            # petites fenêtres à barreaux de part et d'autre
+            for xx in (x0 + (W / 2 - sw / 2) / 2, x1 - (W / 2 - sw / 2) / 2):
+                _fenetre(b, xx, YS + 2.8, 2.2, 2.4, cadre, PAPIER, croix="+", cotes=True)
+            b.box((x0 + 0.1, H0 - 0.8, -0.3), (x1 - 0.1, H0, 0.0), cadre, name="Linteau")
+
+    with b.group("Balcon"):
+        # dalle du balcon sur les poteaux (abrite l'engawa)
+        if S["forme"] == "pignon":
+            bx0, bx1 = xm - 4.5, xm + 4.5
+            # auvents de part et d'autre du balcon central
+            for (a, c_) in ((x0 - 0.4, bx0), (bx1, x1 + 0.4)):
+                b.box((a, H0 - 0.6, zg - 0.8), (c_, H0, zh + 0.3), shade(col(S["toit"]), 0.7), name="Rive")
+                b.wedge((a, H0, zg - 0.8), (c_, H0 + 1.6, zh + 0.3), col(S["toit"]), down="-z", studs="top", name="Auvent")
+        else:
+            bx0, bx1 = x0, x1
+        b.box((bx0, H0 - 0.6, zg - 0.3), (bx1, H0 + 0.2, zh), col("bois_clair"), studs="top", name="Balcon")
+        y = H0 + 0.2
+        g = cadre
+        zr0 = zg - 0.3
+        if S["garde"] == "balustres":
+            _garde_corps(b, [(bx0 + 0.2, zh), (bx0 + 0.2, zr0 + 0.2), (bx1 - 0.2, zr0 + 0.2), (bx1 - 0.2, zh)], y, g, h=2.4,
+                         pas=1.0)
+        else:
+            b.box((bx0 + 0.05, y, zr0 + 0.05), (bx1 - 0.05, y + 2.4, zr0 + 0.35), cadre, studs="top", name="Garde")
+            # ajours : panneaux clairs devant
+            n = max(2, int((bx1 - bx0) / 2.6))
+            for i in range(n):
+                xa = bx0 + 0.5 + i * (bx1 - bx0 - 1.0) / n
+                b.box((xa + 0.2, y + 0.4, zr0 - 0.05), (xa + (bx1 - bx0 - 1.0) / n - 0.2, y + 2.0, zr0 + 0.05),
+                      col(PAPIER), name="Ajour")
+            for xx in (bx0 + 0.05, bx1 - 0.35):
+                b.box((xx, y, zr0 + 0.35), (xx + 0.3, y + 2.4, zh), cadre, studs="top", name="Garde")
+        if v == 3:
+            for xx in (bx0 + 3.0, bx1 - 3.0):
+                b.box((xx - 1.4, y, zr0 + 0.5), (xx + 1.4, y + 0.9, zr0 + 1.3), col("bois"), studs="top", name="Jardiniere")
+                for k in range(3):
+                    b.ball((xx - 0.9 + k * 0.9, y + 1.1, zr0 + 0.9), 0.45, col(("rouge", "jaune_lampion", "sakura")[k]),
+                           collide=False, name="Fleur")
+
+    with b.group("Etage"):
+        b.box((x0, H0, zh), (x1, H, zb), vr(mur, rng, 0.03), name="Mur")
+        with b.at((0, 0, zh)):
+            _motif(b, x0, x1, H0 + 0.6, H - 0.6, mur, rng, 0.10)
+        b.box((x0 - 0.3, H0 - 0.3, zh - 0.3), (x1 + 0.3, H0 + 0.6, zb + 0.3), cadre, studs="top", name="Bandeau")
+        b.box((x0 - 0.3, H - 0.6, zh - 0.3), (x1 + 0.3, H - 0.05, zb + 0.3), cadre, name="Sabliere")
+        for xa in (x0 - 0.2, x1 - 0.6):
+            b.box((xa, H0 + 0.6, zh - 0.2), (xa + 0.8, H - 0.6, zh + 0.6), cadre, name="Colombage")
+        with b.at((0, 0, zh)):
+            _porte_fenetre(b, xm, H0 + 0.6, 2.8, 4.6, cadre, S.get("vitre", "fenetre"))
+            for xx in (x0 + W * 0.2, x1 - W * 0.2):
+                _fenetre(b, xx, H0 + 2.2, 3.0, 2.8, cadre, "fenetre", croix="+", cotes=True)
+
+    with b.group("Cotes"):
+        for side in (-1, 1):
+            with b.at((x1 if side > 0 else x0, 0, 0), yaw=-90 * side):
+                ctr = ((zh + zb) / 2) * (1 if side > 0 else -1)
+                _fenetre(b, ctr, H0 + 2.2, 2.4, 2.6, cadre, "fenetre", croix="v", cotes=False)
+                _fenetre(b, ctr, YS + 2.8, 2.4, 2.4, cadre, PAPIER, croix="+", cotes=False)
+                ma, mb = (zh, zb) if side > 0 else (-zb, -zh)
+                _motif(b, ma, mb, H0 + 0.6, H - 0.6, mur, rng, 0.08)
+                if side > 0:
+                    zt = zh + 0.8
+                    _tuyau(b, [(zt, H - 0.6), (zt, YS + 0.3)], r=0.28)
+        with b.at((0, 0, zb), yaw=180):
+            _fenetre(b, 0, H0 + 2.2, 3.0, 2.6, cadre, "fenetre", croix="v", cotes=False)
+            _porte(b, W / 4, YS, 2.4, 5.6, "bois", "bois_fonce")
+            b.box((W / 4 - 1.8, 0, -1.2), (W / 4 + 1.8, YS, 0.0), col("pave"), studs="top", name="Marche")
+            _clim(b, -W / 4, H0 + 1.0, "citerne")
+
+    with b.group("Toit"):
+        t = S["toit"]
+        f = S["forme"]
+        if f == "kirizuma":
+            top = _toit_kirizuma(b, x0 - 0.5, x1 + 0.5, zg - 1.0, zb + 1.0, H, min(5.4, (zb - zg) * 0.32), t)
+        elif f == "pignon":
+            top = _toit_pignon(b, x0, x1, zh, zb, H, 0.68, t, mur, deb=0.6, deb_av=zh - zg + 1.0, oculus="fenetre", rng=rng)
+        elif f == "irimoya":
+            top = _toit_irimoya(b, x0 - 0.5, x1 + 0.5, zg - 1.0, zb + 1.0, H, t, mur, jupe=3.0, hj=1.8, hc=1.2,
+                                ht=min(4.0, (zb - zg) * 0.22), rng=rng)
+        else:
+            top = _toit_croupe(b, x0 - 0.5, x1 + 0.5, zg - 1.0, zb + 1.0, H, min(5.0, (zb - zg) * 0.3), t)
+    return {"emprise": (W, D), "hauteur": round(top, 2)}
