@@ -725,7 +725,9 @@ def _volume(b, x0, x1, z0, z1, ya, yb, cc, coin=None, R=0.0, e=0.0, name="Mur", 
         cx, cz = x1 - R, z0 + R
         b.box((x0e, ya, z0e), (cx, yb, z1e), cc, name=name, **kw)
         b.box((cx, ya, cz), (x1e, yb, z1e), cc, name=name, **kw)
-    b.cyl((cx, (ya + yb) / 2, cz), R + e, yb - ya, cc, axis="y", name=name, **kw)
+    # cylindre décalé de 0,04 vers le bas : son disque supérieur ne coïncide pas avec le dessus des blocs
+    # (pas de z-fighting), et les cylindres de deux volumes superposés se raccordent sans jour.
+    b.cyl((cx, (ya + yb) / 2 - 0.04, cz), R + e, yb - ya, cc, axis="y", name=name, **kw)
     return (cx, cz)
 
 
@@ -926,6 +928,26 @@ def immeuble(b, variant=0, largeur=26, profondeur=24, etages=5):
                     yb = H0 + (k - 1) * HE + (0.9 if (forme == "rotonde" and k == n_bas) else 0)
                     _fenetre(b, 0, yb + 1.8, 2.2, 3.0, cadre, vitre, croix="v", cotes=True)
                 _fenetre(b, 0, 2.4, 2.2, 3.4, cadre, vitre, croix="+", cotes=True)
+
+    if forme == "gradin":
+        with b.group("Attique"):
+            with b.at((0, 0, gz0)):
+                for k in range(n_bas, n):
+                    yb = H0 + (k - 1) * HE
+                    m = max(2, int((gx1 - gx0 - 2) / 5.0))
+                    if k == n_bas:
+                        bx0, bx1 = gx0 + 2.0, gx0 + 9.0
+                        _porte_fenetre(b, (bx0 + bx1) / 2, yb + 0.9, 3.0, 4.6, cadre, vitre)
+                        _rangee(b, bx1 + 0.8, gx1 - 1.0, yb + 1.8, max(1, m - 2), 2.8, 3.0, cadre, vitre, croix="+",
+                                cotes=True, volets=S["bord"])
+                        b.wedge((bx0 - 1.5, yb + HE - 1.4, -2.6), (bx1 + 1.5, yb + HE - 0.4, 0.3), col(S["auvent"]),
+                                down="-z", studs="top", name="Auvent")
+                    else:
+                        _rangee(b, gx0 + 1.0, gx1 - 1.0, yb + 1.8, m, 2.8, 3.0, cadre, vitre, croix="v", cotes=False)
+            with b.at((gx1, 0, 0), yaw=-90):
+                for k in range(n_bas, n):
+                    _rangee(b, gz0 + 1.5, zb - 1.5, H0 + (k - 1) * HE + 1.8, 2, 2.6, 3.0, cadre, vitre, croix="v",
+                            cotes=False)
 
     # --- côtés et arrière ------------------------------------------------------------------------
     with b.group("Cotes"):

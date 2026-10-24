@@ -39,6 +39,7 @@ CHEV_C = mix(c("roche"), c("roche_claire"), 0.60)
 BANDEAU = c("roche_fonce")
 TONS = {"F": c("roche_fonce"), "R": c("roche"), "C": c("roche_claire"), "O": c("roche_ombre")}
 FONCE = {"C": "R", "R": "F", "F": "O", "O": "O"}       # la bande des visages, un ton plus sombre
+FISSURE = mix(c("roche_fonce"), c("roche_ombre"), 0.5)
 
 # clés de couleur des bas-reliefs
 K_PEAU, K_PEAU_C, K_CREUX, K_CHEV, K_CHEV_C, K_BANDEAU, K_PLAQUE = range(1, 8)
@@ -251,8 +252,8 @@ def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5,
     for c0, c1 in _colonnes(x0, x1, rng, larg):
         cols = [(c0, c1, False)]
         if plat is None and c1 - c0 >= 12 and rng.random() < fissures:
-            xf = c0 + float(rng.integers(3, int(c1 - c0) - 4))
-            cols = [(c0, xf, False), (xf, xf + 2, True), (xf + 2, c1, False)]
+            xf = c0 + float(rng.integers(3, int(c1 - c0) - 5))
+            cols = [(c0, xf, False), (xf, xf + 3, True), (xf + 3, c1, False)]
         # 1 à 3 masses par colonne, coupées sur des limites de strates
         k = int(rng.integers(0, 3)) if coupes else 0
         ys = [y0, y1]
@@ -264,7 +265,7 @@ def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5,
                 if plat is not None:
                     sa = plat
                 elif fiss:
-                    sa = 0.5
+                    sa = max(0.5, min(saillies) - 0.25)
                 else:
                     sa = float(rng.choice(saillies))
                     if prev is not None and rng.random() < 0.3:
@@ -274,7 +275,7 @@ def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5,
                     lo, hi = max(s0, m0), min(s1, m1)
                     if hi - lo < 0.05:
                         continue
-                    col = shade(vary(TONS["O"] if fiss else TONS[t], rng, 0.025), sombre)
+                    col = shade(vary(FISSURE if fiss else TONS[t], rng, 0.025), sombre)
                     if sens > 0:
                         b.box((a, lo, zr), (bb, hi, zr + sa), col, studs="top")
                     else:
@@ -339,7 +340,7 @@ def _maison(b, xc, rng, toit_plat=False):
     x0, x1 = xc - 12, xc + 12
     # replat de roche + marches
     b.box((x0, 0, -1), (x1, 4, 16), vary("roche", rng, 0.04), studs="top")
-    b.box((x0 + 0.5, 4, -1), (x1 - 0.5, 4.6, 15.5), vary("roche_claire", rng, 0.03), studs="top")
+    b.box((x0 + 0.75, 4, -1), (x1 - 0.75, 4.6, 15.5), vary("roche_claire", rng, 0.03), studs="top")
     b.box((xc - 3.2, 0, 16), (xc + 3.2, 1.4, 19), c("pave"), studs="top")
     b.box((xc - 3.2, 1.4, 16), (xc + 3.2, 2.8, 17.6), c("pave"), studs="top")
     y0 = 4.6
@@ -356,7 +357,7 @@ def _maison(b, xc, rng, toit_plat=False):
         b.box((xc + dx - 2, y0 + 3.2, z1 - 0.2), (xc + dx + 2, y0 + 6.4, z1 + 0.1), c("fenetre"))
         b.box((xc + dx - 2.3, y0 + 2.8, z1 - 0.2), (xc + dx + 2.3, y0 + 3.2, z1 + 0.5), c("bois_clair"))
     for x in (hx0, hx1 - 0.8):
-        b.box((x - 0.1, y0 + 0.8, z1 - 0.7), (x + 0.9, yb, z1 + 0.1), c("poutre"))
+        b.box((x - 0.1, y0 + 0.8, z1 - 0.7), (x + 0.9, yb, z1 + 0.25), c("poutre"))
     yt = yb + 1
     if not toit_plat:
         zm = (z0 + z1) / 2
@@ -414,7 +415,7 @@ def _escalier(b, s, xa, xb, y_haut, rng):
         xm = (L1 + R0) / 2
         zr = zb + 0.3
         pente(xm, y0 + rise / 2 - 0.9, zr, 1.2, 0.6, bois_f, 1 if vers_r else -1)    # limon
-        pente(xm, y0 + rise / 2 + 3.6, zr, 0.5, 0.6, bois, 1 if vers_r else -1)      # main courante
+        pente(xm, y0 + rise / 2 + 3.6, zr, 0.5, 0.5, bois, 1 if vers_r else -1)      # main courante
         bx(xm - 0.3, y0 + rise / 2 - 0.3, zb, xm + 0.3, y0 + rise / 2 + 3.6, zb + 0.6, bois_f)  # poteau
     # paliers (un à chaque virage, plus le départ)
     for k in range(nf + 1):
@@ -431,7 +432,7 @@ def _escalier(b, s, xa, xb, y_haut, rng):
         # garde-corps côté vide : lisse en bout de palier et en façade, poteau intermédiaire
         xe = p1 - 0.6 if droite else p0
         bx(xe, y + 3.6, 0, xe + 0.6, y + 4.2, ZE - 0.6, bois)
-        bx(xe, y, 0, xe + 0.6, y + 4.2, 0.6, bois_f)
+        bx(xe, y, 0, xe + 0.6, y + 3.6, 0.6, bois_f)
         bx(p0, y + 3.6, ZE - 0.6, p1, y + 4.2, ZE, bois)
     return nf % 2 == 1  # True : l'escalier arrive côté extérieur (R)
 
@@ -513,7 +514,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
         tops.append((t1, t2, t3, tb))
 
     herbe = []  # (x0, x1, y, z0, z1, gradin) : dessus herbeux, pour la végétation
-    x3 = -s_esc * min(XV + 24, W - 14)  # troisième maison, du côté sans escalier
+    x3 = -s_esc * (min(XV + 24, W - 14) + 0.5)  # troisième maison, du côté sans escalier
 
     def bandes(x0, x1, ya, yb, za, zb, carte=None, sombre=1.0):
         for s0, s1, t in strates:
@@ -569,10 +570,10 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             return YT1
 
         for xr in [k * pas / 2 for k in (-3, -1, 1, 3)] + [-(2 * pas + 23), 2 * pas + 23]:
-            w = float(rng.choice([5, 6, 7])) if abs(xr) < 2 * pas else 4.0
-            pr = float(rng.choice([2, 2.5, 3]))
+            w = float(rng.choice([5.5, 6.5, 7.5])) if abs(xr) < 2 * pas else 3.5
+            pr = float(rng.choice([2.75, 3.25, 3.75]))
             tt = t1_en(xr)
-            extra = float(rng.choice([0, 3, 5, 8]))
+            extra = float(rng.choice([0, 3.5, 5.5, 7.5]))
             r0, r1 = xr - w / 2, xr + w / 2
             bandes(r0, r1, YL, tt - 3, ZF, ZF + pr, FONCE, 0.97)
             b.box((r0, tt - 3, ZF - (6 if extra else 0)), (r1, tt + extra, ZF + pr), vary("roche_claire", rng, 0.03),
@@ -593,20 +594,26 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
                 continue  # sommet des nervures : un buisson suffit
             b.box((x0, y, za), (x1, y + 1, zb), vary("herbe", rng, 0.04), studs="top")
 
-        # éboulis au pied de la falaise (socle en gradins)
-        evite = [(XP + 32, 13), (-(XP + 32), 13), (x3, 13), (s_esc * (xs0 + xs1) / 2, (xs1 - xs0) / 2 + 3)]
+        # éboulis au pied de la falaise (socle en gradins), touffes posées dessus ou devant
+        pieds = []
+        evite = [(XP + 32.5, 13), (-(XP + 32.5), 13), (x3, 13), (s_esc * (xs0 + xs1) / 2, (xs1 - xs0) / 2 + 3)]
         for side in (1, -1):
-            u = XP + 3
+            u = XP + 3.25
             while u < W - 6:
-                w = min(float(rng.choice([6, 8, 10, 12])), W - u)
+                w = min(float(rng.choice([6, 8, 10, 12])), W - 0.5 - u)
                 xc = side * (u + w / 2)
                 if not any(abs(xc - xe) < r + w / 2 for xe, r in evite):
                     h = float(rng.choice([2, 3, 4]))
                     d = float(rng.choice([4, 5, 6]))
                     a, bb = sorted((side * u, side * (u + w)))
                     b.box((a, 0, ZF + 0.5), (bb, h, 0.5 + d), vary("roche", rng, 0.04), studs="top")
-                    if rng.random() < 0.4:
-                        b.box((a + 1, h, ZF + 0.5), (bb - 1, h + 2, d - 1.5), vary("roche_fonce", rng, 0.04), studs="top")
+                    r = rng.random()
+                    if r < 0.35:
+                        b.box((a + 1, h, ZF + 0.5), (bb - 1, h + 2, d - 1.25), vary("roche_fonce", rng, 0.04), studs="top")
+                    elif r < 0.75:
+                        pieds.append((xc, h, d - 1.5))
+                    if w >= 8 and rng.random() < 0.5:
+                        pieds.append((xc + side * (w / 2 + 2.5), 0, d + 2.5))
                 u += w + float(rng.choice([0, 0, 2, 4]))
 
     # ------------------------------------------------------------------ passage
@@ -660,10 +667,10 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             bx(P - 18, HP + 6, 0, P - 8, HP + 10.5, 5.5, PIERRE_F, studs="top")
             bx(P - 28, HP + 9, 0, P - 18, YR, 6, PIERRE, studs="top")
             # remplissage au-dessus des voussoirs (en retrait)
-            bx(P - 8, HP + 9, 0, XP + 1.5, YR, 3.5, PIERRE_F, studs="top")
-            bx(P - 18, HP + 10.5, 0, P - 8, YR, 3.5, PIERRE_F, studs="top")
+            bx(P - 8, HP + 9, 0, XP + 1.5, YR, 3.75, PIERRE_F, studs="top")
+            bx(P - 18, HP + 10.5, 0, P - 8, YR, 3.75, PIERRE_F, studs="top")
         # clé de voûte avec la spirale de la feuille de Konoha
-        b.box((-(P - 27), HP + 10, 0), (P - 27, YL + 1, 7), PIERRE, studs="top")
+        b.box((-(P - 27), HP + 10, 0), (P - 27, YL + 0.5, 7), PIERRE, studs="top")
         spirale = ["..####..",
                    ".#....#.",
                    "#..##..#",
@@ -674,7 +681,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
                    "#......."]
         m = np.array([[ch == "#" for ch in row] for row in spirale])
         for i, j, w, h in mask_rects(m):
-            yt = YL - 1 - j
+            yt = YL - 1.5 - j
             b.box((-4 + i, yt - h, 7), (-4 + i + w, yt, 7.4), c("roche_ombre"), collide=False)
         for side in (1, -1):
             _lanterne_pierre(b, side * (XP + 8), 9, s=1.25)
@@ -690,11 +697,11 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
                 a, bb = sorted((X(u0), X(u1)))
                 return b.box((a, y0, z0), (bb, y1, z1), col, **kw)
 
-            bx(P, 0, -D + 0.5, XP, HP + 3, -D + 4, PIERRE_F)
-            bx(P - 8, HP + 3, -D + 0.5, XP, HP + 11, -D + 4, PIERRE, studs="top")
-            bx(P - 18, HP + 6, -D + 0.5, P - 8, HP + 11, -D + 4, PIERRE_F)
-            bx(P - 28, HP + 9, -D + 0.5, P - 18, HP + 11, -D + 4, PIERRE)
-        b.box((-XP, HP + 11, -D + 0.5), (XP, YR, -D + 4), PIERRE, studs="top")
+            bx(P, 0, -D, XP, HP + 3, -D + 4, PIERRE_F)
+            bx(P - 8, HP + 3, -D, XP, HP + 11, -D + 4, PIERRE, studs="top")
+            bx(P - 18, HP + 6, -D + 0.25, P - 8, HP + 11, -D + 4, PIERRE_F)
+            bx(P - 28, HP + 9, -D + 0.25, P - 18, HP + 11, -D + 4, PIERRE)
+        b.box((-XP, HP + 11, -D + 0.25), (XP, YR, -D + 4), PIERRE, studs="top")
         b.box((-5, HP + 10, -D), (5, YR + 2, -D + 4), PIERRE_F, studs="top")
 
     # ------------------------------------------------------------------ visages
@@ -723,10 +730,10 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             if u1 - u0 > 1:
                 bx(u0, ya + 3.4, -0.6, u1, ya + 4, 0, bois)
                 for up in np.arange(u0, u1 - 0.5, 5):
-                    bx(up, ya, -0.6, up + 0.6, ya + 4, 0, bois_f)
+                    bx(up, ya, -0.6, up + 0.6, ya + 3.4, 0, bois_f)
         for up in (xs0, xs1 - 0.6):
             bx(up, ya + 3.4, Z2, up + 0.6, ya + 4, -0.6, bois)
-            bx(up, ya, Z2, up + 0.6, ya + 4, Z2 + 0.6, bois_f)
+            bx(up, ya, Z2, up + 0.6, ya + 3.4, Z2 + 0.6, bois_f)
         # pavillon à toit rouge
         px0, px1, pz0, pz1 = xs0 + 7, xs1 - 7, Z2 + 5, -5
         for xp in (px0, px1 - 1):
@@ -743,7 +750,7 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
 
     # ------------------------------------------------------------------ maisons au pied
     with b.group("Maisons"):
-        xm = XP + 32
+        xm = XP + 32.5
         _maison(b, xm, rng)
         _maison(b, -xm, rng, toit_plat=True)
         _maison(b, x3, rng)
@@ -768,19 +775,9 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
             else:
                 if rng.random() < 0.4:
                     _buisson(b, xm, y + 1, (za + zb) / 2, rng, s=1.2)
-        # touffes et rochers au pied de la falaise
-        evite = [(XP + 32, 15), (-(XP + 32), 15), (-s_esc * min(XV + 24, W - 14), 15),
-                 (s_esc * (xs0 + xs1) / 2, (xs1 - xs0) / 2 + 3)]
-        for side in (1, -1):
-            for xb in np.arange(XP + 12, W - 4, 11.0):
-                x = side * (xb + rng.uniform(-2, 2))
-                if any(abs(x - xc) < r for xc, r in evite):
-                    continue
-                r = rng.random()
-                if r < 0.45:
-                    _buisson(b, x, 0, rng.uniform(3.5, 5), rng, s=0.9)
-                elif r < 0.65:
-                    w, h = float(rng.choice([4, 5, 6])), float(rng.choice([3, 4, 5]))
-                    b.box((x - w / 2, 0, 1), (x + w / 2, h, 1 + w), vary("roche_fonce", rng, 0.04), studs="top")
+        # touffes au pied de la falaise
+        for x, y, z in pieds:
+            if abs(x) < W - 4 and not any(abs(x - xe) < r + 3 for xe, r in evite):
+                _buisson(b, x, y, z, rng, s=0.9)
 
     return {"emprise": (largeur, profondeur), "hauteur": hauteur, "passage": passage, "debord_avant": 19}
