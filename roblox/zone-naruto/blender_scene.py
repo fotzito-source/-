@@ -322,6 +322,8 @@ def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> di
     cols: dict[str, bpy.types.Collection] = {}
     labels = []
     for p in parts:
+        if float(p.get("transparency", 0)) >= 0.99:
+            continue  # repères invisibles (zone des œufs, couloir…) : rien à rendre
         g = p["group"] or "Divers"
         key = "/".join(g.split("/")[:split_depth])
         accs.setdefault(key, MeshAccum())
@@ -456,7 +458,7 @@ def render(cam: bpy.types.Object, path: Path, res=(1600, 900), samples: int = 48
     sc.cycles.max_bounces = 4
     sc.cycles.diffuse_bounces = 2
     sc.cycles.glossy_bounces = 1
-    sc.cycles.transparent_max_bounces = 4
+    sc.cycles.transparent_max_bounces = 8
     sc.render.resolution_x, sc.render.resolution_y = res
     sc.render.resolution_percentage = 100
     sc.render.image_settings.file_format = "PNG"

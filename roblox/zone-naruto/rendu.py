@@ -32,8 +32,8 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((150, 190, 110), (0, 0, -180), 50),
-    "entree": ((0, 9, 46), (0, 16, -160), 70),
+    "aerienne": ((205, 235, 150), (0, 0, -168), 46),
+    "entree": ((0, 9, 58), (0, 22, -150), 70),
     "rue": ((6, 8, -70), (0, 26, -300), 70),
     "place": ((16, 11, -196), (0, 60, -310), 72),
     "retour": ((-4, 9, -250), (0, 14, 0), 70),

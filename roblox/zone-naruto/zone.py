@@ -71,7 +71,11 @@ def place(b: Builder, module: str, fn: str, pos, yaw: float = 0.0, group: str | 
     f = _asset(module, fn)
     with b.at(pos, yaw=yaw, group=group):
         if f is not None:
-            return f(b, **params) or {}
+            n0 = len(b.parts)
+            try:
+                return f(b, **params) or {}
+            except NotImplementedError:
+                del b.parts[n0:]  # asset pas encore écrit : bloc d'attente ci-dessous
         w, d, h = emprise
         b.box((-w / 2, 0, -d / 2), (w / 2, h, d / 2), "#ff4fd8", transparency=0.5, name=f"ATTENTE_{module}_{fn}")
         return {"emprise": (w, d), "hauteur": h}
