@@ -1012,7 +1012,7 @@ def bambous(b, variant: int = 0, n: int = 7) -> dict:
     n = int(max(1, min(int(n), 16)))
     sol = 2 if v == 3 else 1
     par = max(2, (50 - sol) // n)                 # pièces par tige
-    feuilles = min(4, max(1, par - 1 - 2))        # lames de feuilles par tige
+    feuilles = min(3, max(1, par - 1 - 2))        # bouquets de feuilles par tige
     noeuds = max(0, min(4, par - 1 - feuilles))
     with b.group("Bambous"):
         # positions : spirale de tournesol (touffe), ligne, ou touffe lâche
@@ -1028,6 +1028,7 @@ def bambous(b, variant: int = 0, n: int = 7) -> dict:
             pos.append((x, z))
         cx = sum(q[0] for q in pos) / n
         cz = sum(q[1] for q in pos) / n
+        touffes = []
         for i, (x, z) in enumerate(pos):
             dx, dz = x - cx, z - cz
             dist = math.hypot(dx, dz)
@@ -1062,17 +1063,22 @@ def bambous(b, variant: int = 0, n: int = 7) -> dict:
                 q = p0 + u * h * f
                 _poutre(b, q - u * 0.15, q + u * 0.15, dia + 0.24, dia + 0.24, shade(col, 0.78), tw, 0, 0,
                         name="Noeud", collide=False)
-            # feuilles : lames en fer de lance qui partent du haut de la tige en éventail et retombent un peu
+            # bouquets de feuilles étagés au sommet, chacun déporté d'un côté (éventail), studs dessus
             a0 = float(rng.uniform(0, 360))
             for k in range(feuilles):
-                f = 1.0 - 0.13 * k - float(rng.uniform(0, 0.05))
-                q = p0 + u * h * f
-                a = math.radians(a0 + k * (360.0 / max(feuilles, 1)) * 0.75 + float(rng.uniform(-20, 20)))
-                chute = math.radians(float(rng.uniform(12, 32)))
-                lg = 3.6 - 0.3 * k + float(rng.uniform(-0.4, 0.5))
-                d = np.array([math.cos(a) * math.cos(chute), -math.sin(chute), math.sin(a) * math.cos(chute)])
-                col_f = vary((FEUILLES[2], c("bambou"), FEUILLES[1], FEUILLES[2])[(i + k) % 4], rng, 0.05)
-                _poutre(b, q - d * 0.3, q + d * lg, 1.05, 0.3, col_f, 90.0, 0, 0, collide=False, name="Feuilles")
+                q = p0 + u * (h - 0.4 - 1.8 * k)
+                a = math.radians(a0 + 125 * k)
+                lg = (3.6, 3.0, 2.5)[k] + float(rng.uniform(-0.3, 0.3))
+                ox, oz = math.cos(a) * lg * 0.32, math.sin(a) * lg * 0.32
+                col_f = vary((FEUILLES[2], c("bambou"), FEUILLES[1])[(i + k) % 3], rng, 0.05)
+                y0 = float(q[1]) - 0.3
+                # pas deux bouquets qui se recouvrent avec des faces presque au même niveau
+                while any(math.hypot(q[0] + ox - tx, q[2] + oz - tz) < (lg + tl) * 0.5 and abs(y0 - ty) < 0.12
+                          for (tx, tz, tl, ty) in touffes):
+                    y0 += 0.15
+                touffes.append((q[0] + ox, q[2] + oz, lg, y0))
+                b.boxc((q[0] + ox, y0 + 0.3, q[2] + oz), (lg, 0.6, lg * 0.55), col_f,
+                       yaw=-math.degrees(a) + float(rng.uniform(-15, 15)), studs="top", collide=False, name="Feuilles")
         # sol : litière de feuilles sèches, pousses de bambou (takenoko)
         rx = max(abs(q[0] - cx) for q in pos) + 1.6
         rz = max(abs(q[1] - cz) for q in pos) + 1.6

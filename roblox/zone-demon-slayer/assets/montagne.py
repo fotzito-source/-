@@ -1,25 +1,34 @@
 """Montagne aux glycines (fond de la zone) et train à vapeur de l'ère Taishō, en style stud.
 
-montagne_glycines
+montagne_glycines (budget ≤ 3150 pièces, 2900 à 3150 selon la variante)
     Origine = centre de l'entrée de la gorge, au niveau du sol. Exception à la règle « l'avant regarde -Z » :
     la montagne regarde +Z (vers les joueurs qui arrivent), sa face avant suit z ≈ 0 et la masse s'étend
-    vers -Z sur `profondeur`.
+    vers -Z sur `profondeur` (la peau du dos s'arrête en z = -profondeur ; devant, escaliers, lanternes,
+    grand torii et glycines remarquables débordent d'environ 23 studs).
     - plan en colonnes (10 à 18 studs) et en gradins vers l'arrière (avant, milieu, sommet, dos) : une carte de
-      hauteurs en gros blocs, plus haute près de la gorge, qui descend en marches vers les côtés ;
-    - strates horizontales continues (bleu nuit → bleu-violet clair, filets lavande) sur toutes les faces vues ;
-      la face avant, les parois de la gorge et le dos ont une « peau » de masses en saillie, en gradins
-      (petites corniches) et avec des fissures ;
-    - gorge à ciel ouvert pour le couloir : parois en gradins (corniches de glycines), mur de pierre (ishigaki)
-      au pied, allée de « senbon torii » vermillon (tout ce qui enjambe le couloir est au-dessus de y = 34),
-      grand torii d'entrée à plaque 藤, lanternes de pierre ;
-    - glycines en masses sur les corniches, qui débordent et retombent en grappes effilées et dégradées
-      (glycine foncée → glycine → claire → pâle aux pointes) ; pins et cèdres sur les sommets ;
-    - escaliers de pierre sur des éperons, à petits torii rouges : l'un mène à un petit sanctuaire,
-      l'autre à un belvédère.
+      hauteurs en gros blocs, plus haute près de la gorge (aiguilles comprises), qui descend en marches vers
+      les côtés ; les colonnes voisines partagent leurs corniches par groupes (rideaux de glycines continus) ;
+    - strates horizontales continues (bleu nuit → bleu-violet clair, filets lavande) ; bancs plus épais
+      (moins de pièces) sur les gradins hauts et au dos ; la face avant, les parois de la gorge et le dos ont
+      une « peau » de masses en saillie, en gradins (petites corniches) et avec des fissures ;
+    - gorge à ciel ouvert pour le couloir : parois en gradins, mur de pierre (ishigaki) au pied, allée de
+      dix « senbon torii » vermillon (tout ce qui enjambe le couloir est au-dessus de y = 34), lanternes de
+      pierre entre les piliers, grand torii d'entrée à plaque 藤 (panneau texte), grande corde sacrée
+      (shimenawa) à shide tendue d'une paroi à l'autre au-dessus des torii ;
+    - glycines : nuages de blocs sur les corniches, rideaux à l'ourlet irrégulier et grappes effilées en
+      dégradé (glycine nuit/foncée → glycine → claire → pâle aux pointes), balcons rocheux fleuris sur les
+      grandes faces, touffes sur les petites corniches, glycines bas et cèdres/pins sur les crêtes, deux
+      grands glycines retombants qui encadrent la porte ;
+    - escaliers de pierre sur des éperons, à petits torii rouges et lanternes : l'un mène à un petit
+      sanctuaire (toit de cuivre, chigi, katsuogi, shimenawa), l'autre à un belvédère.
+    Si un tirage dépasse le budget, la montagne est reconstruite avec des rideaux un peu moins denses.
 
-train_vapeur
-    Train de l'ère Taishō à l'arrêt sur un court remblai (ballast, traverses, rails) : locomotive noire,
-    tender et voitures marron. Il suit l'axe Z local, le nez de la locomotive vers -Z ; origine au centre.
+train_vapeur (≈ 385 pièces)
+    Train de l'ère Taishō à l'arrêt sur un court remblai (herbe, ballast, traverses, rails, heurtoirs) :
+    locomotive noire (chaudière cerclée de laiton, porte ronde, phare, cheminée, dômes, roues motrices
+    rouges à rayons, bielles, chasse-pierres, panache de vapeur blanche), tender à charbon et voitures
+    marron (fenêtres en partie éclairées, toit à lanterneau, plates-formes d'extrémité, bogies). Il suit
+    l'axe Z local, le nez de la locomotive vers -Z ; origine au centre de sa longueur, au sol. Aucun texte.
 """
 
 from __future__ import annotations
@@ -28,7 +37,7 @@ import math
 
 import numpy as np
 
-from kit import mix, rot_x, shade
+from kit import mix, rot_x, rot_z, shade
 from palette import c, vary
 
 # ---------------------------------------------------------------------------
@@ -308,7 +317,7 @@ def _touffe(F, u0, u1, y, d_back, d_front, rng, masses=(), long_max=5.0, sol=Non
     """Petite touffe de glycine sur une corniche de la peau : bloc bombé et quelques grappes courtes."""
     if u1 - u0 < 2.5:
         return 0
-    ov = 0.8
+    ov = 1.1
     h = float(rng.choice([1.5, 2.0]))
     F.box(u0, u1, y, y + h, d_back + 0.2, d_front + ov, vary("glycine", rng, 0.05), studs="top", collide=False)
     n = 1
@@ -640,7 +649,24 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
             break
         del b.parts[n0:]
     info["pieces"] = len(b.parts) - n0
+    info.update(_mesures(b, n0))
     return info
+
+
+def _mesures(b, n0) -> dict:
+    """Hauteur réelle (arbres compris) et débord avant, mesurés sur les pièces posées (repère de l'asset)."""
+    R = np.asarray(b._R[-1])
+    t = np.asarray(b._t[-1])
+    y_max, z_max = 0.0, 0.0
+    for p in b.parts[n0:]:
+        Rp = np.asarray(p.rot).reshape(3, 3)
+        half = np.abs(Rp) @ (np.asarray(p.size) / 2)
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                for sz in (-1, 1):
+                    q = R.T @ (np.asarray(p.pos) + np.array([sx, sy, sz]) * half - t)
+                    y_max, z_max = max(y_max, q[1]), max(z_max, q[2])
+    return {"hauteur": round(float(y_max), 1), "debord_avant": round(float(z_max), 1)}
 
 
 def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
@@ -863,6 +889,36 @@ def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
             _glycine_maitre(b, s * (G0 + 27.0), 0.0, 14.5, rng, cotes=("avant", "gauche" if s > 0 else "droite"),
                             densite=0.95)
 
+    # -- grande corde sacrée (shimenawa) tendue au-dessus de la gorge, avec shide et glands de paille --------
+    with b.group("Shimenawa"):
+        g1 = [m for m in cols if m["kind"] == "gorge1"]
+        y_bas_parois = min(min(m["t"][1] for m in g1), min(m["t"][2] for m in g1))
+        ZA0 = g1[0]["z"][1]
+        if y_bas_parois >= CAPS[0] + 18:
+            zr = ZA0 - 3.0
+            xa = GS[1] + 1.0                              # ancrée 1 stud dans les parois
+            y_anc = min(y_bas_parois - 4.0, CAPS[0] + 20.0)
+            fl = 7.0                                      # flèche
+            yf = lambda x: y_anc - fl * (1 - (x / xa) ** 2)  # noqa: E731
+            n = 9
+            xs = np.linspace(-xa, xa, n + 1)
+            for x0r, x1r in zip(xs[:-1], xs[1:]):
+                y0r, y1r = yf(x0r), yf(x1r)
+                ang = math.degrees(math.atan2(y1r - y0r, x1r - x0r))
+                lg = math.hypot(x1r - x0r, y1r - y0r) + 0.7
+                b.part("cyl", (lg, 3.0, 3.0), ((x0r + x1r) / 2, (y0r + y1r) / 2, zr), rot_z(ang),
+                       vary("corde", rng, 0.04), name="Corde")
+            for xg in (-0.62 * xa, -0.24 * xa, 0.24 * xa, 0.62 * xa):   # glands de paille
+                b.box((xg - 0.6, yf(xg) - 4.6, zr - 0.6), (xg + 0.6, yf(xg) - 1.0, zr + 0.6), c("corde"), collide=False)
+                b.box((xg - 0.75, yf(xg) - 2.0, zr - 0.75), (xg + 0.75, yf(xg) - 1.4, zr + 0.75),
+                      shade(c("corde"), 0.8), collide=False)
+            for xs_ in (-0.82 * xa, -0.43 * xa, 0.0, 0.43 * xa, 0.82 * xa):  # shide en zigzag
+                y0s = yf(xs_) - 1.3
+                for k, (dx, h) in enumerate(((0.0, 2.0), (0.9, 1.8), (0.0, 1.8))):
+                    b.box((xs_ + dx - 0.6, y0s - h, zr - 0.08), (xs_ + dx + 0.6, y0s, zr + 0.08), c("shide"),
+                          collide=False, shadow=False)
+                    y0s -= h
+
     # -- escaliers : torii, lanternes, sanctuaire, belvédère ------------------------------------
     with b.group("Sanctuaire"):
         for s in (1, -1):
@@ -908,8 +964,8 @@ def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
                 hb = m["t"][2]
                 y_toit = e["yt"] + (17.0 if e["type"] == "sanctuaire" else 13.0)
                 if hb > y_toit + 10:
-                    _glycine_corniche(_Face(b, "z", e["zt1"], 1), x0, x1, hb, -(e["zt1"] - ZBK) + 1.0, 0.0, rng, (), densite=DENS,
-                                      long_max=min(24.0, hb - y_toit - 2.0), sol=y_toit + 2.0, haut=1.2)
+                    _glycine_corniche(_Face(b, "z", e["zt1"], 1), x0, x1, hb, -(e["zt1"] - ZBK) + 1.0, 0.0, rng, (),
+                                      densite=DENS, long_max=min(24.0, hb - y_toit - 2.0), sol=y_toit + 2.0, haut=1.2)
                 continue
             masses = peaux_av[i]
             t0, ZA, tB, ZB = m["t"][0], m["z"][1], m["t"][1], m["z"][2]
@@ -918,8 +974,9 @@ def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
             # corniche avant : dessus du gradin avant, rideau sur la face avant
             if rng.random() < 0.92:
                 dfront = _sa_haut(masses, x0, x1, t0)
-                rideau = _glycine_corniche(F_av, x0, x1, t0, -5.0 if tranche else ZA + 1.8, dfront, rng, masses, densite=DENS,
-                                           long_max=min(24.0, 0.5 * t0), haut=1.2, ov_max=6.3 if tranche else None)
+                rideau = _glycine_corniche(F_av, x0, x1, t0, -5.0 if tranche else ZA + 1.8, dfront, rng, masses,
+                                           densite=DENS, long_max=min(24.0, 0.5 * t0), haut=1.2,
+                                           ov_max=6.3 if tranche else None)
             touffes(F_av, [r for r, ms in replats_av if ms is masses], masses, [rideau], sol=1.0, y_max=t0 - 4)
             # gradin du milieu : rideau sur la face du gradin (pas de peau), au-dessus de la masse avant ;
             # sur les grandes faces nues, un balcon rocheux à mi-hauteur porte sa propre glycine
@@ -964,8 +1021,8 @@ def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
                     for a, bb in _colonnes(zb + 0.4, za - 0.4, rng, (8, 10, 12, 14)):
                         if rng.random() < 0.9 and bb - a > 3:
                             dfront = _sa_haut(masses, a, bb, h) if masses else 0.0
-                            _glycine_corniche(F_g, a, bb, h, -(GS[gi + 1] - GS[gi]) + 1.8, dfront, rng, masses, densite=DENS,
-                                              long_max=min(16.0, h - sol), sol=sol)
+                            _glycine_corniche(F_g, a, bb, h, -(GS[gi + 1] - GS[gi]) + 1.8, dfront, rng, masses,
+                                              densite=DENS, long_max=min(16.0, h - sol), sol=sol)
             # petites corniches basses de la paroi (sous les torii) : touffes courtes
             touffes(F_g0, greplats, gmasses, [], sol=Y_ISHI + 0.5, y_max=24.0, proba=0.6)
         # dos, près de la sortie de la gorge (vu depuis la zone suivante) : rideaux du gradin arrière
@@ -1059,12 +1116,12 @@ def _essieu(b, y, z, r, rayons=True, demi=3.5) -> None:
     b.cyl((0.0, y, z), r, 2 * demi, LOCO_F, axis="x")
     for sx in (-1, 1):
         x_ext = sx * demi
-        b.cyl((x_ext + sx * 0.06, y, z), r - 0.45, 0.12, c("loco_rouge"), axis="x")
+        b.cyl((x_ext + sx * 0.075, y, z), r - 0.45, 0.15, c("loco_rouge"), axis="x")
         if rayons:
             for ang in (0.0, 60.0, 120.0):
-                b.part("block", (0.06, 0.22, 2 * (r - 0.6)), (x_ext + sx * 0.15, y, z), rot_x(ang), LOCO_F,
+                b.part("block", (0.1, 0.24, 2 * (r - 0.6)), (x_ext + sx * 0.2, y, z), rot_x(ang), LOCO_F,
                        collide=False)
-        b.cyl((x_ext + sx * 0.2, y, z), min(0.45, r * 0.3), 0.28, c("laiton"), axis="x", collide=False)
+        b.cyl((x_ext + sx * 0.25, y, z), min(0.45, r * 0.3), 0.3, c("laiton"), axis="x", collide=False)
 
 
 def _voie(b, z0, z1, rng) -> None:
@@ -1114,7 +1171,7 @@ def _locomotive(b, zL, rng, deflecteurs=True) -> float:
     b.cyl((0, yb, zL + 2.7), 2.85, 3.8, LOCO_F, axis="z")
     b.cyl((0, yb, zL + 0.65), 2.3, 0.3, LOCO, axis="z")
     b.cyl((0, yb, zL + 0.38), 0.35, 0.24, c("laiton"), axis="z")
-    b.cyl((0, yb, zL + 0.44), 1.9, 0.06, c("metal_fonce"), axis="z", collide=False)
+    b.cyl((0, yb, zL + 0.45), 1.9, 0.1, c("metal_fonce"), axis="z", collide=False)
     b.box((-0.75, 12.8, zL + 1.1), (0.75, 14.2, zL + 2.7), c("laiton"))
     b.cyl((0, 13.5, zL + 1.02), 0.5, 0.16, c("jaune_lampion"), axis="z", material="Neon", collide=False)
     # cheminée
@@ -1160,10 +1217,10 @@ def _locomotive(b, zL, rng, deflecteurs=True) -> float:
     b.box((-3.9, 8.2, z0), (3.9, 14.8, z1), LOCO)
     for sx in (-1, 1):
         a, bb = sorted((sx * 1.4, sx * 3.3))
-        b.box((a, 12.0, z0 - 0.08), (bb, 13.8, z0), c("fenetre"), collide=False)
-        a, bb = sorted((sx * 3.9, sx * 3.96))
+        b.box((a, 12.0, z0 - 0.12), (bb, 13.8, z0), c("fenetre"), collide=False)
+        a, bb = sorted((sx * 3.9, sx * 4.0))
         b.box((a, 10.8, z0 + 0.9), (bb, 13.6, z0 + 4.1), c("laiton"), collide=False)
-        a, bb = sorted((sx * 3.96, sx * 4.02))
+        a, bb = sorted((sx * 4.0, sx * 4.1))
         b.box((a, 11.1, z0 + 1.2), (bb, 13.3, z0 + 3.8), c("fenetre"), collide=False)
     b.box((-4.3, 14.8, z0 - 0.4), (4.3, 15.3, z1 + 0.6), c("voiture_toit"), studs="top")
     b.box((-3.0, 15.3, z0 + 0.2), (3.0, 15.7, z1), c("voiture_toit"), studs="top")
@@ -1199,17 +1256,17 @@ def _voiture(b, zc, rng, allumees) -> None:
     b.box((-3.6, 5.6, zb0), (3.6, 8.4, zb1), bas)
     b.box((-3.6, 8.4, zb0), (3.6, 11.8, zb1), vary("voiture", rng, 0.03))
     for sx in (-1, 1):
-        a, bb = sorted((sx * 3.6, sx * 3.65))
+        a, bb = sorted((sx * 3.6, sx * 3.7))
         b.box((a, 8.4, zb0 + 0.3), (bb, 8.7, zb1 - 0.3), c("bois_clair"), collide=False)
         b.box((a, 10.7, zb0 + 0.3), (bb, 11.0, zb1 - 0.3), c("bois_clair"), collide=False)
-        a, bb = sorted((sx * 3.6, sx * 3.68))
+        a, bb = sorted((sx * 3.6, sx * 3.72))
         for k in range(7):
             zz = zb0 + 1.4 + k * 2.8
             lum = allumees[(k + (sx > 0)) % len(allumees)]
             b.box((a, 8.7, zz), (bb, 10.7, zz + 1.6), c("fenetre_lumiere") if lum else c("fenetre"),
-                  material="Neon" if lum else "Glass" if False else "SmoothPlastic", collide=False)
+                  material="Neon" if lum else "SmoothPlastic", collide=False)
     for zz, sz in ((zb0, -1), (zb1, 1)):
-        b.box((-0.9, 6.0, min(zz, zz + sz * 0.08)), (0.9, 10.6, max(zz, zz + sz * 0.08)), c("bois_fonce"),
+        b.box((-0.9, 6.0, min(zz, zz + sz * 0.12)), (0.9, 10.6, max(zz, zz + sz * 0.12)), c("bois_fonce"),
               collide=False)
     # toit à lanterneau
     b.box((-3.9, 11.8, zc + 0.8), (3.9, 12.4, zc + L - 0.8), c("voiture_toit"), studs="top")
