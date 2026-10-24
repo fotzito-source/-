@@ -3,18 +3,22 @@ treille fujidana, arche de glycines au-dessus du couloir, bambous, pin taillé e
 souches et touffes d'herbe.
 
 Principes :
-- les grappes sont l'âme de la zone : bandes verticales de blocs empilés qui s'affinent et pâlissent vers la pointe
-  (glycine_fonce / glycine en haut → glycine_claire → glycine_pale à la pointe), de longueurs variées, un peu tournées
-  et décalées ; leurs longueurs ondulent autour de chaque masse (ourlet festonné) : de loin, on lit des glycines ;
-- chaque grappe est accrochée : son sommet est noyé dans le bloc de fleurs le plus bas qui la couvre entièrement,
-  aucun autre bloc n'est traversé (registre des « plafonds »), aucune grappe ne traverse le bois (registre des
-  « obstacles ») ni une autre grappe ; rien ne flotte ;
-- bois tordu : tiges en poutres inclinées et vrillées (rotation autour de leur axe), deux ou trois tiges tressées,
-  racines en coins ; le bois collisionne ; fleurs, feuilles et grappes ont `collide=False` ;
-- studs sur les dessus des masses de fleurs et de feuilles uniquement (pas sur les grappes) ;
-- les masses ont chacune leur « famille » de hauteurs (partie fractionnaire de y0 modulo 0,5 distincte, les cotes
-  internes étant des multiples du demi-stud) : jamais deux faces horizontales de masses différentes au même niveau ;
-- chaque fonction remplit son budget de pièces avec des grappes (passe de remplissage), sans jamais le dépasser ;
+- les grappes sont l'âme de la zone. Deux formes, toujours 2 à 5 segments empilés qui s'affinent et pâlissent vers la
+  pointe sur la rampe glycine_fonce → glycine → glycine_claire → glycine_pale (départ plus ou moins sombre selon la
+  grappe) : les « rubans » (rideaux) tangents au bord des masses, qui en habillent le flanc et se terminent en escalier
+  irrégulier (de face plusieurs grappes inégales, de profil une grappe fine), et les « colonnes » dessous. Longueurs
+  qui ondulent autour de chaque masse (ourlet festonné) : de loin, on lit des glycines ;
+- rien ne flotte et rien ne se traverse : chaque grappe est noyée dans la masse ou le bloc qui la porte (registre des
+  « plafonds »), ne traverse aucun autre bloc plus bas, aucun bois sous son accroche (registre des « obstacles ») ni
+  aucune autre grappe (test d'emprise exact) ;
+- bois tordu : tiges en poutres inclinées et vrillées autour de leur axe, deux ou trois tiges tressées, racines en
+  coins ; le bois collisionne ; fleurs, feuilles et grappes ont `collide=False` ;
+- studs sur les dessus des masses de fleurs et des feuilles uniquement (pas sur les grappes) ;
+- pas de faces coplanaires : chaque masse a sa « famille » de hauteurs (fraction de y0 modulo 0,5 sur la grille du
+  1/16, distincte de celles des masses qu'elle touche), les faces horizontales des grappes et des feuilles sont sur un
+  1/32 impair (jamais sur la grille du 1/16) ;
+- chaque fonction remplit son budget de pièces avec des grappes, réparties à tour de rôle entre les masses, sans
+  jamais le dépasser ;
 - les arbres sont recentrés : l'origine est le centre de leur emprise au sol (même pour les arbres penchés).
 """
 
@@ -438,9 +442,9 @@ class _Arbre:
     def degrade(self, n, s0=None):
         """Couleurs des n segments, prises sur la rampe foncé → mauve → clair → pointe : départ s0 (plus ou moins
         sombre selon la grappe), pointe toujours pâle."""
-        nuit, fonce, mauve, claire, pale = self.g
+        _nuit, fonce, mauve, claire, pale = self.g
         if self.melange and self.rng.uniform() < self.melange[1]:
-            nuit, fonce, mauve, claire, pale = TEINTES[self.melange[0]]
+            _nuit, fonce, mauve, claire, pale = TEINTES[self.melange[0]]
         if s0 is None:
             s0 = float(self.rng.uniform(0.08, 0.45))
         stops = ((0.0, fonce), (0.33, mauve), (0.68, claire), (1.0, pale))
@@ -457,81 +461,43 @@ class _Arbre:
             out.append(self.V(rampe(min(1.0, s)), 0.025))
         return out
 
-    def grappes_branche(self, p0, p1, n, L, larg=1.4):
-        """n grappes pendues sous une branche (sommet noyé dans le bois), réparties entre 25 % et 90 % de sa longueur."""
-        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
-        for i in range(n):
-            f = 0.25 + 0.65 * (i + 0.5) / n + float(self.rng.uniform(-0.05, 0.05))
-            q = p0 + (p1 - p0) * f
-            Lg = float(self.rng.uniform(*L))
-            # la grappe est noyée dans la branche : on la teste sans le bois porteur
-            bois, self.bois = self.bois, [o for o in self.bois if not (np.allclose(o[0], p0) and np.allclose(o[1], p1))]
-            self.grappe(float(q[0]), float(q[2]), Lg, larg, y=float(q[1]) - 0.2, embed=0.3)
-            self.bois = bois
-
-    def frange(self, im, n, L, larg=1.5, vague=0.55, mode="rideau", nseg=None, ep=0.5, differe=False, faces=None):
-        """n grappes autour de la masse n° im, longueurs entre L[0] et L[1] (sous la masse) qui ondulent autour
-        d'elle (ourlet festonné) avec une part d'aléatoire.
-        mode "rideau" : rubans tangents au bord, qui partent du haut du flanc et l'habillent ;
-        mode "bord" : colonnes à cheval sur le bord, depuis le milieu du flanc ;
-        mode "dessous" : colonnes sous la masse, en retrait du bord."""
+    def frange(self, im, n, L, larg=1.5, vague=0.55, nseg=None, ep=0.5, differe=False, faces=None):
+        """Rideau de n grappes en rubans tangents au bord de la masse n° im : ils partent du haut du flanc (qu'ils
+        habillent) et pendent de L[0] à L[1] sous la masse, longueurs qui ondulent autour d'elle (ourlet festonné)
+        avec une part d'aléatoire. `faces="z"` : seulement les bords qui regardent ±Z. `differe` : renvoie les
+        poses à faire au lieu de les faire (pour les répartir entre plusieurs masses, voir `_franges`)."""
         rng = self.rng
         cx, cz, w, d, rot, y0, y1 = self.masses[im]
         ph2 = rng.uniform(0, 2 * math.pi)
         out = []
-        if mode == "rideau":
-            # contour en rectangle arrondi (super-ellipse p = 8), le ruban dépasse du flanc de 0,15
-            ax, az = w / 2 + 0.15 - ep / 2, d / 2 + 0.15 - ep / 2
-            ts = np.linspace(0, 2 * math.pi, 361)
-            ct, st = np.cos(ts), np.sin(ts)
-            px = ax * np.sign(ct) * np.abs(ct) ** 0.25
-            pz = az * np.sign(st) * np.abs(st) ** 0.25
-            seg = np.hypot(np.diff(px), np.diff(pz))
-            cum = np.concatenate([[0.0], np.cumsum(seg)])
-            per = cum[-1]
-            pas = per / n
-            s_dep = rng.uniform(0, pas)
-            for i in range(n):
-                sx = (s_dep + i * pas + rng.uniform(-0.15, 0.15) * pas) % per
-                k = int(np.searchsorted(cum, sx, side="right") - 1)
-                k = min(max(k, 0), len(seg) - 1)
-                f = (sx - cum[k]) / max(seg[k], 1e-9)
-                lx, lz = px[k] + (px[k + 1] - px[k]) * f, pz[k] + (pz[k + 1] - pz[k]) * f
-                tx, tz = px[k + 1] - px[k], pz[k + 1] - pz[k]
-                dx, dz = _monde(lx, lz, rot)
-                wtx, wtz = _monde(tx, tz, rot)
-                if faces == "z" and abs(wtx) < 0.75 * math.hypot(wtx, wtz):
-                    continue  # seulement les bords qui regardent ±Z (vers le coureur)
-                yaw = math.degrees(math.atan2(-wtz, wtx)) + float(rng.uniform(-10, 10))
-                th = math.atan2(lz / az, lx / ax)
-                s = 0.5 + 0.5 * math.sin(3 * th + ph2)
-                Lg = L[0] + (L[1] - L[0]) * (vague * s + (1 - vague) * rng.uniform())
-                yh = y1 - 0.25 - float(rng.uniform(0.0, 0.35))
-                out.append((self.ruban, (cx + dx, cz + dz, Lg, larg * rng.uniform(0.85, 1.15), yaw, y0, yh - y0),
-                            dict(sauf=im, n=nseg, ep=ep)))
-            return out if differe else [f(*a, **k) for f, a, k in out]
-        if mode == "bord":
-            marge = larg * 0.22
-        else:
-            marge = larg * 0.81 + 0.25
-        rx, rz = w / 2 - marge, d / 2 - marge
-        ph = rng.uniform(0, 2 * math.pi)
+        # contour en rectangle arrondi (super-ellipse p = 8), le ruban dépasse du flanc de 0,15
+        ax, az = w / 2 + 0.15 - ep / 2, d / 2 + 0.15 - ep / 2
+        ts = np.linspace(0, 2 * math.pi, 361)
+        ct, st = np.cos(ts), np.sin(ts)
+        px = ax * np.sign(ct) * np.abs(ct) ** 0.25
+        pz = az * np.sign(st) * np.abs(st) ** 0.25
+        seg = np.hypot(np.diff(px), np.diff(pz))
+        cum = np.concatenate([[0.0], np.cumsum(seg)])
+        per = cum[-1]
+        pas = per / n
+        s_dep = rng.uniform(0, pas)
         for i in range(n):
-            th = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / n
-            cth, sth = math.cos(th), math.sin(th)
-            k = 1.0 / max(abs(cth), abs(sth)) ** 0.5
-            lx, lz = rx * cth * min(k, 1.25), rz * sth * min(k, 1.25)
-            lx, lz = max(-rx, min(rx, lx)), max(-rz, min(rz, lz))
+            sx = (s_dep + i * pas + rng.uniform(-0.15, 0.15) * pas) % per
+            k = int(np.searchsorted(cum, sx, side="right") - 1)
+            k = min(max(k, 0), len(seg) - 1)
+            f = (sx - cum[k]) / max(seg[k], 1e-9)
+            lx, lz = px[k] + (px[k + 1] - px[k]) * f, pz[k] + (pz[k + 1] - pz[k]) * f
             dx, dz = _monde(lx, lz, rot)
-            s = 0.5 + 0.5 * math.sin(3 * th + ph2)
+            wtx, wtz = _monde(px[k + 1] - px[k], pz[k + 1] - pz[k], rot)  # tangente au bord
+            if faces == "z" and abs(wtx) < 0.75 * math.hypot(wtx, wtz):
+                continue
+            yaw = math.degrees(math.atan2(-wtz, wtx)) + float(rng.uniform(-10, 10))
+            s = 0.5 + 0.5 * math.sin(3 * math.atan2(lz / az, lx / ax) + ph2)
             Lg = L[0] + (L[1] - L[0]) * (vague * s + (1 - vague) * rng.uniform())
-            lg = larg * rng.uniform(0.9, 1.1)
-            if mode == "bord":  # sommet à mi-flanc : la grappe habille le bord sans faire de « pied » massif
-                yh = y0 + (y1 - y0) * float(rng.uniform(0.35, 0.7))
-                out.append((self.grappe, (cx + dx, cz + dz, Lg, lg), dict(y=y0, embed=yh - y0, sauf=im, n=nseg)))
-            else:
-                out.append((self.grappe, (cx + dx, cz + dz, Lg, lg), dict(n=nseg)))
-        return out if differe else [f(*a, **k) for f, a, k in out]
+            yh = y1 - 0.25 - float(rng.uniform(0.0, 0.35))
+            out.append((self.ruban, (cx + dx, cz + dz, Lg, larg * rng.uniform(0.85, 1.15), yaw, y0, yh - y0),
+                        dict(sauf=im, n=nseg, ep=ep)))
+        return out if differe else [fn(*a, **kw) for fn, a, kw in out]
 
     def remplir(self, L, larg=1.4, essais=900, bord=0.7, reserve=0, quota=None, masses=None):
         """Passe de remplissage : des grappes sous les grandes masses jusqu'à épuisement du budget (ou jusqu'à
@@ -555,12 +521,13 @@ class _Arbre:
 
 
 def _franges(T, specs, ep=0.5):
-    """Pose les franges de plusieurs masses à tour de rôle (une grappe de chaque masse, puis la suivante…) :
-    si le budget s'épuise, toutes les masses restent habillées de façon égale."""
-    files = [T.frange(im, n, L, larg, mode=mode, nseg=opt[0] if opt else None, ep=ep, differe=True,
+    """Pose les rideaux de plusieurs masses à tour de rôle (une grappe de chaque masse, puis la suivante…) : si le
+    budget s'épuise, toutes les masses restent habillées de façon égale. specs : (masse, nombre, (Lmin, Lmax),
+    largeur[, segments, faces, poids]) ; une masse de poids p pose p grappes par tour."""
+    files = [T.frange(im, n, L, larg, nseg=opt[0] if opt else None, ep=ep, differe=True,
                       faces=opt[1] if len(opt) > 1 else None)
-             for (im, n, L, larg, mode, *opt) in specs]
-    poids = [opt[2] if len(opt) > 2 else 1 for (_im, _n, _L, _l, _m, *opt) in specs]
+             for (im, n, L, larg, *opt) in specs]
+    poids = [opt[2] if len(opt) > 2 else 1 for (_im, _n, _L, _l, *opt) in specs]
     k = 0
     while any(files) and T.reste() >= 2:
         f = files[k % len(files)]
@@ -588,9 +555,6 @@ def _construire(T, S):
             T.feuilles_sur(*f)
     with b.group("Grappes"):
         _franges(T, S["franges"], S.get("ep", 0.5))
-        for (ib, n, L, larg) in S.get("grappes_branches", ()):
-            pts = S["branches"][ib][0]
-            T.grappes_branche(pts[-2], pts[-1], n, L, larg)
         L, larg = S["remplir"]
         T.remplir(L, larg)
 
@@ -619,8 +583,8 @@ GLYCINES = [
                 (1.3, 10.8125, -6.0, 7, 6.5, 2.0, 5, 1),
                 (-1.5, 10.1875, 6.0, 6.5, 6.5, 2.0, -25, 1)],
         feuilles=[(1, 0.55, 0.3, 3.2, 2.2, 35, 2), (2, -0.5, -0.2, 2.8, 2.4, -20, 1), (0, -0.45, -0.5, 2.6, 2.0, 15, 2)],
-        franges=[(1, 13, (2.5, 8.0), 1.5, "rideau"), (2, 13, (2.5, 8.0), 1.5, "rideau"), (3, 13, (3.0, 8.5), 1.5, "rideau"),
-                 (4, 12, (2.5, 7.5), 1.5, "rideau"), (0, 14, (2.0, 5.0), 1.5, "rideau")],
+        franges=[(1, 13, (2.5, 8.0), 1.5), (2, 13, (2.5, 8.0), 1.5), (3, 13, (3.0, 8.5), 1.5),
+                 (4, 12, (2.5, 7.5), 1.5), (0, 14, (2.0, 5.0), 1.5)],
         remplir=((2.5, 6.0), 0.85),
     ),
     # 1 : penché — tronc qui s'incline vers l'avant (-Z), auvent de fleurs en surplomb aux grappes les plus longues,
@@ -640,8 +604,8 @@ GLYCINES = [
                 (5.6, 12.1875, -6.4, 5.5, 5.5, 2.0, -20, 1),
                 (0.8, 9.875, 7.4, 7, 6, 2.0, 10, 1)],
         feuilles=[(2, -0.4, 0.3, 2.8, 2.6, 25, 2), (4, 0.4, 0.5, 2.8, 2.0, -15, 1), (0, 0.5, 0.6, 2.6, 2.0, 10, 2)],
-        franges=[(1, 16, (5.0, 9.5), 1.5, "rideau"), (2, 9, (3.0, 7.5), 1.5, "rideau"), (3, 9, (3.0, 7.5), 1.5, "rideau"),
-                 (4, 12, (3.0, 6.5), 1.5, "rideau"), (0, 13, (2.5, 6.0), 1.5, "rideau")],
+        franges=[(1, 16, (5.0, 9.5), 1.5), (2, 9, (3.0, 7.5), 1.5), (3, 9, (3.0, 7.5), 1.5),
+                 (4, 12, (3.0, 6.5), 1.5), (0, 13, (2.5, 6.0), 1.5)],
         remplir=((3.0, 6.5), 0.85),
     ),
     # 2 : fourchu — deux fûts qui s'écartent en V, deux ombrelles à des hauteurs différentes
@@ -659,8 +623,8 @@ GLYCINES = [
                 (-8.6, 11.6875, -1.2, 5.5, 5.5, 2.0, 10, 1),
                 (8.2, 14.9375, 1.4, 5.5, 5.5, 2.0, -10, 1)],
         feuilles=[(0, 0.5, 0.55, 3.0, 2.2, 30, 2), (1, 0.45, -0.5, 2.6, 2.4, -25, 1)],
-        franges=[(2, 10, (2.5, 7.0), 1.5, "rideau"), (3, 10, (3.5, 8.5), 1.5, "rideau"), (0, 14, (2.5, 7.0), 1.5, "rideau"),
-                 (1, 14, (4.0, 9.0), 1.5, "rideau")],
+        franges=[(2, 10, (2.5, 7.0), 1.5), (3, 10, (3.5, 8.5), 1.5), (0, 14, (2.5, 7.0), 1.5),
+                 (1, 14, (4.0, 9.0), 1.5)],
         remplir=((2.5, 6.5), 0.85),
     ),
     # 3 : fontaine — tronc haut, dôme en deux étages et rideau continu de longues grappes tout autour
@@ -675,7 +639,7 @@ GLYCINES = [
         masses=[(0.0, 14.5, 0.0, 15, 15, 2.0, 0, 3),
                 (0.3, 17.5625, -0.2, 8, 8, 2.0, 22, 1)],
         feuilles=[(0, 0.6, -0.55, 3.0, 2.2, 20, 2), (0, -0.55, 0.5, 2.6, 2.8, -30, 1)],
-        franges=[(0, 35, (7.0, 10.5), 1.5, "rideau", 3)],
+        franges=[(0, 35, (7.0, 10.5), 1.5, 3)],
         remplir=((2.5, 5.0), 0.85),
     ),
 ]
@@ -731,10 +695,11 @@ GEANTES = [
                  (300, 5.2, 2.6, 2.4)],
         branches=_B0,
         masses=[(0.0, 24.0, 0.0, 24, 22, 3.0, 8, 3)] + _M0,
-        feuilles=[(0, 0.6, -0.5, 4.0, 3.0, 25, 2), (0, -0.7, 0.4, 3.6, 3.2, -15, 1), (2, 0.4, 0.4, 3.0, 2.6, 40, 2), (4, -0.4, -0.3, 3.4, 2.8, 10, 1)],
-        franges=[(1, 22, (6.0, 12.0), 2.2, "rideau"), (2, 22, (6.0, 12.0), 2.2, "rideau"),
-                 (3, 22, (6.0, 12.0), 2.2, "rideau"), (4, 22, (6.0, 12.0), 2.2, "rideau"),
-                 (5, 22, (6.0, 12.0), 2.2, "rideau"), (0, 26, (4.0, 8.0), 2.2, "rideau")],
+        feuilles=[(0, 0.6, -0.5, 4.0, 3.0, 25, 2), (0, -0.7, 0.4, 3.6, 3.2, -15, 1),
+                  (2, 0.4, 0.4, 3.0, 2.6, 40, 2), (4, -0.4, -0.3, 3.4, 2.8, 10, 1)],
+        franges=[(1, 22, (6.0, 12.0), 2.2), (2, 22, (6.0, 12.0), 2.2),
+                 (3, 22, (6.0, 12.0), 2.2), (4, 22, (6.0, 12.0), 2.2),
+                 (5, 22, (6.0, 12.0), 2.2), (0, 26, (4.0, 8.0), 2.2)],
         remplir=((4.0, 9.0), 1.2),
         ep=0.7,
     ),
@@ -758,10 +723,11 @@ GEANTES = [
                 (-14.0, 23.4375, -9.5, 11, 12, 2.5, 15, 2),
                 (14.0, 23.1875, -10.5, 11, 12, 2.5, -12, 2),
                 (1.0, 16.0625, 13.5, 13, 10, 2.5, 8, 2)],
-        feuilles=[(2, -0.5, 0.3, 3.6, 3.0, 20, 2), (0, 0.5, 0.6, 3.6, 2.8, -10, 1), (4, 0.4, 0.5, 3.2, 2.6, 30, 2), (3, 0.3, -0.5, 3.2, 2.4, 0, 1)],
-        franges=[(1, 24, (8.0, 14.0), 2.2, "rideau"), (2, 16, (6.0, 11.0), 2.2, "rideau"),
-                 (3, 16, (6.0, 11.0), 2.2, "rideau"), (4, 18, (5.0, 9.0), 2.2, "rideau"),
-                 (0, 22, (4.0, 8.0), 2.2, "rideau")],
+        feuilles=[(2, -0.5, 0.3, 3.6, 3.0, 20, 2), (0, 0.5, 0.6, 3.6, 2.8, -10, 1),
+                  (4, 0.4, 0.5, 3.2, 2.6, 30, 2), (3, 0.3, -0.5, 3.2, 2.4, 0, 1)],
+        franges=[(1, 24, (8.0, 14.0), 2.2), (2, 16, (6.0, 11.0), 2.2),
+                 (3, 16, (6.0, 11.0), 2.2), (4, 18, (5.0, 9.0), 2.2),
+                 (0, 22, (4.0, 8.0), 2.2)],
         remplir=((4.0, 9.0), 1.2),
         ep=0.7,
     ),
@@ -785,10 +751,11 @@ GEANTES = [
                 (-6.4, 22.9375, -10.5, 10, 8, 2.5, -20, 2),
                 (16.0, 31.3125, 2.0, 11, 10, 2.5, -10, 2),
                 (6.4, 30.4375, 10.0, 10, 8, 2.5, 25, 2)],
-        feuilles=[(0, 0.6, 0.4, 3.4, 2.8, 25, 2), (1, 0.5, -0.5, 3.2, 2.8, -20, 1), (2, -0.4, -0.3, 3.0, 2.4, 15, 2), (5, 0.3, 0.5, 3.0, 2.4, 40, 1)],
-        franges=[(2, 16, (6.0, 11.0), 2.2, "rideau"), (3, 14, (5.0, 10.0), 2.2, "rideau"),
-                 (4, 16, (7.0, 13.0), 2.2, "rideau"), (5, 14, (6.0, 12.0), 2.2, "rideau"),
-                 (0, 22, (5.0, 10.0), 2.2, "rideau"), (1, 22, (6.0, 12.0), 2.2, "rideau")],
+        feuilles=[(0, 0.6, 0.4, 3.4, 2.8, 25, 2), (1, 0.5, -0.5, 3.2, 2.8, -20, 1),
+                  (2, -0.4, -0.3, 3.0, 2.4, 15, 2), (5, 0.3, 0.5, 3.0, 2.4, 40, 1)],
+        franges=[(2, 16, (6.0, 11.0), 2.2), (3, 14, (5.0, 10.0), 2.2),
+                 (4, 16, (7.0, 13.0), 2.2), (5, 14, (6.0, 12.0), 2.2),
+                 (0, 22, (5.0, 10.0), 2.2), (1, 22, (6.0, 12.0), 2.2)],
         remplir=((4.0, 9.0), 1.2),
         ep=0.7,
     ),
@@ -804,10 +771,11 @@ GEANTES = [
                  (330, 4.6, 2.4, 2.2)],
         branches=_B3 + [([(0.0, 27.0, 0.0), (6.0, 30.0, 3.0)], 1.8, 15), ([(0.0, 27.5, 0.0), (-6.0, 30.2, -2.5)], 1.8, -15)],
         masses=[(0.0, 31.0, 0.0, 18, 16, 3.0, 12, 3)] + _M3 + [(0.0, 20.75, 0.0, 16, 16, 2.0, 45, 1)],
-        feuilles=[(0, 0.6, -0.5, 3.4, 2.8, 25, 2), (2, -0.4, 0.5, 3.2, 2.6, -15, 1), (3, 0.5, -0.4, 3.0, 2.4, 30, 2), (0, -0.5, 0.45, 3.0, 2.4, 0, 1)],
-        franges=[(1, 18, (7.0, 13.0), 2.2, "rideau"), (2, 18, (7.0, 13.0), 2.2, "rideau"),
-                 (3, 18, (7.0, 13.0), 2.2, "rideau"), (4, 18, (7.0, 13.0), 2.2, "rideau"),
-                 (0, 22, (3.0, 7.0), 2.2, "rideau")],
+        feuilles=[(0, 0.6, -0.5, 3.4, 2.8, 25, 2), (2, -0.4, 0.5, 3.2, 2.6, -15, 1),
+                  (3, 0.5, -0.4, 3.0, 2.4, 30, 2), (0, -0.5, 0.45, 3.0, 2.4, 0, 1)],
+        franges=[(1, 18, (7.0, 13.0), 2.2), (2, 18, (7.0, 13.0), 2.2),
+                 (3, 18, (7.0, 13.0), 2.2), (4, 18, (7.0, 13.0), 2.2),
+                 (0, 22, (3.0, 7.0), 2.2)],
         remplir=((4.0, 9.0), 1.2),
         ep=0.7,
     ),
@@ -837,12 +805,13 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
     en x = ±portee/2 (jamais à |x| < 32), branches maîtresses qui montent et s'entrelacent au-dessus du couloir,
     bandeau de fleurs bombé et deux rideaux de grappes face au coureur (avant -Z et arrière +Z, les deux sens de
     course), masses latérales d'où retombent de longs rideaux sur les trottoirs.
-    Au-dessus de |x| < 31, rien ne descend sous `hauteur` (la caméra Roblox ne saute pas).
-    0 berceau symétrique, 1 asymétrique violet (un côté plus haut), 2 tunnel profond (grappes aussi dessous),
+    Au-dessus de |x| < 31, rien ne descend sous `hauteur` (la caméra Roblox ne saute pas) ; le bois reste à
+    |x| ≥ 32 sous `hauteur` (une portée inférieure à 76 est portée à 76).
+    0 berceau symétrique, 1 asymétrique violet (un côté plus haut), 2 tunnel profond (bandeau plus large),
     3 sommet en pointe, glycines mauves et blanches mêlées. ≤ 220 pièces."""
     v = variant % 4
     rng = b.rng
-    P = max(float(portee) / 2, 37.5)       # les troncs restent hors de |x| < 32
+    P = max(float(portee) / 2, 38.0)       # les troncs restent hors de |x| < 32 (portée minimale 76)
     H = float(hauteur)
     X0 = COULOIR_X
     D = (16.0, 16.0, 24.0, 18.0)[v]       # profondeur du bandeau (le long du couloir, axe Z)
@@ -908,9 +877,9 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
             specs = []
             for im, (cx, _cz, _w, _d, _r, _y0, _y1) in enumerate(T.masses):
                 if abs(cx) >= X0 + 2:      # côtés : longs rideaux sur les trottoirs, tout autour
-                    specs.append((im, 16, (8.0, 15.0), 2.2, "rideau", None, None, 2))
+                    specs.append((im, 16, (8.0, 15.0), 2.2, None, None, 2))
                 else:                      # bandeau : rideaux avant et arrière, bornés par la zone interdite
-                    specs.append((im, 22, (4.5, 11.0), 2.6, "rideau", None, "z", 2))
+                    specs.append((im, 22, (4.5, 11.0), 2.6, None, "z", 2))
             _franges(T, specs, ep=0.6)
             T.remplir((3.0, 9.0), 1.1)
     return _infos(b, T.n0)
@@ -982,7 +951,7 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
                     y0 = H + 0.2 - T.famille(cx, zc, w, d, rot) / 2 - 0.05
                     T.masse(cx, y0, zc, w, d, 1.0 + 0.5 * ((i + j) % 2), rot, 0)
             # quelques bouffées plus claires sur la nappe
-            nuit, fonce, mauve, claire, pale = T.g
+            _nuit, _fonce, mauve, claire, _pale = T.g
             choix = rng.permutation(len(T.masses))[:max(2, npx)]
             for k, im in enumerate(choix):
                 cx, cz, w, d, rot, _y0, y1 = T.masses[int(im)]
@@ -992,7 +961,7 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
                        plafond=False)
         with b.group("Grappes"):
             # rideaux devant et derrière (hors des sablières), pointes vers H - 4, puis grappes entre les sablières
-            specs = [(im, 14, (3.4, 5.4), 1.1, "rideau") for im in range(len(T.masses))]
+            specs = [(im, 14, (3.4, 5.4), 1.1) for im in range(len(T.masses))]
             _franges(T, specs, ep=0.45)
             T.remplir((3.0, 5.0), 0.95)
     return _infos(b, T.n0)
@@ -1034,7 +1003,7 @@ def bambous(b, variant: int = 0, n: int = 7) -> dict:
             dist = math.hypot(dx, dz)
             centre = 1.0 - min(1.0, dist / 4.0)
             h = 18.0 + 10.0 * centre + float(rng.uniform(-1.5, 2.0))
-            h = min(30.0, max(18.0, h)) if v != 3 or i % 3 else 16.0 + float(rng.uniform(0, 3))
+            h = min(30.0, max(18.0, h)) if v != 3 or i % 3 else 18.0 + float(rng.uniform(0, 2))  # vieilles tiges
             dia = 0.7 + 0.3 * (h - 18.0) / 12.0
             inc = {0: (1.5, 4.0), 1: (0.5, 2.5), 2: (5.0, 11.0), 3: (1.5, 5.0)}[v]
             tilt = math.radians(float(rng.uniform(*inc)))
@@ -1082,11 +1051,12 @@ def bambous(b, variant: int = 0, n: int = 7) -> dict:
         # sol : litière de feuilles sèches, pousses de bambou (takenoko)
         rx = max(abs(q[0] - cx) for q in pos) + 1.6
         rz = max(abs(q[1] - cz) for q in pos) + 1.6
-        b.boxc((cx, 0.15, cz), (round(rx * 2 * 2) / 2, 0.3, round(rz * 2 * 2) / 2), vary(mix(c("terre"), c("bambou_fonce"), 0.35), rng, 0.04),
+        litiere = mix(c("terre"), c("bambou_fonce"), 0.35)
+        b.boxc((cx, 0.15, cz), (round(rx * 2 * 2) / 2, 0.3, round(rz * 2 * 2) / 2), vary(litiere, rng, 0.04),
                yaw=float(rng.uniform(-10, 10)), studs="top", collide=False, name="Litiere")
         if v == 3:
             px, pz = cx + rx * 0.6, cz - rz * 0.5
-            b.wedge((px - 0.5, 0.3, pz - 0.6), (px + 0.5, 1.9, pz + 0.6), vary(mix(c("terre"), c("bambou_fonce"), 0.5), rng, 0.04),
+            b.wedge((px - 0.5, 0.3, pz - 0.6), (px + 0.5, 1.9, pz + 0.6), vary(mix(litiere, c("bambou"), 0.3), rng, 0.04),
                     down="-z", collide=False, name="Pousse")
     _recentrer(b, n0)
     return _infos(b, n0)
@@ -1100,7 +1070,8 @@ PINS = [
     # 0 : droit — tronc en S, cinq plateaux étagés en alternance et un plateau sommital
     dict(tronc=[(0.0, 0, 0.0), (0.8, 4.0, 0.3), (-0.6, 8.0, -0.2), (0.4, 12.0, 0.3), (0.0, 14.5, 0.0)], w=1.6,
          plateaux=[((-0.4, 5.5, 0.0), (-5.0, 6.5, -0.5), 7, 5.5, 1.5, 15), ((0.6, 8.5, 0.0), (5.0, 9.0, 0.5), 6.5, 5, 1.5, -20),
-                   ((-0.3, 10.8, 0.0), (-3.6, 11.5, 1.0), 5.5, 4.5, 1.5, 30), ((0.3, 12.6, 0.0), (3.2, 13.0, -0.6), 5, 4, 1.5, -10),
+                   ((-0.3, 10.8, 0.0), (-3.6, 11.5, 1.0), 5.5, 4.5, 1.5, 30),
+                   ((0.3, 12.6, 0.0), (3.2, 13.0, -0.6), 5, 4, 1.5, -10),
                    (None, (0.0, 14.4, 0.0), 5.5, 5.5, 2.0, 45)]),
     # 1 : penché (nagare) — tronc qui s'incline fortement d'un côté, plateaux en escalier vers le bas
     dict(tronc=[(0.0, 0, 0.0), (1.4, 4.0, 0.2), (3.6, 7.5, -0.3), (6.4, 9.6, 0.2), (8.8, 10.2, 0.0)], w=1.6,
@@ -1115,7 +1086,8 @@ PINS = [
     # 3 : élancé — tronc haut et fin, trois étages de plateaux de plus en plus petits
     dict(tronc=[(0.0, 0, 0.0), (0.5, 6.0, 0.3), (-0.4, 12.0, -0.2), (0.2, 17.5, 0.2)], w=1.4,
          plateaux=[((0.3, 7.0, 0.1), (-4.0, 8.0, 0.4), 6, 5, 1.5, 15), ((0.2, 7.5, 0.0), (4.0, 8.4, -0.6), 5.5, 4.5, 1.5, -25),
-                   ((-0.3, 12.5, 0.0), (-3.0, 13.2, 0.6), 4.5, 4, 1.5, 30), ((-0.1, 13.0, 0.0), (3.0, 13.6, -0.4), 4.5, 3.5, 1.5, -10),
+                   ((-0.3, 12.5, 0.0), (-3.0, 13.2, 0.6), 4.5, 4, 1.5, 30),
+                   ((-0.1, 13.0, 0.0), (3.0, 13.6, -0.4), 4.5, 3.5, 1.5, -10),
                    (None, (0.2, 17.5, 0.2), 4.5, 4.5, 2.0, 45)]),
 ]
 

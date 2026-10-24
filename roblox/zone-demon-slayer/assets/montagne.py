@@ -122,14 +122,28 @@ class _Face:
 
 
 def _bandes(box_fn, y0, y1, strates, rng) -> int:
-    """Découpe [y0, y1] selon les strates ; box_fn(lo, hi, couleur) pose un bloc par bande."""
-    n = 0
+    """Découpe [y0, y1] selon les strates ; box_fn(lo, hi, couleur) pose un bloc par bande.
+    Une bande de moins de 0,1 stud (taille minimale Roblox) est fusionnée avec sa voisine."""
+    morceaux = []
     for s0, s1, t in strates:
         lo, hi = max(s0, y0), min(s1, y1)
-        if hi - lo > 0.05:
+        if hi - lo > 1e-6:
+            morceaux.append([lo, hi, t])
+    i = 0
+    while i < len(morceaux) and len(morceaux) > 1:
+        lo, hi, t = morceaux[i]
+        if hi - lo < 0.1:
+            if i + 1 < len(morceaux):
+                morceaux[i + 1][0] = lo
+            else:
+                morceaux[i - 1][1] = hi
+            del morceaux[i]
+            continue
+        i += 1
+    for lo, hi, t in morceaux:
+        if hi - lo >= 0.1:
             box_fn(lo, hi, vary(TONS[t], rng, 0.03))
-            n += 1
-    return n
+    return len(morceaux)
 
 
 def _peau(F, u0, u1, y0, y1, strates, rng, saillies=(1.0, 1.5, 2.0, 2.5, 3.0), larg=(6, 8, 10, 12),
@@ -547,6 +561,7 @@ def _escalier(b, xc, segs, rng, demi_col=9.0, demi_marche=4.5, giron=1.1, montee
                 continue
             ya = y0 + (z0 - zb) / (z0 - z1) * (y1 - y0) if kind == "volee" else y0
             yb = y0 + (z0 - za) / (z0 - z1) * (y1 - y0) if kind == "volee" else y0
+            ya, yb = round(ya * 20) / 20, round(yb * 20) / 20  # grille de 0,05 : pas d'erreur d'arrondi au sol
             if ya > 0.05:
                 b.box((x0, 0, za), (x1, ya, zb), NOYAU if dedans else vary(PIERRE_F, rng, 0.03), studs="top")
             if kind == "volee" and yb - ya > 0.05:
@@ -643,9 +658,9 @@ def montagne_glycines(b, variant: int = 0, passage: float = 68, largeur: float =
     Si le tirage dépasse le budget de pièces, la montagne est reconstruite avec des rideaux de glycines un peu
     moins denses (même plan, même roche)."""
     n0 = len(b.parts)
-    for dens in (1.0, 0.88, 0.76, 0.64, 0.52, 0.4):
+    for dens in (1.0, 0.88, 0.76, 0.64, 0.52, 0.4, 0.3, 0.2):
         info = _montagne(b, variant, passage, largeur, profondeur, hauteur, dens)
-        if len(b.parts) - n0 <= BUDGET_MONTAGNE or dens <= 0.4:
+        if len(b.parts) - n0 <= BUDGET_MONTAGNE or dens <= 0.2:
             break
         del b.parts[n0:]
     info["pieces"] = len(b.parts) - n0
@@ -767,7 +782,8 @@ def _montagne(b, variant, passage, largeur, profondeur, hauteur, dens) -> dict:
             e = esc[m["side"]]
             hs = []
             if za > e["zt0"] + 1e-6:
-                hs.append(min(_y_escalier(e["segs"], z) for z in np.linspace(max(zb, e["zt0"]), za, 6)))
+                y_min = min(_y_escalier(e["segs"], z) for z in np.linspace(max(zb, e["zt0"]), za, 6))
+                hs.append(math.floor(y_min * 20) / 20)
             if za > e["zt1"] + 1e-6 and zb < e["zt0"] - 1e-6:
                 hs.append(e["yt"])
             if zb < e["zt1"] - 1e-6:
@@ -1143,7 +1159,7 @@ def _voie(b, z0, z1, rng) -> None:
     for sx in (-1, 1):
         b.box((sx * X_RAIL - 0.25, 2.2, z0 + 2.2), (sx * X_RAIL + 0.25, Y_RAIL, z1 - 2.2), c("metal"), material="Metal")
     # heurtoirs en bout de voie : poutre rayée rouge et blanc sur deux poteaux
-    for zz, sz in ((z0 + 1.6, -1), (z1 - 1.6, 1)):
+    for zz in (z0 + 1.6, z1 - 1.6):
         for sx in (-1, 1):
             b.box((sx * X_RAIL - 0.4, 1.8, zz - 0.4), (sx * X_RAIL + 0.4, 4.6, zz + 0.4), c("bois_fonce"))
         b.box((-4.2, 4.6, zz - 0.5), (-1.4, 5.6, zz + 0.5), c("rouge"))
@@ -1302,6 +1318,7 @@ def train_vapeur(b, variant: int = 0, voitures: int = 3) -> dict:
 
     variant : fenêtres éclairées et volute de vapeur ; 2 et 3 sans écrans pare-fumée."""
     rng = np.random.default_rng(907 + 53 * variant)
+    n0 = len(b.parts)
     voitures = max(0, int(voitures))
     L_train = 2.2 + 20.6 + 0.8 + 11.0 + voitures * (1.6 + 24.0)
     L = L_train + 20.0
@@ -1338,5 +1355,5 @@ def train_vapeur(b, variant: int = 0, voitures: int = 3) -> dict:
             zq = zc - 1.6 - 1.2  # paroi arrière de la caisse
             b.box((2.2, 9.0, zq), (3.0, 9.8, zq + 0.3), LOCO_F, collide=False)
             b.cyl((2.6, 9.4, zq + 0.4), 0.3, 0.2, c("rouge"), axis="z", material="Neon", collide=False)
-    return {"emprise": (17.0, round(L, 2)), "hauteur": 16.0, "longueur": round(L, 2),
-            "longueur_train": round(L_train, 2)}
+    return {"emprise": (17.0, round(L, 2)), "hauteur": 16.1, "longueur": round(L, 2),
+            "longueur_train": round(L_train, 2), "hauteur_vapeur": _mesures(b, n0)["hauteur"]}

@@ -216,8 +216,9 @@ def falaises_laterales(b: Builder) -> None:
         cote = "Gauche" if s < 0 else "Droite"
         z = Z_PORTE - 8
         k = 0
-        while z > Z_MONTAGNE + 0.01:
-            l = min(16, z - Z_MONTAGNE)
+        z_fin = Z_MONTAGNE + 24   # la montagne déborde vers l'avant : les falaises s'arrêtent avant
+        while z > z_fin + 0.01:
+            l = min(16, z - z_fin)
             with b.group(f"Falaises/{cote}"):
                 base = 8 + 6 * math.sin(k * 0.7) + rng.uniform(0, 4)
                 gradins = ((X_FALAISE, X_FALAISE + 16, base),
@@ -370,16 +371,16 @@ def allee_glycines(b: Builder) -> None:
     for s in (-1, 1):
         cote = "G" if s < 0 else "D"
         # treilles sur les trottoirs entre les arches
-        for i, z in enumerate((-188, -224, -260)):
+        for i, z in enumerate((-188, -260)):
             place(b, "glycines", "treille", (s * 35.5, 0, z), yaw=90, group=f"Glycines/Treille{cote}{i}",
                   longueur=20, largeur=7, hauteur=9, variant=i, emprise=(20, 7, 9))
         # glycines en rangée irrégulière derrière les trottoirs
-        for i, z in enumerate(range(-160, -292, -17)):
+        for i, z in enumerate(range(-160, -292, -22)):
             x = s * (50 + (i % 3) * 6)
             place(b, "glycines", "glycine", (x, 0, z - (i % 2) * 4), yaw=(i * 47) % 360, group=f"Glycines/Arbre{cote}{i:02d}",
                   variant=(i + (s > 0)) % 4, taille=1.1 + (i % 3) * 0.15, emprise=(14, 14, 18))
         # glycines géantes au second plan
-        for i, z in enumerate((-180, -236, -284)):
+        for i, z in enumerate((-186, -270)):
             place(b, "glycines", "glycine_geante", (s * (88 + (i % 2) * 14), 0, z), yaw=i * 70,
                   group=f"Glycines/Geante{cote}{i}", variant=i % 4, emprise=(30, 30, 36))
         # bambouseraie au fond
@@ -422,7 +423,7 @@ def place_selection(b: Builder) -> None:
                 with b.group(f"Place/Shide{'G' if s < 0 else 'D'}{i}"):
                     fshide(b, (pa[0], 11, pa[1]), (pb[0], 11, pb[1]), n=5, creux=1.2, variant=i % 2)
     # grands piliers d'entrée et de sortie de place, corde haute au-dessus du couloir
-    for j, z in enumerate((Z_PLACE + R_PLACE + 4, Z_PLACE - R_PLACE - 2)):
+    for j, z in enumerate((Z_PLACE + R_PLACE + 4,)):   # à la sortie, le grand torii de la montagne prend le relais
         for s in (-1, 1):
             with b.at((s * 34, 0, z), group=f"Place/GrandPilier{j}{'G' if s < 0 else 'D'}"):
                 if fpil:
@@ -436,11 +437,10 @@ def place_selection(b: Builder) -> None:
     for i, (x, z) in enumerate(((60, Z_PLACE + 16), (60, Z_PLACE - 16), (-50, Z_PLACE - 14), (-46, Z_PLACE + 30))):
         place(b, "mobilier", "lanterne_pierre", (x, 0, z), yaw=face_couloir(x), group=f"Place/Lanterne{i}", variant=i % 3, emprise=(3, 3, 7))
     # glycines géantes qui encadrent la place (comme sur la référence)
-    for i, (x, z) in enumerate(((-84, Z_PLACE - 6), (-70, Z_PLACE + 34), (-104, Z_PLACE + 26), (112, Z_PLACE - 28),
-                                (108, Z_PLACE + 26), (54, Z_PLACE + 40))):
+    for i, (x, z) in enumerate(((-84, Z_PLACE - 6), (-74, Z_PLACE + 34), (116, Z_PLACE + 4))):
         place(b, "glycines", "glycine_geante", (x, 0, z), yaw=i * 55, group=f"Place/Geante{i}", variant=i % 4,
               taille=0.9 + (i % 3) * 0.1, emprise=(30, 30, 36))
-    for i, (x, z) in enumerate(((-62, Z_PLACE - 28), (44, Z_PLACE - 34), (-40, Z_PLACE + 38))):
+    for i, (x, z) in enumerate(((-68, Z_PLACE - 8), (46, Z_PLACE + 30), (-40, Z_PLACE + 38))):
         place(b, "glycines", "rocher_deco", (x, 0, z), group=f"Place/Rocher{i}", variant=i, emprise=(6, 6, 3))
 
 
