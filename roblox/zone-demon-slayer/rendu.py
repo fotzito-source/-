@@ -81,8 +81,8 @@ def main() -> None:
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
         # soleil bas derrière la montagne, ciel violet : les lanternes (Neon) ressortent
-        bs.setup_world(sun_elev=9, sun_azim=8, view="AgX", look="AgX - Punchy", exposure=0.4,
-                       ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.58, 0.38), soleil_energie=3.0, ciel_force=0.8)
+        bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
+                       ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
         bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
     else:
         bs.setup_world()
