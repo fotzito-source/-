@@ -89,7 +89,7 @@ la zone au soleil couchant (lanternes allumées) : on peut obtenir cet effet dan
 cd roblox/zone-demon-slayer
 python3.13 -m venv .venv && .venv/bin/pip install bpy==5.2.3 numpy pillow
 .venv/bin/python rendu.py                                    # rendus de jour + export (.blend, .rbxm, .rbxl)
-.venv/bin/python rendu.py --sans-export --ambiance crepuscule --suffixe -crepuscule --vues glycines,place
+.venv/bin/python rendu.py --sans-export --ambiance crepuscule --suffixe=-crepuscule --vues glycines,place
 python3 zone.py --stats                                      # plan seul, nombre de pièces par groupe
 ```
 

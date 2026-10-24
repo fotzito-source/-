@@ -39,7 +39,7 @@ VUES = {
     "place": ((18, 11, -282), (0, 48, -400), 72),
     "retour": ((-4, 9, -352), (0, 14, 0), 70),
     "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 55, -250), (0, 55, -390), 62),
+    "montagne": ((0, 84, -304), (0, 60, -404), 64),
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -63,7 +63,7 @@ def main() -> None:
     ap.add_argument("--res", default="1920x1080")
     ap.add_argument("--ambiance", choices=("jour", "crepuscule"), default="jour",
                     help="crepuscule : rendus bonus au soleil couchant (le jeu, lui, garde son éclairage)")
-    ap.add_argument("--suffixe", default="", help="ajouté au nom des images (ex. -crepuscule)")
+    ap.add_argument("--suffixe", default="", help="ajouté au nom des images (ex. --suffixe=-crepuscule)")
     args = ap.parse_args(argv)
 
     write_stud_textures()
