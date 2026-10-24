@@ -50,7 +50,7 @@ Z_ROCHER = -304          # façade du rocher des Hokage
 PROF_ROCHER = 60         # longueur du passage dans la roche
 Z_SORTIE = Z_ROCHER - PROF_ROCHER
 Z_APPROCHE = 48          # sol devant la porte (côté apparition)
-H_GUIRLANDE = 33         # au-dessus de ~30 studs : la caméra Roblox ne « saute » pas
+H_GUIRLANDE = 37         # fil des guirlandes : les lampions restent au-dessus de 30 studs (caméra Roblox)
 
 VERSION = "1.0"
 
