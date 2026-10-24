@@ -241,7 +241,7 @@ def _strates(yr: float, top: float) -> list:
 
 
 def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5, 5.5, 6.5), larg=(10, 14, 18, 22, 26),
-           fissures=0.22, plat=None, sombre=1.0, sens=1):
+           fissures=0.22, plat=None, sombre=1.0, sens=1, touffes=0.0):
     """Peau rocheuse entre x0 et x1, de y0 à y1, adossée au plan z = zr (vers +Z si sens = 1, sinon vers -Z).
 
     Masses de roche (une saillie chacune) recoupées par les strates : les couleurs restent continues
@@ -270,6 +270,15 @@ def _paroi(b, x0, x1, y0, y1, zr, strates, rng, *, saillies=(1.5, 2.5, 3.5, 4.5,
                     sa = float(rng.choice(saillies))
                     if prev is not None and rng.random() < 0.3:
                         sa = min(max(saillies), prev + 1)  # léger surplomb
+                # touffe d'herbe sur la petite corniche laissée par la masse du dessous
+                if prev is not None and sens > 0 and touffes and prev - sa >= 2 and bb - a >= 6 and rng.random() < touffes:
+                    lw = float(rng.choice([3, 4, 5]))
+                    ux = a + 0.25 + float(rng.uniform(0, bb - a - lw - 0.5))
+                    b.box((ux, m0, zr + sa), (ux + lw, m0 + 0.6, zr + prev - 0.25), vary("herbe", rng, 0.05),
+                          studs="top", collide=False)
+                    if rng.random() < 0.5:
+                        b.box((ux + 0.5, m0 + 0.6, zr + sa + 0.2), (ux + lw - 1, m0 + 1.4, zr + prev - 0.6),
+                              vary("feuille", rng, 0.05), studs="top", collide=False)
                 prev = sa
                 for s0, s1, t in strates:
                     lo, hi = max(s0, m0), min(s1, m1)
@@ -311,8 +320,8 @@ def _lampion(b, x, y_haut, z, r=1.3, h=2.6):
 
 
 def _buisson(b, x, y, z, rng, s=1.0):
-    w, d = (3.5 + rng.uniform(0, 2)) * s, (3 + rng.uniform(0, 1.5)) * s
-    h = 2.5 * s
+    w, d = round((3.5 + rng.uniform(0, 2)) * s * 4) / 4 + 0.05, round((3 + rng.uniform(0, 1.5)) * s * 4) / 4 + 0.05
+    h = 2.5 * s + 0.05
     b.box((x - w / 2, y, z - d / 2), (x + w / 2, y + h, z + d / 2), vary("feuille_fonce", rng, 0.05), studs="top", collide=False)
     b.box((x - w / 2 + 0.8, y + h, z - d / 2 + 0.6), (x + w / 2 - 0.6, y + h + 1.3 * s, z + d / 2 - 0.5),
           vary("feuille", rng, 0.05), studs="top", collide=False)
@@ -320,9 +329,9 @@ def _buisson(b, x, y, z, rng, s=1.0):
 
 def _arbre(b, x, y, z, rng, s=1.0):
     """Arbre stud : tronc carré, trois plateaux de feuillage décalés."""
-    th = (5 + rng.uniform(0, 3)) * s
+    th = round((5 + rng.uniform(0, 3)) * s * 4) / 4 + 0.05
     b.box((x - 0.8 * s, y, z - 0.8 * s), (x + 0.8 * s, y + th, z + 0.8 * s), c("tronc"))
-    w = (9 + rng.uniform(0, 2)) * s
+    w = round((9 + rng.uniform(0, 2)) * s * 4) / 4 + 0.05
     y1 = y + th
     b.box((x - w / 2, y1, z - w / 2), (x + w / 2, y1 + 3 * s, z + w / 2), vary("feuille_fonce", rng, 0.04), studs="top")
     dx, dz = rng.uniform(-1, 1, 2) * s
@@ -550,13 +559,13 @@ def rocher_hokage(b, variant: int = 0, passage: float = 68, hauteur_passage: flo
 
             # peau avant
             if kind == "visages":
-                _paroi(b, x0, x1, 0, YR, ZF, strates, rng)
+                _paroi(b, x0, x1, 0, YR, ZF, strates, rng, touffes=0.6)
             elif kind == "portail":
                 _paroi(b, x0, x1, 0, YR, ZF, strates, rng, plat=-ZF)
             elif kind == "escalier":
                 _paroi(b, x0, x1, 0, t1, ZF, strates, rng, plat=-ZF)
             elif kind == "cote":
-                _paroi(b, x0, x1, 0, t1, ZF, strates, rng)
+                _paroi(b, x0, x1, 0, t1, ZF, strates, rng, touffes=0.6)
             # peau arrière (vue depuis la zone suivante)
             y_dos = YR if kind == "tunnel" else 0.0
             _paroi(b, x0, x1, y_dos, tb, -D + 4, strates, rng, saillies=(2, 2.5, 3, 3.5), larg=(16, 22, 28),
