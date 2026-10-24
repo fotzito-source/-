@@ -24,6 +24,8 @@ FONTS = {
     "brush": ("YujiSyuku-Regular.ttf", "https://raw.githubusercontent.com/google/fonts/main/ofl/yujisyuku/YujiSyuku-Regular.ttf"),
     # Gothique lisible pour les petites enseignes
     "sans": ("NotoSansJP[wght].ttf", "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf"),
+    # Capitales à empattements, pour les enseignes de la ville européenne (Garamond dans Roblox) — OFL, google/fonts
+    "serif": ("Cinzel[wght].ttf", "https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/Cinzel%5Bwght%5D.ttf"),
 }
 
 
@@ -156,7 +158,7 @@ def _png_bytes(im: Image.Image) -> bytes:
 @lru_cache(maxsize=None)
 def _font(key: str, size: int) -> ImageFont.FreeTypeFont:
     f = ImageFont.truetype(str(font_path(key)), size)
-    if key == "sans":
+    if key in ("sans", "serif"):
         try:
             f.set_variation_by_axes([800])
         except Exception:

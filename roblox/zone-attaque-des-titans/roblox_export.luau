@@ -197,7 +197,9 @@ for _, p in data.parts do
 		local col = lab.color or { 30, 20, 20 }
 		tl.TextColor3 = Color3.fromRGB(col[1], col[2], col[3])
 		tl.TextScaled = true
-		tl.FontFace = roblox.Font.fromEnum(if lab.font == "sans" then Enum.Font.GothamBlack else Enum.Font.GothamBold)
+		tl.FontFace = roblox.Font.fromEnum(if lab.font == "sans" then Enum.Font.GothamBlack
+			elseif lab.font == "serif" then Enum.Font.Garamond
+			else Enum.Font.GothamBold)
 		local text = lab.text
 		if lab.vertical then
 			local chars = {}

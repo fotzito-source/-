@@ -1,4 +1,4 @@
-"""Assets de la zone Naruto : chaque module expose des fonctions `f(b, variant=0, **params)`.
+"""Assets de la zone My Hero Academia : chaque module expose des fonctions `f(b, variant=0, **params)`.
 
 Conventions communes (voir `CONVENTIONS.md`) :
 - origine = centre de l'emprise au sol, y = 0 au niveau du sol ;
