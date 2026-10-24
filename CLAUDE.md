@@ -59,3 +59,5 @@ Zone Konoha en style stud pour un jeu Roblox de type « Volez un œuf » (couloi
 - `rendu.py` (Python avec `bpy` 5.2, Cycles CPU) fait les rendus `rendus/*.png` et exporte `export/` ; `roblox_export.luau` (Lune) écrit le modèle `.rbxm` et la place `.rbxl`.
 - Studs : `SurfaceType.Studs` sur matériau Plastic par défaut (aucune image à téléverser) ; texture HD optionnelle via `Outils.AppliquerStuds`.
 - Le couloir `|x| < 30` reste vide ; rien au-dessus du couloir sous 30 studs (caméra Roblox).
+- `roblox/zone-demon-slayer/` : même pipeline (zone 3, glycines, ère Taishō) ; `roblox/prompt-zone-one-piece.md` : prompt de la zone 2.
+- Propriété intellectuelle : aucun nom, emblème ni personnage des licences dans les zones (éléments génériques uniquement).

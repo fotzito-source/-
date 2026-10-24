@@ -297,7 +297,7 @@ def arriere_village(b: Builder) -> None:
     """Deuxième plan du village : train à vapeur à gauche, maisons, kura, étang et bambous à droite."""
     place(b, "montagne", "train_vapeur", (-104, 0, -92), group="Village/Train", emprise=(10, 110, 14), voitures=3)
     for i, (x, z, kind, v) in enumerate(((-82, -30, "bambous", 0), (-84, -66, "bambous", 1), (-80, -118, "bambous", 2),
-                                         (-84, -146, "pin", 0), (-120, -40, "pin", 1), (-122, -150, "bambous", 3))):
+                                         (-84, -146, "pin", 0), (-128, -40, "pin", 1), (-124, -150, "bambous", 3))):
         place(b, "glycines", kind, (x, 0, z), group=f"Village/ArriereG/{i:02d}_{kind}", variant=v, emprise=(10, 10, 22))
     place(b, "mobilier", "cloture_bambou", (-76, 0, -84), yaw=90, group="Village/ArriereG/Cloture", longueur=110, emprise=(110, 1, 4))
     # côté droit : seconde rangée tournée vers le couloir, étang, pins
@@ -368,32 +368,28 @@ def allee_glycines(b: Builder) -> None:
     for i, z in enumerate(zs_arches):
         place(b, "glycines", "arche_glycines", (0, 0, z), group=f"Glycines/Arche{i + 1}", emprise=(76, 8, 40),
               portee=80, hauteur=34, variant=i)
+    # emprise des arches : |x| <= 48 et ~±12 en z autour de chaque arche. Entre deux arches (z ≈ -188, -222,
+    # -261) : treilles sur les trottoirs et lanternes ; les glycines se rangent au-delà de |x| = 50.
     for s in (-1, 1):
         cote = "G" if s < 0 else "D"
-        # treilles sur les trottoirs entre les arches
-        for i, z in enumerate((-188, -260)):
+        for i, z in enumerate((-188, -261)):
             place(b, "glycines", "treille", (s * 35.5, 0, z), yaw=90, group=f"Glycines/Treille{cote}{i}",
-                  longueur=20, largeur=7, hauteur=9, variant=i, emprise=(20, 7, 9))
-        # glycines en rangée irrégulière derrière les trottoirs
+                  longueur=12, largeur=7, hauteur=9, variant=i, emprise=(12, 7, 9))
         for i, z in enumerate(range(-160, -292, -22)):
-            x = s * (50 + (i % 3) * 6)
+            x = s * (61 + (i % 2) * 6)
             place(b, "glycines", "glycine", (x, 0, z - (i % 2) * 4), yaw=(i * 47) % 360, group=f"Glycines/Arbre{cote}{i:02d}",
-                  variant=(i + (s > 0)) % 4, taille=1.1 + (i % 3) * 0.15, emprise=(14, 14, 18))
-        # glycines géantes au second plan
-        for i, z in enumerate((-186, -270)):
-            place(b, "glycines", "glycine_geante", (s * (88 + (i % 2) * 14), 0, z), yaw=i * 70,
-                  group=f"Glycines/Geante{cote}{i}", variant=i % 4, emprise=(30, 30, 36))
-        # bambouseraie au fond
-        for i, z in enumerate((-166, -214, -262)):
-            place(b, "glycines", "bambous", (s * (116 + (i % 2) * 6), 0, z), group=f"Glycines/Bambous{cote}{i}",
+                  variant=(i + (s > 0)) % 4, taille=1.0 + (i % 3) * 0.1, emprise=(14, 14, 18))
+        for i, z in enumerate((-186, -262)):
+            place(b, "glycines", "glycine_geante", (s * (98 + (i % 2) * 6), 0, z), yaw=i * 70,
+                  group=f"Glycines/Geante{cote}{i}", variant=(i + (s > 0)) % 4, emprise=(30, 30, 36))
+        for i, z in enumerate((-160, -222, -290)):
+            place(b, "glycines", "bambous", (s * 126, 0, z), group=f"Glycines/Bambous{cote}{i}",
                   variant=i % 4, emprise=(10, 10, 26))
-        # lanternes de pierre le long de l'allée
-        for i, z in enumerate(range(-162, -292, -34)):
-            x = s * 39
-            place(b, "mobilier", "lanterne_pierre", (x, 0, z), yaw=face_couloir(x), group=f"Glycines/Lanterne{cote}{i}",
-                  variant=i % 3, emprise=(3, 3, 7))
-        # rochers, souches, herbes
-        for i, (dx, z, kind) in enumerate(((62, -196, "rocher_deco"), (70, -250, "souche"), (58, -226, "herbes"), (76, -170, "rocher_deco"))):
+        for i, z in enumerate((-188, -222, -261)):
+            x = s * 42.5
+            place(b, "mobilier", "lanterne_pierre", (x, 0, z + (6 if z == -188 else 0)), yaw=face_couloir(x),
+                  group=f"Glycines/Lanterne{cote}{i}", variant=i % 3, emprise=(3, 3, 7))
+        for i, (dx, z, kind) in enumerate(((76, -222, "rocher_deco"), (80, -240, "souche"), (54, -222, "herbes"), (78, -164, "rocher_deco"))):
             place(b, "glycines", kind, (s * dx, 0, z), group=f"Glycines/Deco{cote}{i}", variant=i, emprise=(6, 6, 3))
 
 
@@ -437,7 +433,7 @@ def place_selection(b: Builder) -> None:
     for i, (x, z) in enumerate(((60, Z_PLACE + 16), (60, Z_PLACE - 16), (-50, Z_PLACE - 14), (-46, Z_PLACE + 30))):
         place(b, "mobilier", "lanterne_pierre", (x, 0, z), yaw=face_couloir(x), group=f"Place/Lanterne{i}", variant=i % 3, emprise=(3, 3, 7))
     # glycines géantes qui encadrent la place (comme sur la référence)
-    for i, (x, z) in enumerate(((-84, Z_PLACE - 6), (-74, Z_PLACE + 34), (116, Z_PLACE + 4))):
+    for i, (x, z) in enumerate(((-98, Z_PLACE - 12), (116, Z_PLACE + 4))):
         place(b, "glycines", "glycine_geante", (x, 0, z), yaw=i * 55, group=f"Place/Geante{i}", variant=i % 4,
               taille=0.9 + (i % 3) * 0.1, emprise=(30, 30, 36))
     for i, (x, z) in enumerate(((-68, Z_PLACE - 8), (46, Z_PLACE + 30), (-40, Z_PLACE + 38))):

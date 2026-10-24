@@ -892,7 +892,8 @@ def arche_glycines(b, portee: float = 76, hauteur: float = 34, variant: int = 0)
 def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, variant: int = 0) -> dict:
     """Treille de glycines (fujidana) le long de l'axe X local : poteaux sur dés de pierre, sablières, traverses et
     treillis de lattes, deux glycines tordues qui grimpent aux poteaux, nappe de fleurs sur le treillis et grappes
-    qui pendent au travers jusqu'à environ hauteur - 4 (on passe dessous). Avant = -Z.
+    qui pendent au travers jusqu'à environ hauteur - 4 (on passe dessous). Avant = -Z. Emprise ≈ (longueur + 1,6,
+    largeur + 1) : poteaux en retrait, la nappe et ses rideaux débordent d'environ 0,5 de chaque côté.
     0 bois sombre et glycines mauves, 1 bois brun et glycines violettes, 2 bois clair et glycines blanches,
     3 poteaux vermillon (treille de sanctuaire). ≤ 130 pièces."""
     v = variant % 4
@@ -904,7 +905,7 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
     T = _Arbre(b, 1.0, teinte, budget=130)
     nx = max(2, int(round(L / 6.5)) + 1)
     xs = [float(x) for x in np.linspace(-L / 2 + 0.6, L / 2 - 0.6, nx)]
-    zs = (-W / 2 + 0.6, W / 2 - 0.6)
+    zs = (-W / 2 + 1.3, W / 2 - 1.3)  # poteaux en retrait : la nappe fleurie et ses rideaux restent dans la largeur
     with b.group("Treille"):
         with b.group("Bois"):
             for x in xs:
@@ -913,21 +914,21 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
                     b.box((x - 0.8, 0, z - 0.8), (x + 0.8, 0.45, z + 0.8), vary(c("pierre_fonce"), rng, 0.04),
                           studs="top", name="Socle")
                 # traverse (le long de Z), posée sur les sablières, débordante
-                b.box((x - 0.4, H - 1.0, -W / 2 - 0.5), (x + 0.4, H - 0.4, W / 2 + 0.5), vary(bois2, rng, 0.03),
+                b.box((x - 0.4, H - 1.0, -W / 2 + 0.3), (x + 0.4, H - 0.4, W / 2 - 0.3), vary(bois2, rng, 0.03),
                       name="Traverse")
-                T.bois.append((np.array([x, H - 0.7, -W / 2 - 0.5]), np.array([x, H - 0.7, W / 2 + 0.5]), 0.45))
+                T.bois.append((np.array([x, H - 0.7, -W / 2 + 0.3]), np.array([x, H - 0.7, W / 2 - 0.3]), 0.45))
             for z in zs:  # sablières (le long de X)
                 b.box((-L / 2 - 0.8, H - 2.0, z - 0.6), (L / 2 + 0.8, H - 1.0, z + 0.6), vary(bois2, rng, 0.03),
                       name="Sabliere")
                 T.bois.append((np.array([-L / 2 - 0.8, H - 1.5, z]), np.array([L / 2 + 0.8, H - 1.5, z]), 0.65))
             # treillis : lattes le long de X sur les traverses, puis lattes le long de Z par-dessus
             nzl = max(3, int(round(W / 2.0)))
-            for z in np.linspace(-W / 2 + 1.0, W / 2 - 1.0, nzl):
+            for z in np.linspace(-W / 2 + 0.9, W / 2 - 0.9, nzl):
                 b.box((-L / 2 - 0.5, H - 0.4, z - 0.2), (L / 2 + 0.5, H - 0.1, z + 0.2), vary(bois, rng, 0.03),
                       name="Latte", collide=False)
             nxl = max(2, int(round(L / 3.2)))
             for x in np.linspace(-L / 2 + 1.4, L / 2 - 1.4, nxl):
-                b.box((x - 0.2, H - 0.1, -W / 2 - 0.6), (x + 0.2, H + 0.2, W / 2 + 0.6), vary(bois, rng, 0.03),
+                b.box((x - 0.2, H - 0.1, -W / 2 + 0.2), (x + 0.2, H + 0.2, W / 2 - 0.2), vary(bois, rng, 0.03),
                       name="Latte", collide=False)
             # deux glycines tordues grimpent à des poteaux opposés puis courent sur le treillis
             for (xp, zp, sx, sz) in ((xs[0], zs[0], 1, -1), (xs[-1] if nx > 2 else xs[-1], zs[1], -1, 1)):
@@ -935,8 +936,8 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
                         (xp + 0.8 * sx, 6.0, zp - 0.4 * sz), (xp + 0.2 * sx, H - 0.6, zp + 0.5 * sz),
                         (xp + 4.0 * sx, H + 0.6, zp * 0.4)], 0.8, T.ecorce(1), (20, 45, 70, 95))
         with b.group("Fleurs"):
-            # nappe de fleurs : deux rangées de plaques un peu tournées (avant / arrière) qui débordent des sablières,
-            # avec parfois un trou où l'on voit le treillis
+            # nappe de fleurs : deux rangées de plaques un peu tournées (avant / arrière) qui débordent des sablières
+            # (les rideaux pendent dehors), avec parfois un trou où l'on voit le treillis
             npx = max(1, int(round(L / 5.5)))
             pas = L / npx
             for i in range(npx):
@@ -945,9 +946,9 @@ def treille(b, longueur: float = 20, largeur: float = 8, hauteur: float = 9, var
                         continue
                     cx = -L / 2 + pas * (i + 0.5) + float(rng.uniform(-0.5, 0.5))
                     w = round(pas * float(rng.uniform(0.92, 1.08)) * 2) / 2
-                    d = round((W / 2 + 1.6 + float(rng.uniform(0.0, 0.6))) * 2) / 2
+                    d = math.floor((W / 2 + 0.3 + float(rng.uniform(0.0, 0.2))) * 4) / 4
                     zc = sz * (d / 2 - 0.2)
-                    rot = float(rng.uniform(-6, 6))
+                    rot = float(rng.uniform(-3, 3))
                     y0 = H + 0.2 - T.famille(cx, zc, w, d, rot) / 2 - 0.05
                     T.masse(cx, y0, zc, w, d, 1.0 + 0.5 * ((i + j) % 2), rot, 0)
             # quelques bouffées plus claires sur la nappe

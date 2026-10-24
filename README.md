@@ -27,3 +27,5 @@ python3 render.py --stills 2,24,38   # images de contrôle dans stills/
 | Dossier | Contenu |
 |---|---|
 | [`roblox/zone-naruto/`](roblox/zone-naruto/README.md) | Zone Naruto (Konoha) en style stud pour un jeu Roblox « Volez un œuf » : plan et assets en Python, rendus Blender, modèle Roblox `.rbxm` et place de démo `.rbxl` |
+| [`roblox/zone-demon-slayer/`](roblox/zone-demon-slayer/README.md) | Zone Demon Slayer (village Taishō, allée de glycines, montagne au tunnel de torii), même pipeline |
+| [`roblox/prompt-zone-one-piece.md`](roblox/prompt-zone-one-piece.md) | Prompt complet pour générer la zone One Piece avec un autre Claude Code |
