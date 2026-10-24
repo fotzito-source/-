@@ -21,3 +21,9 @@ cd videos/01-heures-de-priere/animatic
 python3 render.py              # → animatic.mp4 + sous-titres.srt
 python3 render.py --stills 2,24,38   # images de contrôle dans stills/
 ```
+
+## Autre projet : carte Roblox
+
+| Dossier | Contenu |
+|---|---|
+| [`roblox/zone-naruto/`](roblox/zone-naruto/README.md) | Zone Naruto (Konoha) en style stud pour un jeu Roblox « Volez un œuf » : plan et assets en Python, rendus Blender, modèle Roblox `.rbxm` et place de démo `.rbxl` |

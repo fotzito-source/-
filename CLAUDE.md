@@ -52,3 +52,10 @@ python3 render.py --voix voix        # → video-voix-off.mp4 + sous-titres-voix
 1. Générer la voix (ci-dessus), l'écouter, régénérer les répliques mal prononcées.
 2. Faire relire le texte par une personne compétente, puis ouvrir une fois les liens du § 7 de `brief.md`.
 3. Exporter la version finale (avec ou sans sous-titres incrustés, selon l'usage des sous-titres automatiques de TikTok).
+
+## Autre projet du dépôt : carte Roblox « zone Naruto » (`roblox/zone-naruto/`)
+Zone Konoha en style stud pour un jeu Roblox de type « Volez un œuf » (couloir de course vide au centre, décor autour).
+- Tout est décrit en **Parts Roblox** (bloc, coin, cylindre, boule) par des scripts Python : `zone.py` (plan), `assets/*.py` (assets), `kit.py`, `palette.py`. Lire `CONVENTIONS.md` avant d'ajouter un asset.
+- `rendu.py` (Python avec `bpy` 5.2, Cycles CPU) fait les rendus `rendus/*.png` et exporte `export/` ; `roblox_export.luau` (Lune) écrit le modèle `.rbxm` et la place `.rbxl`.
+- Studs : `SurfaceType.Studs` sur matériau Plastic par défaut (aucune image à téléverser) ; texture HD optionnelle via `Outils.AppliquerStuds`.
+- Le couloir `|x| < 30` reste vide ; rien au-dessus du couloir sous 30 studs (caméra Roblox).
