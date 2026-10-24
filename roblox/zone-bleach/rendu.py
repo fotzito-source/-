@@ -32,14 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((200, 230, 120), (0, 0, -215), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),
-    "village": ((6, 8, -36), (0, 20, -260), 70),
-    "glycines": ((4, 7, -160), (0, 22, -330), 70),
-    "place": ((18, 11, -282), (0, 48, -400), 72),
-    "retour": ((-4, 9, -352), (0, 14, 0), 70),
-    "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 84, -304), (0, 60, -404), 64),
+    "aerienne": ((230, 270, 150), (0, 0, -262), 48),
+    "entree": ((0, 8, 62), (0, 32, -60), 76),          # la grande porte blanche, le faubourg derrière
+    "faubourg": ((6, 8, -18), (0, 18, -200), 70),      # route de sable, maisons de bois, porte intérieure
+    "cite": ((4, 8, -192), (0, 22, -380), 70),         # allée entre les murs blancs, passerelle, colline
+    "tours": ((10, 9, -250), (0, 36, -330), 72),       # passerelle laquée et tours blanches
+    "place": ((18, 12, -378), (0, 52, -520), 72),      # cour des œufs, colline, tour et monolithe
+    "retour": ((-4, 9, -444), (0, 16, 0), 70),         # demi-tour vers la base
+    "cote": ((-320, 180, -100), (0, 10, -290), 45),
+    "colline": ((0, 62, -384), (0, 82, -510), 68),     # repère final : tour blanche, monolithe, tunnel
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -55,7 +56,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,village,glycines,place,retour,cote,montagne,plan")
+    ap.add_argument("--vues", default="aerienne,entree,faubourg,cite,tours,place,retour,cote,colline,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -100,9 +101,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -205), (0, 0, -205.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -229), (0, 0, -229.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 540
+                cam.data.ortho_scale = 610
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:

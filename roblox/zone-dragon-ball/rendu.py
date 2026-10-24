@@ -32,14 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((200, 230, 120), (0, 0, -215), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),
-    "village": ((6, 8, -36), (0, 20, -260), 70),
-    "glycines": ((4, 7, -160), (0, 22, -330), 70),
-    "place": ((18, 11, -282), (0, 48, -400), 72),
-    "retour": ((-4, 9, -352), (0, 14, 0), 70),
-    "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 84, -304), (0, 60, -404), 64),
+    "aerienne": ((230, 250, 150), (0, 0, -240), 48),      # toute la zone en 3/4
+    "entree": ((0, 9, 56), (0, 24, -160), 70),             # porte de temple, vue joueur
+    "village": ((6, 8, -24), (0, 18, -240), 70),           # rue des maisons-dômes
+    "friche": ((4, 8, -150), (0, 26, -320), 70),           # terres de combat, mesas, pont de roche
+    "alien": ((10, 9, -282), (0, 24, -450), 70),           # planète extraterrestre, canaux, vaisseau
+    "place": ((18, 11, -346), (0, 34, -470), 72),          # arène des œufs, temple, tribunes, arche au fond
+    "retour": ((-4, 9, -428), (0, 14, 0), 70),             # demi-tour avec l'œuf
+    "cote": ((-300, 170, -90), (0, 10, -260), 45),
+    "arche": ((0, 58, -360), (0, 48, -452), 66),           # arche finale et nuages dorés
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -55,7 +56,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,village,glycines,place,retour,cote,montagne,plan")
+    ap.add_argument("--vues", default="aerienne,entree,village,friche,alien,place,retour,cote,arche,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -70,7 +71,8 @@ def main() -> None:
     b = zone.build_zone()
     build = HERE / "build"
     build.mkdir(exist_ok=True)
-    pj = build / "parts.json"
+    # rendus de contrôle sans export : fichier propre au processus (plusieurs équipes rendent en parallèle)
+    pj = build / ("parts.json" if not args.sans_export else f"parts-{os.getpid()}.json")
     b.save_json(pj, meta=zone.meta())
     attente = sorted({p.name for p in b.parts if p.name.startswith("ATTENTE_")})
     gene = zone.couloir_libre(b)
@@ -80,7 +82,7 @@ def main() -> None:
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
-        # soleil bas derrière la montagne, ciel violet : les lanternes (Neon) ressortent
+        # soleil bas derrière l'arche, ciel violet : lampes et braseros (Neon) ressortent
         bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
                        ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
         bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
@@ -100,9 +102,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -205), (0, 0, -205.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -218), (0, 0, -218.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 540
+                cam.data.ortho_scale = 560
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:
@@ -112,7 +114,9 @@ def main() -> None:
             bpy.data.objects.remove(cam, do_unlink=True)
             print(f"vue {name} : {time.time() - t0:.0f} s")
 
-    if not args.sans_export:
+    if args.sans_export:
+        pj.unlink(missing_ok=True)
+    else:
         exp = HERE / "export"
         exp.mkdir(exist_ok=True)
         bs.export(blend=exp / "ZoneDragonBall.blend", glb=exp / "ZoneDragonBall.glb")

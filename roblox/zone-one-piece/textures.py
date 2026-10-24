@@ -228,7 +228,12 @@ def label_image(text: str, fg, bg, w_px: int, h_px: int, font: str = "brush", ve
     if vertical:
         size = int(min(w_px * 0.8, h_px * 0.86 / max(n, 1)))
     else:
-        size = int(min(h_px * 0.78, w_px * 0.9 / max(n, 1)))
+        # texte latin (« VITESSE CONSEILLÉE : 200 ») : on mesure la vraie largeur au lieu de compter
+        # un cadratin par caractère, comme le TextScaled de Roblox
+        size = int(h_px * 0.72)
+        tw = d.textbbox((0, 0), text, font=_font(font, max(size, 8)))
+        if tw[2] - tw[0] > w_px * 0.92:
+            size = int(size * w_px * 0.92 / (tw[2] - tw[0]))
     f = _font(font, max(size, 8))
     if vertical:
         step = h_px / n

@@ -32,14 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((200, 230, 120), (0, 0, -215), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),
-    "village": ((6, 8, -36), (0, 20, -260), 70),
-    "glycines": ((4, 7, -160), (0, 22, -330), 70),
-    "place": ((18, 11, -282), (0, 48, -400), 72),
-    "retour": ((-4, 9, -352), (0, 14, 0), 70),
-    "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 84, -304), (0, 60, -404), 64),
+    "aerienne": ((230, 250, 150), (0, 0, -250), 50),
+    "entree": ((0, 9, 30), (0, 27, -160), 72),          # devant le viaduc, la rue commerçante en enfilade
+    "rue": ((6, 8, -24), (0, 22, -200), 70),             # rue commerçante, passerelle 1 au fond
+    "tours": ((-6, 8, -158), (0, 34, -330), 70),         # quartier des tours et des écrans
+    "approche": ((-10, 9, -262), (12, 32, -400), 72),    # tour cylindrique, immeuble à écrans, carrefour
+    "place": ((44, 52, -322), (0, 0, -412), 64),         # vue plongeante sur le carrefour « scramble »
+    "retour": ((-4, 9, -470), (0, 16, 0), 70),           # retour vers la base, depuis l'incident
+    "cote": ((-320, 180, -60), (0, 10, -260), 45),
+    "final": ((0, 10, -414), (0, 44, -496), 74),         # l'immeuble effondré en arche, la sortie, les dômes
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -55,7 +56,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,village,glycines,place,retour,cote,montagne,plan")
+    ap.add_argument("--vues", default="aerienne,entree,rue,tours,approche,place,retour,cote,final,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -100,9 +101,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -205), (0, 0, -205.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -232), (0, 0, -232.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 540
+                cam.data.ortho_scale = 580
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:
