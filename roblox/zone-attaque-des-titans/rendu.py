@@ -34,12 +34,12 @@ from textures import write_stud_textures  # noqa: E402
 VUES = {
     "aerienne": ((-240, 340, 120), (10, 0, -285), 48),     # de haut, côté soleil : la ville au-dessus du rempart gauche
     "entree": ((0, 6, 7), (0, 40, -72), 80),             # vue joueur : chemin, prairie, muraille et porte colossale entières
-    "prairie": ((-40, 9, 6), (70, 30, -50), 74),          # 3/4 sur la prairie : moulin, ferme, muraille et tunnel
+    "prairie": ((34, 8, 6), (-20, 36, -72), 74),          # 3/4 sur la prairie : moulin, ferme, muraille et tunnel
     "rue": ((10, 9, -92), (0, 22, -300), 70),             # place de la porte → rue des colombages
     "eglise": ((24, 10, -192), (-56, 34, -252), 66),       # église et clocher à gauche, mât de fête
     "canal": ((40, 24, -262), (72, 0, -380), 64),          # le canal, ses ponts et la rive droite, vus du trottoir
     "place": ((-20, 12, -398), (70, 32, -462), 72),        # grand-place des œufs : cadran, beffroi, muraille intérieure
-    "oeufs": ((30, 10, -420), (0, 6, -470), 66),          # fontaine de la place des œufs
+    "oeufs": ((-10, 12, -418), (-72, 5, -452), 60),       # place des œufs : fontaine, beffroi, rosace
     "retour": ((-4, 9, -470), (0, 22, -60), 70),           # vers la base : la rue et la muraille d'entrée
     "cote": ((-380, 260, -80), (0, 10, -300), 45),         # rempart gauche et champs ; la ville du canal par-dessus
     "final": ((0, 14, -398), (0, 64, -548), 68),           # muraille intérieure et tunnel de sortie

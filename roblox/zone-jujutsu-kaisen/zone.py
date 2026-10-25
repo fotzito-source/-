@@ -806,7 +806,6 @@ def mobilier_rue(b: Builder) -> None:
         ("distributeurs", 1, 1.75, -244, 10, {"nombre": 3, "variant": 0}),
         ("distributeurs", 1, 1.75, 20, 10, {"nombre": 3, "variant": 2}),
         ("velos", 1, 3.5, -27, 8, {"nombre": 4, "variant": 0}),
-        ("velos", -1, 3.5, 22, 8, {"nombre": 4, "variant": 1}),
         ("velos", -1, 3.5, -30, 8, {"nombre": 3, "variant": 2}),
         ("poubelles_tri", -1, 1.7, -74, 7, {"variant": 0}),
         ("poubelles_tri", 1, 1.7, -60, 7, {"variant": 1}),

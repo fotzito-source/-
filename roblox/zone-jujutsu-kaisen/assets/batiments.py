@@ -285,6 +285,18 @@ def _ecran(b, x0, x1, y0, y1, z, style, couleurs, *, cadre=0.6, ep=0.6, relief=0
         _n(b, (cx - r, cy - r * 0.7, zi - 0.15), (cx + r, cy + r * 0.7, zi), "neon_jaune", name="Disque")
         _n(b, (cx - r * 0.7, cy - r, zi - 0.15), (cx + r * 0.7, cy + r, zi), "neon_jaune", name="Disque")
         _n(b, (a0, b0 + H * 0.17, zi - 0.3), (a1, b0 + H * 0.24, zi), "neon_blanc", name="Horizon")
+    elif style == "ville":                    # ciel en deux bandes, lune, silhouette de ville, fenêtres allumées
+        _n(b, (a0, b0 + H * 0.5, zi), (a1, b1, z), c1, name="Image")
+        _n(b, (a0, b0, zi), (a1, b0 + H * 0.5, z), c2, name="Image")
+        _n(b, (a0 + W * 0.72, b0 + H * 0.68, zi - 0.1), (a0 + W * 0.86, b0 + H * 0.86, zi), "neon_blanc", name="Lune")
+        hauts = (0.42, 0.62, 0.34, 0.74, 0.5, 0.3, 0.58)
+        n = len(hauts)
+        for k, hk in enumerate(hauts):
+            xa_, xb_ = a0 + k * W / n, a0 + (k + 1) * W / n - 0.15
+            _d(b, (xa_, b0, zi - 0.1), (xb_, b0 + H * hk, zi), "ecran_fond", name="Silhouette")
+            if k % 2 == 0:
+                _n(b, (xa_ + W / n * 0.3, b0 + H * hk * 0.55, zi - 0.2), (xa_ + W / n * 0.6, b0 + H * hk * 0.7, zi - 0.1), c3,
+                   name="Fenetre")
     elif style == "rayures":                  # rayures verticales alternées
         n = 5
         for k in range(n):
@@ -1331,7 +1343,7 @@ def tour_bureaux(b, variant=0, largeur=28, profondeur=28, hauteur=96, panneau_to
 ECRANS = {
     # (style, couleurs, mot du bandeau défilant)
     0: ("soleil", ("ecran_rose", "neon_magenta", "ecran_orange"), "百貨店"),
-    1: ("diagonale", ("ecran_bleu", "neon_cyan", "neon_blanc"), "映画"),
+    1: ("ville", ("ecran_bleu", "neon_violet", "neon_jaune"), "映画"),
     2: ("cercle", ("ecran_orange", "neon_jaune", "neon_rose"), "カラオケ"),
 }
 
@@ -1429,7 +1441,7 @@ def grand_magasin(b, variant=0, largeur=40, profondeur=32, hauteur=64, ecran=Tru
     _acrotere(b, -hw, hw, zf, zb, hr, shade(corps, 0.92), h=1.2)
     b.box((-hw + ins, hr, zf + ins), (hw - ins, H, zb - ins), shade(corps, 0.95), studs="top", name="Attique")
     _d(b, (-hw + ins + 1.5, hr + 1.8, zf + ins - 0.12), (hw - ins - 1.5, H - 1.6, zf + ins + 1.0),
-       "vitre_bleue" if v != 1 else "fenetre_froide", material="SmoothPlastic" if v != 1 else "Neon", name="Ruban")
+       "vitre_bleue" if v != 1 else "fenetre_froide", material="SmoothPlastic", name="Ruban")
     _ceinture(b, -hw + ins, hw - ins, zf + ins, zb - ins, H - 0.9, H - 0.1, accent, s=0.2)
     _ceinture(b, -hw + ins, hw - ins, zf + ins, zb - ins, hr + 0.6, hr + 1.1, ("neon_rose", "neon_cyan", "fenetre_froide")[v],
               s=0.12, material="Neon", name="LiseréAttique")
@@ -1488,9 +1500,9 @@ def immeuble_fond(b, variant=0, largeur=24, profondeur=24, hauteur=50):
         lit = allume[k]
         cc = ("fenetre_chaude" if v in (0, 3) else "fenetre_froide") if lit else ruban
         if v in (0, 2):
-            _ceinture(b, -hw + 0.0, hw, zf, zb, y, y + h, cc, s=0.12, material="Neon" if lit else "SmoothPlastic", name="Ruban")
+            _ceinture(b, -hw + 0.0, hw, zf, zb, y, y + h, cc, s=0.12, material="SmoothPlastic", name="Ruban")
         else:
-            _d(b, (-hw + 1.5, y, zf - 0.12), (hw - 1.5, y + h, zb + 0.12), cc, material="Neon" if lit else "SmoothPlastic", name="Ruban")
+            _d(b, (-hw + 1.5, y, zf - 0.12), (hw - 1.5, y + h, zb + 0.12), cc, material="SmoothPlastic", name="Ruban")
     # meneaux filants : ils découpent les rubans en fenêtres (avant et arrière)
     nm = 2 if W < 22 else 3
     for x in np.linspace(-hw, hw, nm + 2)[1:-1]:
