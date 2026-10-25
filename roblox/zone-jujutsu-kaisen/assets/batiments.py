@@ -391,6 +391,26 @@ def _panneau_mural(b, g, y0, y1, za, zb, style, couleurs, *, mot=None, encre="bl
         for k in range(3):
             _d(b, (-hw - e3, b0 + H * (0.12 + 0.26 * k), a0 + W * (0.1 + 0.27 * k)),
                (hw + e3, b0 + H * (0.34 + 0.26 * k), a0 + W * (0.38 + 0.27 * k)), (c2, c3, c2)[k], name="PubMarche", **tr)
+    elif style == "ville":                  # ciel en deux bandes, lune, silhouette de ville et fenêtres allumées
+        _d(b, (-hw - e2, b0 + H * 0.5, a0), (hw + e2, b1, a1), c1, name="PubCiel", **tr)
+        _d(b, (-hw - e2, b0, a0), (hw + e2, b0 + H * 0.5, a1), c2, name="PubCiel", **tr)
+        _d(b, (-hw - e3, b0 + H * 0.68, a0 + W * 0.72), (hw + e3, b0 + H * 0.86, a0 + W * 0.86), "neon_blanc", name="PubLune", **tr)
+        hauts = (0.42, 0.62, 0.34, 0.74, 0.5, 0.3, 0.58)
+        n = len(hauts)
+        for k, hk in enumerate(hauts):
+            za_, zb_ = a0 + k * W / n, a0 + (k + 1) * W / n - 0.15
+            _d(b, (-hw - e3, b0, za_), (hw + e3, b0 + H * hk, zb_), "ecran_fond", name="PubImmeuble", shadow=False)
+            if k % 2 == 0:
+                _d(b, (-hw - e3 - 0.1, b0 + H * hk * 0.55, za_ + W / n * 0.3), (hw + e3 + 0.1, b0 + H * hk * 0.7, za_ + W / n * 0.6),
+                   c3, name="PubFenetre", **tr)
+    elif style == "vague":                  # fond uni et deux vagues en marches de pixels
+        _d(b, (-hw - e2, b0, a0), (hw + e2, b1, a1), c1, name="PubFond", **tr)
+        n = 8
+        for row, (yb_, cc) in enumerate(((0.18, c2), (0.5, c3))):
+            for k in range(n):
+                hk = H * (0.12 + 0.1 * (1 + math.sin(k * 0.9 + row * 1.7)))
+                _d(b, (-hw - e3, b0 + H * yb_, a0 + k * W / n), (hw + e3, b0 + H * yb_ + hk, a0 + (k + 1) * W / n), cc,
+                   name="PubVague", **tr)
     elif style == "rayures":                # rayures verticales alternées et bandeau
         n = 4
         for k in range(n):
@@ -1191,7 +1211,7 @@ def tour_bureaux(b, variant=0, largeur=28, profondeur=28, hauteur=96, panneau_to
         _n(b, (x0 + 0.5, ys + 4.0, z0 - 0.35), (x0 + 1.3, H - 6.0, z0 + 0.0), "neon_jaune", name="NeonVertical")
         _n(b, (x1 + 0.0, ys + 10.0, z1 - 1.3), (x1 + 0.35, H - 12.0, z1 - 0.5), "neon_magenta", name="NeonVertical")
         _ceinture(b, x0, x1, z0, z1, H - 1.2, H - 0.2, "neon_jaune", s=0.2, material="Neon", name="Couronne")
-        _panneau_mural(b, g, H - 36.0, H - 13.0, z0 + 3.0, z1 - 3.4, "diagonale", ("ecran_orange", "neon_jaune", "neon_blanc"),
+        _panneau_mural(b, g, H - 36.0, H - 13.0, z0 + 3.0, z1 - 3.4, "ville", ("ecran_orange", "ecran_rose", "neon_jaune"),
                        x_mur=x1, s0=0.45)
     elif v == 2:
         # brique : colonnes de fenêtres (certaines éclairées), allèges sombres, couronne en gradins
@@ -1230,7 +1250,7 @@ def tour_bureaux(b, variant=0, largeur=28, profondeur=28, hauteur=96, panneau_to
                 _ceinture(b, x0, x1, z0, z1, y + 0.4, y + 3.0, "fenetre_froide", s=0.14, material="Neon", name="EtageAllume")
         _meneaux(b, x0, x1, z0, z1, ys, H - 0.2, 6, 6, shade(corps, 1.08), w=0.6, s=0.9)
         _ceinture(b, x0, x1, z0, z1, H - 1.0, H - 0.2, shade(corps, 0.9), s=1.0)
-        _panneau_mural(b, g, H - 30.0, H - 8.0, z0 + 2.5, z1 - 2.5, "rayures", ("ecran_rose", "neon_magenta", "neon_cyan"),
+        _panneau_mural(b, g, H - 30.0, H - 8.0, z0 + 2.5, z1 - 2.5, "vague", ("ecran_bleu", "neon_cyan", "neon_vert"),
                        x_mur=x1, s0=1.0)
     else:
         # la plus haute : verre cyan à allèges claires, arêtes au néon, deux retraits, couronne lumineuse et flèche

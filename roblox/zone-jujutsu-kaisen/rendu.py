@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rendus Blender et exports de la zone Jujutsu Kaisen.
+"""Rendus Blender et exports de la zone 5 (ville de nuit).
 
 À lancer avec le Python qui contient `bpy` (Blender 5.2 en module) ou via Blender :
     python rendu.py                          # zone.py → build/parts.json → rendus/*.png + exports
@@ -8,8 +8,8 @@
     python rendu.py --sans-rendu             # exports seulement
     blender -b -P rendu.py -- --vues plan
 
-Exports : export/ZoneJujutsuKaisen.blend (scène Blender), export/ZoneJujutsuKaisen.glb (maillages, couleurs
-par sommet), puis export/ZoneJujutsuKaisen.rbxmx et export/ZoneJujutsuKaisen-demo.rbxl via Lune si disponible.
+Exports : export/ZoneVilleNuit.blend (scène Blender), export/ZoneVilleNuit.glb (maillages, couleurs
+par sommet), puis export/ZoneVilleNuit.rbxmx et export/ZoneVilleNuit-demo.rbxl via Lune si disponible.
 """
 
 from __future__ import annotations
@@ -36,11 +36,12 @@ VUES = {
     "entree": ((0, 12, 74), (0, 34, -160), 62),         # devant le viaduc et son train, la rue commerçante en enfilade
     "rue": ((10, 8, -20), (0, 24, -200), 70),            # rue commerçante, passerelle 1 au fond
     "tours": ((-10, 8, -158), (0, 36, -330), 70),        # quartier des tours et des écrans
-    "approche": ((-42, 10, -318), (36, 32, -386), 66),   # après la passerelle 2 : tour cylindrique, carrefour, arche
+    "approche": ((-40, 6, -312), (30, 26, -380), 68),    # après la passerelle 2 : tour cylindrique, carrefour, arche
     "place": ((-20, 98, -310), (4, 0, -424), 66),        # vue plongeante sur le carrefour « scramble »
     "retour": ((-6, 9, -468), (0, 18, 0), 70),           # retour vers la base, depuis l'incident
     "cote": ((-340, 330, 60), (0, 0, -250), 46),
-    "final": ((0, 9, -400), (0, 34, -496), 74),          # l'immeuble effondré en arche, la gare, la tour endommagée
+    "incident": ((10, 8, -414), (0, 30, -496), 72),      # l'incident : gravats, fissures, voiles, arche effondrée
+    "final": ((0, 9, -392), (0, 34, -496), 74),          # l'immeuble effondré en arche, la gare, la tour endommagée
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -56,7 +57,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,rue,tours,approche,place,retour,cote,final,plan")
+    ap.add_argument("--vues", default="aerienne,entree,rue,tours,approche,place,incident,retour,cote,final,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -126,7 +127,7 @@ def main() -> None:
     if not args.sans_export:
         exp = HERE / "export"
         exp.mkdir(exist_ok=True)
-        bs.export(blend=exp / "ZoneJujutsuKaisen.blend", glb=exp / "ZoneJujutsuKaisen.glb")
+        bs.export(blend=exp / "ZoneVilleNuit.blend", glb=exp / "ZoneVilleNuit.glb")
         lune = lune_path()
         if lune:
             r = subprocess.run([lune, "run", str(HERE / "roblox_export.luau"), "--", str(pj), str(exp)],

@@ -33,7 +33,7 @@ from textures import write_stud_textures  # noqa: E402
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
     "aerienne": ((-215, 300, 150), (10, 0, -285), 46),  # depuis le côté ensoleillé (-X, +Z)
-    "entree": ((0, 9, 40), (0, 26, -150), 72),         # rue de la ville sous le viaduc, portail au bout
+    "entree": ((0, 9, -3), (0, 24, -150), 74),         # rue de la ville sous le viaduc, portail au bout
     "ville": ((10, 8, -40), (0, 24, -150), 70),         # boutiques, rue latérale, grand portail de sécurité
     "campus": ((6, 8, -150), (0, 34, -420), 70),        # avenue du campus, dortoirs, tours au fond
     "avenue": ((-30, 8, -146), (-38, 26, -300), 72),    # cadrage de la référence 2 : dortoirs, conifères, tours

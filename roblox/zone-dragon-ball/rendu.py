@@ -36,8 +36,8 @@ VUES = {
     "entree": ((0, 10, 46), (0, 30, -60), 80),             # porte de temple et rue, vue joueur (sol de l'approche)
     "village": ((0, 26, 10), (0, 10, -120), 62),           # rue des grands dômes (couloir de 90)
     "friche": ((6, 14, -140), (0, 30, -300), 74),          # terres de combat, mesas, pont de roche
-    "alien": ((36, 6, -286), (100, 4, -330), 72),          # planète : lac, îlots, arbres boules, dômes
-    "vaisseau": ((-30, 9, -296), (-96, 14, -320), 70),     # planète : vaisseau rond, canal, passerelles
+    "alien": ((46, 9, -278), (108, 4, -322), 72),          # planète : lac, îlots, arbres boules, dômes
+    "vaisseau": ((-34, 10, -342), (-96, 13, -310), 70),     # planète : vaisseau rond, canal, passerelles
     "place": ((22, 11, -334), (0, 34, -470), 72),          # arène des œufs, temple, tribunes, arche au fond
     "retour": ((-6, 9, -426), (0, 14, 0), 70),             # demi-tour avec l'œuf
     "cote": ((-150, 150, 60), (10, 0, -250), 50),          # vue de côté au-dessus des crêtes

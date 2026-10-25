@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan de la zone Jujutsu Kaisen (la ville de nuit pendant un incident surnaturel) en style stud.
+"""Plan de la zone 5 (ville de nuit) (la ville de nuit pendant un incident surnaturel) en style stud.
 
 Repère Roblox (Y en haut, 1 unité = 1 stud) :
 - le couloir de course occupe x ∈ [-45, 45] (90 de large), bordé de trottoirs jusqu'aux façades (|x| = 55) ;
@@ -54,16 +54,17 @@ Z_RUELLE = (-100, -84)   # petite rue transversale de la rue commerçante
 Z_PASSERELLE_1 = -150
 Z_TOURS = -156
 Z_PASSERELLE_2 = -300
-Z_PLACE = -400           # centre du grand carrefour = place des œufs
+Z_PLACE = -390           # centre du grand carrefour = place des œufs
 R_PLACE = 34
 DEMI_TRANSVERSALE = 34   # demi-largeur de la chaussée de la grande rue transversale
 X_CARREFOUR = 59         # demi-largeur du carré peint du carrefour (passages piétons compris)
-Z_CARREFOUR_N, Z_CARREFOUR_S = Z_PLACE + 46, Z_PLACE - 46      # -354, -446
+Z_CARREFOUR_N, Z_CARREFOUR_S = Z_PLACE + 46, Z_PLACE - 46      # -344, -436
 Z_TRANSVERSALE = (Z_PLACE - DEMI_TRANSVERSALE, Z_PLACE + DEMI_TRANSVERSALE)
 Z_EFFONDRE = -485        # immeuble effondré (repère final), emprise z ∈ [-496, -474]
 Z_SORTIE = -496
-DOME_G = (-190, -420, 70)    # dômes de barrière : (x, z, rayon)
-DOME_D = (188, -438, 52)
+DOME_G = (-200, -432, 62)    # dômes de barrière : (x, z, rayon)
+DOME_D = (196, -428, 64)
+Y_COLONNE = 150              # sommet des colonnes de voile qui montent des dômes (visibles depuis la rue)
 
 VERSION = "1.0"
 
@@ -179,6 +180,11 @@ FISSURES = [
     [(22, -477), (36, -474)],
     [(-30, -469), (-42, -476), (-50, -486)],
     [(46, -473), (53, -482), (50, -494)],
+    [(-20, -437), (-12, -444), (-24, -447)],
+    [(28, -437), (20, -443), (8, -446)],
+    [(-44, -440), (-36, -452), (-54, -458)],
+    [(2, -470), (-9, -476), (-11, -481)],
+    [(30, -455), (16, -455)],
 ]
 
 
@@ -263,6 +269,11 @@ def couleur_couloir(x: float, z: float):
         return c("marquage")
     if (Z_CARREFOUR_N + 2 <= z < Z_CARREFOUR_N + 4 and x < 0) or (Z_CARREFOUR_S - 4 <= z < Z_CARREFOUR_S - 2 and x > 0):
         return c("marquage")
+    for zp in (-232, -176, -276):                          # passages piétons du quartier des tours (rythme au sol)
+        if zp <= z < zp + 10:
+            return c("marquage") if ax < W - 2 and math.floor((x + W) / 2) % 2 == 0 else c("asphalte")
+        if (zp + 12 <= z < zp + 14 and x < 0) or (zp - 4 <= z < zp - 2 and x > 0):
+            return c("marquage")
     if z < Z_CARREFOUR_S and 1 <= ax < 3:                 # incident : ligne médiane effacée par endroits
         return c("marquage_jaune") if math.floor(z / 10) % 2 else c("asphalte")
     return marquages_couloir(x, z)
@@ -431,7 +442,7 @@ def skyline_lateral(b: Builder) -> None:
 
                 def ceinture(x0, x1, z0, z1, y0, y1, lit, couleur=None, nom="Ruban", neon=None, d=e):
                     cc = couleur or ((c("fenetre_froide"), c("fenetre_chaude"))[int(r2.integers(0, 2))] if lit else eteint)
-                    neon = (lit or couleur is not None) if neon is None else neon
+                    neon = (couleur is not None) if neon is None else neon     # fenêtres lointaines : pas de Neon
                     b.box((x0 - d, y0, z0 - d), (x1 + d, y1, z1 + d), cc, material="Neon" if neon else "SmoothPlastic",
                           collide=False, shadow=False, name=nom)
 
@@ -572,7 +583,7 @@ TOURS_DROITE = [
 ]
 APPROCHE_GAUCHE = [
     ("batiments:immeuble_boutique", 10, 22, {"variant": 5, "enseigne": "ラーメン", "etages": 8}, 2),
-    ("carrefour:immeuble_ecran", 42, 44, {"variant": 0, "hauteur": 72, "angle": "gauche"}, 0),
+    ("carrefour:immeuble_ecran", 32, 44, {"variant": 0, "hauteur": 72, "angle": "gauche"}, 0),
 ]
 
 
@@ -635,7 +646,7 @@ def immeubles(b: Builder) -> dict:
             place(b, "batiments", "immeuble_fond", (x, 0, zc), yaw=face_couloir(x), group=f"Arriere/{'Gauche' if s < 0 else 'Droite'}/{i:02d}",
                   emprise=(larg, prof, h), variant=v, largeur=larg, profondeur=prof, hauteur=h)
     # immeubles de la grande rue transversale (côté nord), tournés vers le carrefour (-Z)
-    for i, (x, larg, prof, h, v) in enumerate(((-125, 40, 28, 62, 1), (129, 38, 28, 70, 3))):
+    for i, (x, larg, prof, h, v) in enumerate(((-125, 40, 18, 62, 1), (129, 38, 18, 70, 3))):
         place(b, "batiments", "immeuble_fond", (x, 0, Z_CARREFOUR_N + prof / 2), yaw=0, group=f"Arriere/Transversale{i}",
               emprise=(larg, prof, h), variant=v, largeur=larg, profondeur=prof, hauteur=h)
     # derrière l'immeuble à écrans (gauche) et derrière la tour cylindrique (droite)
@@ -672,6 +683,9 @@ def carrefour(b: Builder) -> None:
             reserver(-1 if x < 0 else 1, z - 1, z + 1, f"feu carrefour {z}")
         place(b, "mobilier", "feu_tricolore", (x, 0, z), yaw=yaw, group=f"Carrefour/Feu{i}", emprise=(2, 7, 14), variant=v,
               bras=6.5)
+    # bout de la rue transversale côté -X : immeuble couvert d'écrans géants tourné vers le carrefour (+X)
+    place(b, "carrefour", "immeuble_ecran", (-112, 0, Z_PLACE), yaw=0, group="Carrefour/EcransOuest", emprise=(42, 44, 66),
+          variant=3, largeur=42, profondeur=44, hauteur=66, angle="droite")
     # parvis de la tour cylindrique : arbres et bancs
     for i, x in enumerate((63, 105)):
         place(b, "mobilier", "arbre_rue", (x, 0, -301.5), group=f"Carrefour/Parvis/Arbre{i}", variant=(0, 2)[i], taille=0.9,
@@ -684,14 +698,39 @@ def carrefour(b: Builder) -> None:
 # Incident et sortie
 # ---------------------------------------------------------------------------
 
+def colonne_voile(b: Builder, x: float, z: float, r: float, groupe: str) -> None:
+    """Colonne de voile violette qui monte du sommet d'un dôme jusqu'à Y_COLONNE : dalles translucides
+    empilées, arêtes au néon, anneaux lumineux. Elle dépasse des toits et se voit depuis la rue."""
+    with b.group(groupe):
+        y = r - 2.0
+        k = 0
+        while y < Y_COLONNE - 0.5:
+            h = min(14.0, Y_COLONNE - y)
+            w = 12.0 - 3.0 * (k % 2) * 0.5
+            b.boxc((x, y + h / 2, z), (w, h, w), c("voile_moyen") if k % 2 else c("voile_clair"), yaw=(k * 17) % 90,
+                   transparency=0.35, collide=False, name="Colonne")
+            y += h
+            k += 1
+        for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            b.boxc((x + dx * 6.3, (r + Y_COLONNE) / 2, z + dz * 6.3), (0.6, Y_COLONNE - r, 0.6), c("voile_bord"),
+                   material="Neon", collide=False, name="Arete")
+        for yy in (r + 18, r + 46, Y_COLONNE - 4):
+            b.boxc((x, yy, z), (15.0, 1.0, 15.0), c("lueur_violette"), material="Neon", transparency=0.2, collide=False,
+                   name="Anneau")
+
+
 def incident(b: Builder) -> None:
     place(b, "incident", "immeuble_effondre", (0, 0, Z_EFFONDRE), group="Monuments/Effondre", emprise=(220, 22, 100),
           portique=(2 * DEMI_COULOIR, H_LIBRE), passage=2 * DEMI_COULOIR, hauteur_libre=H_LIBRE)
     for i, (x, z, r) in enumerate((DOME_G, DOME_D)):
         place(b, "incident", "voile_dome", (x, 0, z), group=f"Monuments/Voile{i + 1}", emprise=(2 * r, 2 * r, r),
               variant=i, rayon=r)
+    for i, (x, z, r) in enumerate((DOME_G, DOME_D)):
+        colonne_voile(b, x, z, r, f"Monuments/Voile{i + 1}/Colonne")
     # trottoirs du couloir (|x| 45-55) : barrières 立入禁止, voitures abandonnées, gravats — réservés pour ne rien empiler
     trottoirs = [
+        ("gravats", -1, 4, -440, 15, 6, {"variant": 2, "taille": 0.9}),
+        ("barriere_chantier", 1, 7, -441, 90, 8, {"longueur": 8, "variant": 2}),
         # (fonction, côté, distance à la façade, z, yaw, longueur occupée le long du trottoir, paramètres)
         ("barriere_chantier", -1, 7, -450.5, 90, 8, {"longueur": 8, "variant": 0}),
         ("voiture_abandonnee", -1, 4.5, -460, 0, 9, {"variant": 1}),
@@ -705,15 +744,20 @@ def incident(b: Builder) -> None:
         mod = "mobilier" if fn == "barriere_chantier" else "incident"
         place(b, mod, fn, (xt(s, d), 0, z), yaw=yaw, group=f"Incident/Trottoir{i:02d}_{fn}", emprise=(4.6, L, 4), **kw)
     # rue transversale et abords : gravats, voitures, barrières qui coupent la rue devant les dômes
-    for i, (x, z, v, t) in enumerate(((-72, -438, 2, 1.0), (68, -438, 0, 1.1), (-96, -380, 1, 1.0), (98, -414, 2, 0.9),
+    dz = Z_PLACE + 400                     # positions écrites pour le carrefour en z = -400
+    for i, (x, z, v, t) in enumerate(((-72, -438, 2, 1.0), (68, -438, 0, 1.1), (-75, -372, 1, 1.0), (98, -414, 2, 0.9),
                                       (124, -362, 1, 1.0), (-104, -362, 0, 0.8), (-84, -430, 1, 0.7), (112, -432, 3, 1.0))):
+        z += dz
         place(b, "incident", "gravats", (x, 0, z), yaw=(i * 67) % 360, group=f"Incident/Gravats{i}", emprise=(6, 6, 3), variant=v, taille=t)
     for i, (x, z, yaw, v) in enumerate(((-80, -404, 30, 0), (84, -420, -20, 3), (118, -392, 75, 1))):
+        z += dz
         place(b, "incident", "voiture_abandonnee", (x, 0, z), yaw=yaw, group=f"Incident/Voiture{i}", emprise=(4.6, 9, 4), variant=v)
-    for i, (x, z, yaw, L, v) in enumerate(((-78, -443, 0, 12, 2), (80, -443, 0, 12, 1), (-110, -400, 90, 24, 0), (134, -400, 90, 24, 2))):
+    for i, (x, z, yaw, L, v) in enumerate(((-78, -443, 0, 12, 2), (80, -443, 0, 12, 1), (-84, -422, 0, 10, 0), (127, -400, 90, 24, 2))):
+        z += dz
         place(b, "mobilier", "barriere_chantier", (x, 0, z), yaw=yaw, group=f"Incident/Barriere{i}", emprise=(L, 2, 5),
               longueur=L, variant=v)
     for i, (x, z) in enumerate(((-92, -443), (94, -442))):
+        z += dz
         place(b, "mobilier", "cones", (x, 0, z), group=f"Incident/Cones{i}", emprise=(9, 2, 3), variant=1)
 
 
@@ -769,6 +813,10 @@ def mobilier_rue(b: Builder) -> None:
         ("panneau_route", 1, 1.5, -114, 2, {"variant": 0}),
         ("panneau_route", -1, 1.5, 14, 2, {"variant": 2}),
         ("panneau_route", -1, 1.5, -36, 2, {"variant": 1}),
+        # quartier des tours : plus de mobilier à hauteur de piéton
+        ("velos", -1, 3.5, -190, 6, {"nombre": 3, "variant": 0}),
+        ("poubelles_tri", 1, 1.7, -223.5, 7, {"variant": 0}),
+        ("poubelles_tri", -1, 1.7, -210, 7, {"variant": 1}),
     ]
     for i, (fn, s, d, z, L, kw) in enumerate(objets):
         reserver(s, z - L / 2, z + L / 2, f"{fn} {z}")
@@ -783,7 +831,7 @@ def mobilier_rue(b: Builder) -> None:
     for s, items in tours.items():
         cote = "G" if s < 0 else "D"
         for i, (fn, z) in enumerate(items):
-            x = xt(s, 5 if fn == "lampadaire" else 4.6)
+            x = xt(s, 5 if fn == "lampadaire" else 4.0)
             reserver(s, z - 2, z + 2, f"{fn} {z}")
             kw = {"variant": i % 2} if fn == "lampadaire" else {"variant": (i + 2 * (s > 0)) % 3, "taille": 0.75}
             place(b, "mobilier", fn, (x, 0, z), yaw=face_couloir(x), group=f"Tours/Rue/{cote}{i}_{fn}", emprise=(4, 4, 14), **kw)
@@ -927,7 +975,7 @@ def chevauchements(b: Builder, tol: float = 0.05) -> list:
 
 
 def meta() -> dict:
-    return {"nom": "ZoneJujutsuKaisen", "version": VERSION, "largeur_couloir": 2 * DEMI_COULOIR,
+    return {"nom": "ZoneVilleNuit", "version": VERSION, "largeur_couloir": 2 * DEMI_COULOIR,
             "longueur": -Z_SORTIE, "spawn": [0, 0, Z_PORTE + 24]}
 
 

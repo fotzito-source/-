@@ -4,9 +4,9 @@
 	    lune run roblox_export.luau -- <parts.json> <dossier_sortie> [--stud-id rbxassetid://123] [--tuile 1]
 
 	Écrit :
-	  - ZoneJujutsuKaisen.rbxm (binaire) et ZoneJujutsuKaisen.rbxmx (XML) : le modèle à insérer dans votre jeu
+	  - ZoneVilleNuit.rbxm (binaire) et ZoneVilleNuit.rbxmx (XML) : le modèle à insérer dans votre jeu
 	    (Explorer › clic droit › Insert from File…) ;
-	  - ZoneJujutsuKaisen-demo.rbxl : une place de démonstration (zone + éclairage + point d'apparition).
+	  - ZoneVilleNuit-demo.rbxl : une place de démonstration (zone + éclairage + point d'apparition).
 
 	Studs : par défaut, les studs intégrés de Roblox (matériau Plastic + SurfaceType.Studs sur les
 	faces concernées) : aucune image à importer, aucune instance en plus, teinte = Part.Color.
@@ -78,7 +78,7 @@ local SURFACES = { "TopSurface", "BottomSurface", "FrontSurface", "BackSurface",
 
 -- Modèles imbriqués selon le chemin de groupe « A/B/C » -------------------------
 local zone = Instance.new("Model")
-zone.Name = meta.nom or "ZoneJujutsuKaisen"
+zone.Name = meta.nom or "ZoneVilleNuit"
 local groupCache: { [string]: any } = {}
 
 local function groupFor(path: string)
@@ -228,14 +228,14 @@ module.Source = [[
 
 	1. Importez textures/stud.png (Asset Manager › Import) et copiez son identifiant.
 	2. Dans la barre de commande de Studio :
-	     require(workspace.ZoneJujutsuKaisen.Outils.AppliquerStuds)("rbxassetid://VOTRE_ID")
+	     require(workspace.ZoneVilleNuit.Outils.AppliquerStuds)("rbxassetid://VOTRE_ID")
 	   Options : require(...)("rbxassetid://ID", { tuile = 2 })  -- studs deux fois plus gros
 	             require(...)("rbxassetid://ID", { mode = "materiau" })
 	   Le mode « materiau » utilise un MaterialVariant (textures/stud-colormap.png) au lieu
 	   d'objets Texture : zéro instance en plus, mais studs sur toutes les faces des pièces.
 	3. Relancer la commande remplace les textures déjà posées.
 	4. Pour revenir aux studs intégrés de Roblox (réglage par défaut du fichier) :
-	     require(workspace.ZoneJujutsuKaisen.Outils.AppliquerStuds)(nil)
+	     require(workspace.ZoneVilleNuit.Outils.AppliquerStuds)(nil)
 ]=]
 return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local opts = options or {}
@@ -245,8 +245,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local surfaces = textureId == nil
 	if not surfaces and opts.mode == "materiau" then
 		local ms = game:GetService("MaterialService")
-		local mv = ms:FindFirstChild("StudsJujutsuKaisen") or Instance.new("MaterialVariant")
-		mv.Name = "StudsJujutsuKaisen"
+		local mv = ms:FindFirstChild("StudsVilleNuit") or Instance.new("MaterialVariant")
+		mv.Name = "StudsVilleNuit"
 		mv.BaseMaterial = Enum.Material.SmoothPlastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
@@ -266,7 +266,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				end
 				n += 1
 			elseif opts.mode == "materiau" then
-				part.MaterialVariant = "StudsJujutsuKaisen"
+				part.MaterialVariant = "StudsVilleNuit"
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -286,7 +286,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 			end
 		end
 	end
-	print(("Zone Jujutsu Kaisen : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
+	print(("Zone 5 (ville de nuit) : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
 		elseif opts.mode == "materiau" then "pièces en matériau stud" else "textures stud posées"))
 end
 ]]
@@ -300,10 +300,10 @@ zone:SetAttribute("Longueur", meta.longueur or 400)
 if not fs.isDir(outDir) then
 	fs.writeDir(outDir)
 end
-local modelPath = outDir .. "/ZoneJujutsuKaisen.rbxmx"
+local modelPath = outDir .. "/ZoneVilleNuit.rbxmx"
 fs.writeFile(modelPath, roblox.serializeModel({ zone }, true))
 -- version binaire, bien plus légère (même contenu)
-fs.writeFile(outDir .. "/ZoneJujutsuKaisen.rbxm", roblox.serializeModel({ zone }))
+fs.writeFile(outDir .. "/ZoneVilleNuit.rbxm", roblox.serializeModel({ zone }))
 
 -- Place de démonstration ------------------------------------------------------------
 local game = Instance.new("DataModel")
@@ -370,11 +370,11 @@ rays.Intensity = 0.04
 rays.Spread = 0.6
 rays.Parent = lighting
 
-local placePath = outDir .. "/ZoneJujutsuKaisen-demo.rbxl"
+local placePath = outDir .. "/ZoneVilleNuit-demo.rbxl"
 fs.writeFile(placePath, roblox.serializePlace(game))
 
 -- Vérification : relecture des deux fichiers
-local back = roblox.deserializeModel(fs.readFile(outDir .. "/ZoneJujutsuKaisen.rbxm"))
+local back = roblox.deserializeModel(fs.readFile(outDir .. "/ZoneVilleNuit.rbxm"))
 local nParts = 0
 for _, d in back[1]:GetDescendants() do
 	if d:IsA("BasePart") then

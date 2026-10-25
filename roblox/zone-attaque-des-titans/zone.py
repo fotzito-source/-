@@ -80,7 +80,7 @@ X_QUAI = 79              # façades de la rive droite (quai pavé 75-79)
 X_FOND_RUE = 87          # axe de la seconde rangée (maisons simples, 81-93)
 H_FANIONS = 38           # corde des guirlandes de fanions (le bas des fanions reste au-dessus de 34)
 X_MAT = 49               # mâts des guirlandes, sur les trottoirs
-Z_GUIRLANDES = (-134, -180, -300, -349, -412, -480)   # -349 : le mât gauche évite l'enseigne LIBRAIRIE (z -352,5)
+Z_GUIRLANDES = (-134, -300, -412, -480)   # -349 : le mât gauche évite l'enseigne LIBRAIRIE (z -352,5)
 X_REVERBERE = 52.2       # réverbères des trottoirs : le fût reste à 2,8 des façades (auvents, jardinières)
 
 VERSION = "0.2"
@@ -281,6 +281,7 @@ def sol_couloir(b: Builder) -> None:
     canal = (c("pave_brun"), shade(c("pave_brun"), 1.08), c("pave"))
     dalle, dalle_f, pave_f, pave_c = c("dalle"), c("dalle_fonce"), c("pave_fonce"), c("pave_clair")
     bord = c("bordure")
+    brique, brique_f = shade(c("pave_rouge"), 0.82), shade(c("pave_rouge"), 0.66)
 
     def prairie(x, z):
         ax = abs(x)
@@ -290,7 +291,7 @@ def sol_couloir(b: Builder) -> None:
             if 8 <= ax < 11:
                 return terre_f
             return terre if _bruit(x, z, 10, 1) > 0.42 else terre_c
-        return _pre_fleuri(x, z, 0.06)
+        return _pre_fleuri(x, z, 0.035)
 
     def tunnel(x, z):                                          # grandes dalles sombres
         if abs(x) < 3:
@@ -308,6 +309,9 @@ def sol_couloir(b: Builder) -> None:
             ax = abs(x)
             if ax >= DEMI_COULOIR - 2:                         # caniveaux le long des trottoirs
                 return bord
+            v = z_haut - z
+            if v % 36 < 2 and v > 4:                           # bandes transversales de brique (repères de vitesse)
+                return brique_f if ax < 3 else brique
             if ax < 3:                                         # bande centrale de dalles claires
                 return dalle
             return _paves(x, z, z_haut, tons, graine)
@@ -336,12 +340,12 @@ def sol_couloir(b: Builder) -> None:
         sol_pixel(b, X0, X1, Z_GRANDPLACE, Z_CANAL, 2, rue_ou_canal(Z_CANAL, canal, 9))
         sol_pixel(b, X0, X1, Z_PARVIS, Z_GRANDPLACE, 2, grandplace)
         sol_pixel(b, X0, X1, Z_FIN_VILLE, Z_PARVIS, 2, parvis)
-        sol_pixel(b, X0, X1, Z_SORTIE - 4, Z_FIN_VILLE, 2, tunnel)
+        sol_pixel(b, X0, X1, Z_SORTIE - 40, Z_FIN_VILLE, 2, tunnel)
 
     def trottoir(x, z):
         ax = abs(x)
         if z > Z_PRAIRIE_FIN:                                  # prairie : herbe et fleurs jusqu'aux clôtures
-            return c("herbe_fonce") if ax < DEMI_COULOIR + 2 else _pre_fleuri(x, z, 0.05)
+            return c("herbe_fonce") if ax < DEMI_COULOIR + 2 else _pre_fleuri(x, z, 0.03)
         if z > Z_VILLE or z <= Z_FIN_VILLE:
             return pave_f
         if Z_GRANDPLACE >= z > Z_PARVIS:
@@ -355,7 +359,7 @@ def sol_couloir(b: Builder) -> None:
     with b.group("Sol/Trottoirs"):
         for s in (-1, 1):
             xa, xb = sorted((s * DEMI_COULOIR, s * X_BORD))
-            sol_pixel(b, xa, xb, Z_SORTIE - 4, Z_APPROCHE, 2, trottoir)
+            sol_pixel(b, xa, xb, Z_SORTIE - 40, Z_APPROCHE, 2, trottoir)
 
 
 def sol_ville(b: Builder) -> None:
@@ -505,14 +509,14 @@ RUE_G = [
     ("batiments:maison_colombages", 18, 18, {"variant": 0, "etages": 3, "enseigne": "PAIN"}),
     ("batiments:maison_colombages", 16, 18, {"variant": 1, "etages": 4}),
     ("batiments:maison_colombages", 22, 18, {"variant": 2, "etages": 4, "enseigne": "AUBERGE"}),
-    ("batiments:maison_colombages", 16, 18, {"variant": 3, "etages": 2}),
+    ("batiments:maison_colombages", 16, 18, {"variant": 3, "etages": 3}),
     ("batiments:maison_colombages", 20, 18, {"variant": 4, "etages": 3, "enseigne": "FLEURS"}),
 ]
 RUE_D = [
     ("batiments:maison_colombages", 16, 18, {"variant": 2, "etages": 3}),
     ("batiments:maison_colombages", 22, 18, {"variant": 0, "etages": 4, "enseigne": "BÄCKEREI"}),
     ("batiments:maison_colombages", 18, 18, {"variant": 3, "etages": 3}),
-    ("batiments:maison_colombages", 16, 18, {"variant": 1, "etages": 2, "enseigne": "TISSUS"}),
+    ("batiments:maison_colombages", 16, 18, {"variant": 1, "etages": 3, "enseigne": "TISSUS"}),
     ("batiments:maison_colombages", 20, 18, {"variant": 4, "etages": 4}),
 ]
 CANAL_G = [
@@ -640,10 +644,13 @@ def arriere_ville(b: Builder) -> None:
                   profondeur=12, etages=etages)
     # arbres des jardins : dans les trouées des rangées et sur les placettes
     arbres = ((-106, -153), (-106, -204), (-104, -340), (-112, -262), (-84, -398),
-              (106, -154), (108, -205), (106, -302))
+              (108, -205), (106, -302))
     for i, (x, z) in enumerate(arbres):
         place(b, "nature", "arbre", (x, 0, z), group=f"Ville/Jardins/Arbre{i}", emprise=(10, 10, 14), variant=i % 4,
               taille=1.0 + 0.15 * (i % 3))
+    # clocher de quartier côté droit : silhouette au-dessus des toits (référence : beffrois carrés de pierre)
+    place(b, "monuments", "clocher", (106, 0, -154), yaw=face_couloir(1), group="Monuments/ClocherC",
+          emprise=(14, 14, 60), variant=2, hauteur=58)
     for i, (x, z) in enumerate(((-116, -150), (117, -128), (-117, -352), (116, -250), (-117, -232), (117, -300))):
         place(b, "nature", "buisson", (x, 0, z), group=f"Ville/Jardins/Buisson{i}", emprise=(4, 4, 3), variant=i % 4)
 
@@ -731,13 +738,13 @@ def mats_fanions(b: Builder) -> None:
         with b.group(f"Fanions/Guirlande{i + 1}"):
             for s in (-1, 1):
                 with b.at((s * X_MAT, 0, z)):
-                    b.box((-0.6, 0, -0.6), (0.6, H_FANIONS + 2, 0.6), c("bois"), name="Mat")
-                    b.box((-1.0, 0, -1.0), (1.0, 1.2, 1.0), c("pave_fonce"), studs="top", name="Pied")
-                    b.box((-0.9, H_FANIONS + 2, -0.9), (0.9, H_FANIONS + 2.4, 0.9), c("bois_moyen"), name="Chapeau")
-                    b.ball((0, H_FANIONS + 2.9, 0), 0.5, c("or"), collide=False, name="Pommeau")
+                    b.box((-0.35, 1.2, -0.35), (0.35, H_FANIONS + 2, 0.35), c("toile_creme"), name="Mat")
+                    b.box((-0.9, 0, -0.9), (0.9, 1.2, 0.9), c("pierre_maison"), studs="top", name="Pied")
+                    b.box((-0.6, H_FANIONS + 2, -0.6), (0.6, H_FANIONS + 2.5, 0.6), c("drapeau_rouge"), name="Chapeau")
+                    b.ball((0, H_FANIONS + 3.0, 0), 0.5, c("or"), collide=False, name="Pommeau")
             if f:
                 n0 = len(b.parts)
-                f(b, (-(X_MAT - 0.6), H_FANIONS, z), (X_MAT - 0.6, H_FANIONS, z), n=14, creux=2.0, variant=i)
+                f(b, (-(X_MAT - 0.35), H_FANIONS, z), (X_MAT - 0.35, H_FANIONS, z), n=14, creux=2.0, variant=i)
                 _COMPTES.append(("mobilier", "guirlande_fanions", {}, len(b.parts) - n0, f"Fanions/Guirlande{i + 1}"))
         b.__dict__.setdefault("poses", []).append((f"Fanions/Guirlande{i + 1}", "guirlande_fanions", n_g, len(b.parts)))
 
@@ -806,8 +813,8 @@ def build_zone(seed: int = 7) -> Builder:
     murailles(b)
     prairie(b)
     place_porte(b)
-    poses = rangee(b, -1, RUE_G, Z_RUE, Z_EGLISE, "RueG")
-    poses += rangee(b, 1, RUE_D, Z_RUE, Z_EGLISE, "RueD")
+    poses = rangee(b, -1, RUE_G, Z_RUE, Z_EGLISE, "RueG", ecart=1.2)
+    poses += rangee(b, 1, RUE_D, Z_RUE, Z_EGLISE, "RueD", ecart=1.2)
     place_eglise(b)
     poses += quartier_canal(b)
     arriere_ville(b)
@@ -818,6 +825,9 @@ def build_zone(seed: int = 7) -> Builder:
     details_rue(b, poses)
     reperes(b)
     decouper(b)
+    for p in b.parts:                       # petites pièces décoratives : jamais collidables
+        if p.collide and max(p.size) < 1.0:
+            p.collide = False
     return b
 
 

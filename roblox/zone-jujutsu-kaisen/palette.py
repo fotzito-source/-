@@ -1,4 +1,4 @@
-"""Palette de la zone Jujutsu Kaisen (ville de nuit pendant un incident surnaturel), version « stud ».
+"""Palette de la zone 5 (ville de nuit pendant un incident surnaturel), version « stud ».
 
 Idée : une grande ville japonaise « de nuit » mais lisible sous le ciel bleu du jeu. Les bâtiments
 restent dans les bleus nuit, ardoise et acier (jamais noirs), relevés par du béton clair, de la brique

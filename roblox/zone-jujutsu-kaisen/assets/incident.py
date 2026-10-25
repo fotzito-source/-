@@ -767,13 +767,26 @@ def immeuble_effondre(b, variant=0, passage=90, hauteur_libre=34) -> dict:
             _barre(b, (xp - 1.5, yp0 - 9.0, 7.5), (xp - 0.5, yp0 - 14.0, 8.5), 0.9, 0.5, (0, 0, 1), c("metal_fonce"),
                    name="Poutre", **PETIT)
 
+            # dalles cassées et blocs qui pendent sous le haut de tour tombé (jamais sous hauteur_libre + 3)
+            for (x, dz, lg, ang) in ((-36.0, -4.0, 5.0, 28.0), (-14.0, 5.0, 6.0, -22.0), (2.0, -6.0, 4.5, 35.0),
+                                     (22.0, 2.0, 5.5, -30.0), (38.0, -5.0, 4.0, 20.0)):
+                y0 = dessous(x) - 0.1
+                ya = max(hauteur_libre + 3.0, y0 - lg)
+                p0 = (x, y0, dz)
+                p1 = (x + math.tan(math.radians(ang)) * (y0 - ya), ya, dz + 0.5)
+                _barre(b, p0, p1, 3.2, 0.6, (0, 0, 1), vary(c("beton_clair"), rng, 0.05), name="DallePendante", **PETIT)
+                _fer(b, (x + 0.8, y0, dz + 0.4), (x + 1.2, y0 - 1.5, dz + 0.6), (x + 0.6, max(ya, y0 - 3.0), dz + 0.9))
+            # lueur violette le long de la cassure (dessous de la charnière, sur toute la profondeur)
+            yc = dessous(xH) - 0.3
+            _n(b, (xH - 1.6, yc - 0.6, -DK + 0.5), (xH + 1.6, yc, DK - 0.5), "lueur_violette", name="LueurCassure", **PETIT)
+
         # ------------------------------------------------------------------
         # Tas de gravats au pied des moignons (trottoirs |x| ∈ [libre + 0,5 ; F], jamais dans le couloir)
         # ------------------------------------------------------------------
         with b.group("Gravats"):
-            _cone_gravats(b, rng, xL1, +1, -HD + 0.5, HD - 0.5, F - libre - 0.5, 7.5, n=11, x_lim=-(libre + 0.5),
+            _cone_gravats(b, rng, xL1, +1, -HD + 0.5, HD - 0.5, F - libre - 3.0, 7.5, n=11, x_lim=-(libre + 3.0),
                           dalles=2, eclats=3, lueurs=2, facade=pal_bas[0])
-            _cone_gravats(b, rng, xR0, -1, -HD + 0.5, HD - 0.5, F - libre - 0.5, 8.5, n=11, x_lim=libre + 0.5,
+            _cone_gravats(b, rng, xR0, -1, -HD + 0.5, HD - 0.5, F - libre - 3.0, 8.5, n=11, x_lim=libre + 3.0,
                           dalles=2, eclats=3, lueurs=2, facade=pal_haut[0])
             for (x0, x1, col) in ((xL0 + 4, xL1 - 4, pal_bas[0]), (xR0 + 4, xR1 - 4, pal_haut[0])):
                 for k in range(4):

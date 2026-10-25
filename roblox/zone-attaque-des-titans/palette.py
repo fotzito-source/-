@@ -46,29 +46,29 @@ P = {
     "pomme": "#D2453A",
 
     # Murailles colossales (pierre / béton beige-gris pâle, 4 tons pour les « pixels »)
-    "mur": "#CFC7B6",              # ton de base
-    "mur_clair": "#DDD6C7",
-    "mur_pale": "#E8E2D5",         # arêtes éclairées, chaperons
-    "mur_fonce": "#B9B09E",
-    "mur_ombre": "#A39A88",        # creux, joints de pilastres, bas de mur
-    "mur_joint": "#8E8676",        # joints profonds, embrasures
-    "mur_base": "#9C9381",         # soubassement taluté
+    "mur": "#B9AE9C",              # ton de base
+    "mur_clair": "#C5BBA9",
+    "mur_pale": "#D0C7B5",         # arêtes éclairées, chaperons
+    "mur_fonce": "#A39886",
+    "mur_ombre": "#8C826F",        # creux, joints de pilastres, bas de mur
+    "mur_joint": "#736A5A",        # joints profonds, embrasures
+    "mur_base": "#867C69",         # soubassement taluté
     "mur_mousse": "#8FA05C",       # traînées de mousse au pied (rare)
-    "mur_coulure": "#B3AA97",      # coulures de pluie sous les gargouilles et les embrasures
+    "mur_coulure": "#9C927F",      # coulures de pluie sous les gargouilles et les embrasures
     "lierre": "#5C8A3E",           # lierre au pied des remparts et des maisons (petites touches)
     "lierre_clair": "#78A64C",
-    "chemin_ronde": "#C6BEAC",     # dallage du chemin de ronde (studs)
-    "bois_echafaud": "#9A7A55",    # grues, monte-charges, échafaudages de bois clair
+    "chemin_ronde": "#AFA592",     # dallage du chemin de ronde (studs)
+    "bois_echafaud": "#B8955F",    # grues, monte-charges, échafaudages de bois clair
 
     # Sol de la ville
-    "pave": "#ABA69B",             # pavés gris chaud
-    "pave_clair": "#C2BDB1",
-    "pave_fonce": "#8F8A80",
+    "pave": "#807C76",             # pavés gris chaud
+    "pave_clair": "#8E8A84",
+    "pave_fonce": "#6F6B66",
     "pave_brun": "#A39582",        # pavés ocre des cours et ruelles
     "pave_rouge": "#B08A74",       # pavés terre cuite (motifs de la place)
-    "dalle": "#CEC6B4",            # dalles des trottoirs
-    "dalle_fonce": "#B5AD9B",
-    "bordure": "#7D776D",          # bordures de trottoir, caniveaux
+    "dalle": "#B3AB9A",            # dalles des trottoirs
+    "dalle_fonce": "#9C9483",
+    "bordure": "#5C5852",          # bordures de trottoir, caniveaux
     "gravier": "#C9BEA6",
     "eau": "#4F8FC2",
     "eau_fonce": "#3C73A2",

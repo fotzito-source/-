@@ -453,7 +453,7 @@ def eglise(b, variant=0, largeur=52, profondeur=30):
     with b.group("Nef"):
         b.box((XA, 0, -ZN), (XT, YW, ZN), vr(mur, rng, 0.02), name="Murs")
         b.box((XA - 0.3, 0, -ZN - 0.3), (XT + 0.3, 1.6, ZN + 0.3), col("soubassement"), studs="top", name="Socle")
-        b.box((XA - 0.6, YW - 1.0, -ZN - 0.6), (XT + 0.6, YW, ZN + 0.6), col(acc), name="Corniche")
+        b.box((XA - 0.6, YW - 1.0, -ZN - 0.6), (XT + 0.6, YW + 0.15, ZN + 0.6), col(acc), name="Corniche")
         b.box((XA - 0.15, 5.0, -ZN - 0.25), (XT, 5.6, -ZN), col(acc), collide=False, name="Cordon")
         # façade sur la rue (-Z) : lancettes, portail latéral, contreforts, pierres
         eviter = []
@@ -531,7 +531,7 @@ def eglise(b, variant=0, largeur=52, profondeur=30):
         for (pa, pb) in zip(poly, poly[1:]):
             _facette(b, (pa[0], YA, pa[1]), (pb[0], YA, pb[1]), A, 0.5, vr(toit, rng, 0.02), inter, studs=True,
                      name="Toit")
-        b.box((XA - 8.0 - o, YA - 0.8, -3.2), (XA - 7.6, YA, 3.2), col(acc), collide=False, name="Corniche")
+        b.box((XA - 8.0 - o, YA - 0.8, -3.2), (XA - 7.6, YA + 0.15, 3.2), col(acc), collide=False, name="Corniche")
 
     # --- clocher-porche ----------------------------------------------------------------------------------------
     YB0, YB1, YE, YC = 47.0, 55.5, 57.5, 58.5
@@ -1478,9 +1478,9 @@ def mat_fete(b, variant=0, hauteur=40):
                     xp = s * 2.4
                     coul = col(plaques[(2 * i + (s > 0)) % len(plaques)])
                     if (i + (s > 0)) % 2:
-                        b.cyl((xp, yb - 0.9, 0), 0.75, 0.15, coul, axis="z", collide=False, name="Plaque")
+                        b.cyl((xp, yb - 0.75, 0), 0.75, 0.15, coul, axis="z", collide=False, name="Plaque")
                     else:
-                        b.box((xp - 0.7, yb - 1.6, -0.08), (xp + 0.7, yb - 0.2, 0.08), coul, collide=False,
+                        b.box((xp - 0.7, yb - 1.4, -0.08), (xp + 0.7, yb, 0.08), coul, collide=False,
                               name="Plaque")
         # couronne et rubans
         yw = y_top - 2.0

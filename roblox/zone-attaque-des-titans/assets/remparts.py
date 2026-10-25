@@ -124,7 +124,7 @@ def _pilastres(b, xs, z0, larg, saillie, niv, chapiteau=True):
     yc0, yc1 = niv["chap"]
     for x in xs:
         b.box((x - larg / 2, niv["pil0"], z0 - saillie), (x + larg / 2, yc0 if chapiteau else yc1, z0),
-              c("mur_clair"), name="Pilastre")
+              c("mur_fonce"), name="Pilastre")
         if chapiteau:
             b.box((x - larg / 2 - 0.2, yc0, z0 - saillie - 0.4), (x + larg / 2 + 0.2, yc1, z0), c("mur_pale"),
                   name="Chapiteau")
@@ -412,7 +412,10 @@ def _tourelle(b, rng, drapeau: int = 0, h: float = 10.0):
                 b.box((-0.9, 5.0, -3.62), (0.9, 7.6, -3.5), c("noir"), collide=False, name="Baie")
                 b.box((-0.5, 7.6, -3.62), (0.5, 8.1, -3.5), c("noir"), collide=False, name="Baie")
         b.box((-1.0, 1.0, -3.62), (1.0, 4.4, -3.5), c("porte"), collide=False, name="Porte")
-        top = _toit_gradins(b, 0, h, 0, 8.8, 8.8, 5, 1.4, 0.85, name="Toit")
+        b.box((-3.9, h, -3.9), (3.9, h + 0.6, 3.9), c("chemin_ronde"), studs="top", name="Toit")
+        for (mx, mz) in ((-3.9, -3.9), (2.4, -3.9), (-3.9, 2.4), (2.4, 2.4)):
+            b.box((mx, h + 0.6, mz), (mx + 1.5, h + 2.4, mz + 1.5), c("mur_clair"), name="Merlon")
+        top = h + 0.6
         cols = (("drapeau_rouge", "drapeau_blanc"), ("drapeau_vert", "drapeau_blanc"), ("drapeau_bleu", "toile_jaune"),
                 ("drapeau_rouge", "toile_jaune"))[drapeau % 4]
         _petit_drapeau(b, 0, top, 0, 5.0, cols)
@@ -587,7 +590,7 @@ def _face_porte(b, rng, *, W2, xo, z0, niv, exterieur, abords, pil_first, y_arc,
     return pil
 
 
-def _tour_porte(b, rng, s: int, z0: float, niv, h_corps: float = 117.0, drapeau: int = 0):
+def _tour_porte(b, rng, s: int, z0: float, niv, h_corps: float = 104.0, drapeau: int = 0):
     """Tour carrée de 16 × 16 flanquant la porte finale (centre |x| = 62, avance de 6 sur la face z0, talus de 2 :
     8 au sol) : talus, chaînes d'angle, cordons, meurtrières, couronnement crénelé jusqu'à 125, tambour et haut
     toit d'ardoise en gradins (≈ 146), drapeau, lanterne et bannière unie. Rien sous |x| = 52."""
@@ -618,10 +621,10 @@ def _tour_porte(b, rng, s: int, z0: float, niv, h_corps: float = 117.0, drapeau:
         x0, x1 = X(xi - s * 1.2, xe + s * 1.2)
         b.box((x0, h_corps - 5.0, za - 1.2), (x1, h_corps - 3.5, zr + 1.2), c("mur_pale"), name="Corniche")
         # meurtrières
-        for (x, y) in ((xc - s * 4.5, 24.0), (xc + s * 4.5, 56.0), (xc - s * 4.5, 96.0)):
+        for (x, y) in ((xc - s * 4.5, 24.0), (xc + s * 4.5, 56.0), (xc - s * 4.5, 90.0)):
             x0, x1 = X(x - 0.5, x + 0.5)
             b.box((x0, y, za - S_FENTE), (x1, y + 4.0, za + 0.4), c("mur_joint"), collide=False, name="Meurtriere")
-        for (z, y) in ((za + 3.5, 62.0), (za + 3.5, 100.0)):
+        for (z, y) in ((za + 3.5, 62.0), (za + 3.5, 90.0)):
             x0, x1 = X(xe, xe + s * S_FENTE)
             b.box((x0, y, z - 0.5), (x1, y + 4.0, z + 0.5), c("mur_joint"), collide=False, name="Meurtriere")
         # couronnement : parapet, merlons, plateforme, toit en gradins
@@ -641,14 +644,9 @@ def _tour_porte(b, rng, s: int, z0: float, niv, h_corps: float = 117.0, drapeau:
                 xa_, xb_ = X(xx, xx + s * 1.0)
                 b.box((xa_, y_p + 3.5, zz - 1.5), (xb_, y_p + 7.5, zz + 1.5), c("mur_clair"), name="Merlon")
         zm = (za + zr) / 2
-        x0, x1 = X(xc - 5.0, xc + 5.0)
-        b.box((x0, y_p, zm - 5.0), (x1, y_p + 8.5, zm + 5.0), c("mur_clair"), name="Tambour")
-        for yaw in (0, 90, 180, 270):
-            with b.at((xc, 0, zm), yaw=yaw):
-                b.box((-0.6, y_p + 4.0, -5.12), (0.6, y_p + 6.6, -5.0), c("noir"), collide=False, name="Lucarne")
-        top = _toit_gradins(b, xc, y_p + 8.5, zm, 13.0, 13.0, 7, 3.0, 0.95, name="Toit")
-        b.ball((xc, top + 0.6, zm), 0.9, c("or"), collide=False, name="Epi")
-        with b.at((xc, top + 1.4, (za + zr) / 2), yaw=90 if s < 0 else -90):
+        x0, x1 = X(xi + s * 1.0, xe - s * 1.0)
+        b.box((x0, y_p, za + 1), (x1, y_p + 0.5, zr - 1), c("chemin_ronde"), studs="top", name="Plateforme")
+        with b.at((xc, y_p + 0.5, zm), yaw=90 if s < 0 else -90):
             mobilier.drapeau(b, hauteur=9, variant=drapeau)
         # bannière et lanterne sur la face avant
         _banniere(b, xc, 78.0, za - 1.0, long_=14.0, larg=3.6, cols=(("drapeau_rouge", "toile_creme"),
@@ -768,10 +766,7 @@ def porte_colossale(b, variant=0, largeur=270, hauteur=90, epaisseur=24, ouvertu
 
     # -- corps de garde ---------------------------------------------------------
     with b.group("CorpsDeGarde"):
-        if not final:
-            _corps_garde_entree(b, zf, niv, gh, y_arc, toit=(v != 2))
-        else:
-            _corps_garde_final(b, zf, niv, gh, y_arc)
+        _couronne_porte(b, zf, niv, gh, y_arc)
 
     # -- chemin de ronde : canons vers l'extérieur, grues au-dessus de la ville, tourelles --------------------
     yc = niv["chemin"]
@@ -792,84 +787,34 @@ def porte_colossale(b, variant=0, largeur=270, hauteur=90, epaisseur=24, ouvertu
             for i, x in enumerate(tourelles):
                 with b.at((s * x, yc, (zf + zb) / 2), yaw=0 if not final else 180):
                     _tourelle(b, rng, drapeau=i + (s > 0) + 2 * final)
-    h_tot = 140.0 if final else 116.0
+    h_tot = 116.0 if final else 100.0
     return {"emprise": (largeur, epaisseur), "hauteur": h_tot}
 
 
-def _corps_garde_entree(b, zf, niv, gh, y_arc, toit=True):
-    """Corps de garde au-dessus du tunnel d'entrée (|x| < 20, avance de 4) : chanfrein, trois baies cintrées,
-    corniche, merlons, deux échauguettes en encorbellement à toit d'ardoise, toit en pavillon et deux drapeaux."""
-    za, zr = zf - 4.0, zf + 10.0
-    y_haut = 101.0
-    b.box((-gh, y_arc, za), (gh, y_haut - 1.5, zr), c("mur_clair"), name="CorpsDeGarde")
-    b.wedge_under((-gh, y_arc - 2.4, za), (gh, y_arc, zf), c("mur_pale"), down="-z", name="Chanfrein")
-    for x in (-gh, gh - 2.0):       # chaînes d'angle
-        b.box((x, y_arc, za - 0.3), (x + 2.0, 90.0, za + 2.0), c("mur_pale"), name="Chaine")
-    b.box((-gh - 0.4, 84.0, za - 0.5), (gh + 0.4, 85.2, zr), c("mur_pale"), name="Bandeau")
-    for x in (-11.0, 0.0, 11.0):
-        _baie_cintree(b, x, 70.0, 5.0, 10.0, za, meneau=True)
-    for k in range(9):              # consoles sous la corniche (fausse rangée de mâchicoulis)
-        x = -16.0 + 4.0 * k
-        b.wedge_under((x - 0.7, y_haut - 4.5, za - 1.5), (x + 0.7, y_haut - 1.5, za), c("mur_pale"), down="-z",
-                      name="Console")
-    for x in (-gh, gh):          # portes du chemin de ronde sur les flancs
-        x0, x1 = sorted((x, x + (0.12 if x > 0 else -0.12)))
-        b.box((x0, niv["chemin"], zf + 3.0), (x1, niv["chemin"] + 5.0, zf + 6.0), c("porte"), collide=False, name="Porte")
-    b.box((-gh - 1.0, y_haut - 1.5, za - 1.5), (gh + 1.0, y_haut, zr + 0.5), c("mur_pale"), studs="top", name="Corniche")
-    for x in (-18.0, -12.0, -6.0, 0.0, 6.0, 12.0, 18.0):
-        b.box((x - 1.5, y_haut, za - 1.5), (x + 1.5, y_haut + 3.5, za - 0.5), c("mur_clair"), name="Merlon")
-    for x in (-gh - 1.0, gh):
-        for z in (za + 5.0, za + 11.0):
-            b.box((x, y_haut, z - 1.5), (x + 1.0, y_haut + 3.5, z + 1.5), c("mur_clair"), name="Merlon")
-    # échauguettes aux angles avant (encorbellement en gradins)
-    for s in (-1, 1):
-        xc, zc = s * gh, za
-        b.box((xc - 2.0, 86.0, zc - 2.0), (xc + 2.0, 88.0, zc + 2.0), c("mur_pale"), name="Culot")
-        b.box((xc - 2.6, 88.0, zc - 2.6), (xc + 2.6, 90.0, zc + 2.6), c("mur_fonce"), name="Culot")
-        b.box((xc - 3.0, 90.0, zc - 3.0), (xc + 3.0, 104.0, zc + 3.0), c("mur_clair"), name="Echauguette")
-        b.box((xc - 0.5, 96.0, zc - 3.12), (xc + 0.5, 100.0, zc - 3.0), c("noir"), collide=False, name="Meurtriere")
-        x0, x1 = sorted((xc + s * 3.0, xc + s * 3.12))
-        b.box((x0, 96.0, zc - 0.5), (x1, 100.0, zc + 0.5), c("noir"), collide=False, name="Meurtriere")
-        top = _toit_gradins(b, xc, 104.0, zc, 7.0, 7.0, 4, 1.6, 0.9, name="Toit")
-        b.ball((xc, top + 0.5, zc), 0.6, c("or"), collide=False, name="Epi")
-    if toit:
-        top = _toit_gradins(b, 0.0, y_haut, (za + zr) / 2, 2 * gh - 2.0, zr - za - 2.0, 5, 2.4, (3.0, 1.25), name="Toit")
-        for i, x in enumerate((-7.0, 7.0)):
-            with b.at((x, top, (za + zr) / 2), yaw=180):
-                mobilier.drapeau(b, hauteur=8, variant=(0, 1)[i])
-    else:
-        b.box((-gh + 1.0, y_haut, za + 1.0), (gh - 1.0, y_haut + 0.5, zr - 1.0), c("chemin_ronde"), studs="top", name="Terrasse")
-
-
-def _corps_garde_final(b, zf, niv, gh, y_arc):
-    """Porte fortifiée de la muraille intérieure (|x| < 20, avance de 7 vers la ville) : chanfrein, trois grandes
-    baies cintrées (celle du centre éclairée), rangée de mâchicoulis sous un parapet crénelé, toit en pavillon."""
-    za, zr = zf - 7.0, zf + 12.0
-    y_haut = 100.0
-    b.box((-gh, y_arc, za), (gh, y_haut, zr), c("mur_clair"), name="CorpsDeGarde")
-    b.wedge_under((-gh, y_arc - 2.4, za), (gh, y_arc, zf), c("mur_pale"), down="-z", name="Chanfrein")
-    b.box((-gh - 0.4, y_arc + 4.0, za - 0.4), (gh + 0.4, y_arc + 5.0, zr), c("mur_pale"), name="Bandeau")
-    for x in (-12.0, 0.0, 12.0):
-        _baie_cintree(b, x, 74.0, 6.0, 11.0, za, vitre=c("fenetre_lumiere") if x == 0 else None, neon=(x == 0),
-                      meneau=True)
-    # mâchicoulis : consoles, dalle en surplomb, parapet crénelé
-    for k in range(10):
-        x = -18.0 + 4.0 * k
-        b.wedge_under((x - 0.8, y_haut - 4.0, za - 3.0), (x + 0.8, y_haut, za), c("mur_pale"), down="-z", name="Console")
-    b.box((-gh - 1.0, y_haut, za - 3.0), (gh + 1.0, y_haut + 1.0, zr), c("mur_pale"), studs="top", name="Machicoulis")
-    b.box((-gh - 1.0, y_haut + 1.0, za - 3.0), (gh + 1.0, y_haut + 4.0, za - 2.0), c("mur"), name="Parapet")
-    for x in (-18.0, -12.0, -6.0, 0.0, 6.0, 12.0, 18.0):
-        b.box((x - 1.5, y_haut + 4.0, za - 3.0), (x + 1.5, y_haut + 7.5, za - 2.0), c("mur_clair"), name="Merlon")
-    for x in (-gh - 1.0, gh):
-        b.box((x, y_haut + 1.0, za - 2.0), (x + 1.0, y_haut + 4.0, zr), c("mur"), name="Parapet")
-        for z in (za + 3.0, za + 10.0, zr - 2.0):
-            b.box((x, y_haut + 4.0, z - 1.5), (x + 1.0, y_haut + 7.5, z + 1.5), c("mur_clair"), name="Merlon")
-    b.box((-gh + 1.0, y_haut + 1.0, za - 1.0), (gh - 1.0, y_haut + 4.0, zr - 1.0), c("mur_clair"), name="Attique")
-    top = _toit_gradins(b, 0.0, y_haut + 4.0, (za + zr) / 2 - 1.0, 2 * gh - 1.0, zr - za + 1.0, 6, 3.0, (2.7, 1.6),
-                        name="Toit")
-    for i, x in enumerate((-6.0, 6.0)):
-        with b.at((x, top, (za + zr) / 2)):
-            mobilier.drapeau(b, hauteur=9, variant=(3, 0)[i])
+def _couronne_porte(b, zf, niv, gh, y_arc, canons=True):
+    """Au-dessus du tunnel : la muraille reste lisse et nervurée jusqu'au chemin de ronde (sobre, pas de donjon).
+    Nervures de 4 (saillie 1,5) de y_arc à la corniche, parapet crénelé continu, plateforme de guet en bois
+    en encorbellement avec deux canons et un drapeau."""
+    for x in (-15.0, -5.0, 5.0, 15.0):
+        b.box((x - 2.0, y_arc, zf - 1.5), (x + 2.0, niv["chap"][0], zf), c("mur_fonce"), name="Pilastre")
+        b.box((x - 2.2, niv["chap"][0], zf - 1.9), (x + 2.2, niv["chap"][1], zf), c("mur_pale"), name="Chapiteau")
+    b.box((-gh, niv["dalle"], zf), (gh, niv["par_ext"], zf + 1), c("mur"), name="Parapet")
+    for x in (-21.0, -15.0, -9.0, -3.0, 3.0, 9.0, 15.0, 21.0):
+        b.box((x - 1.5, niv["par_ext"], zf), (x + 1.5, niv["merlon"], zf + 1), c("mur_clair"), name="Merlon")
+    # plateforme de guet : plancher de bois sur aisseliers, garde-corps, deux canons tournés vers l'avant
+    bois, fonce = c("bois_echafaud"), c("bois")
+    zp = zf - 5.0
+    y = niv["corniche"][1]
+    for x in (-9.0, -3.0, 3.0, 9.0):
+        b.wedge_under((x - 0.5, y - 5.0, zp + 0.5), (x + 0.5, y - 0.6, zf - 1.2), fonce, down="-z", name="Aisselier")
+    b.box((-10.0, y - 0.6, zp), (10.0, y, zf - 1.2), bois, studs="top", name="Plancher")
+    b.box((-10.0, y, zp), (10.0, y + 2.6, zp + 0.4), fonce, collide=False, name="GardeCorps")
+    if canons:
+        for x in (-5.0, 5.0):
+            with b.at((x, y, zp + 3.0)):
+                b.box((-1.2, 0, -1.0), (1.2, 1.0, 1.0), c("bois"), name="Affut")
+                b.cyl((0, 1.6, -0.5), 0.6, 4.0, c("fonte"),
+                      axis="z", collide=False, name="Canon")
 
 
 # ---------------------------------------------------------------------------
@@ -966,7 +911,7 @@ def _hourd(b, zf, niv, x0=-10.0, x1=10.0):
             b.box((x - 0.0, 78.4, zp - 0.15), (x + 0.6, 85.6, zp), fonce, collide=False, name="Poteau")
         for x in (-6.7, 0.0, 6.7):
             b.box((x - 0.6, 81.0, zp - 0.12), (x + 0.6, 83.6, zp), c("noir"), collide=False, name="Archere")
-        b.box((x0 - 0.2, 85.6, zp - 0.2), (x1 + 0.2, 86.0, zf + 0.6), fonce, name="Sabliere")
+        b.box((x0 - 0.2, 85.6, zp - 0.2), (x1 + 0.2, 85.9, zf + 0.6), fonce, name="Sabliere")
         b.wedge((x0 - 0.6, 86.0, zp - 1.0), (x1 + 0.6, 89.2, zf + 1.0), c("tuile_brune"), down="-z", studs="top",
                 name="Toit")
         b.box((x0 - 0.6, 89.2, zf), (x1 + 0.6, 89.6, zf + 1.4), c("tuile_fonce"), name="Faitage")

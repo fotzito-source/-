@@ -11,7 +11,7 @@ viaduc_ferroviaire (≈ 690 pièces, gare comprise)
     Posé une fois en (0, 0, 0), sans rotation : repère local = repère monde. Tablier de x = -238 à 238,
     z ∈ [-8, 8] : poutre-caisson en béton, corniche, parapets à studs, voies (ballast, traverses, rails),
     portiques de caténaire et fils. Au-dessus du couloir, un pont à poutres d'acier bleues SOUS les voies
-    (le train reste visible de la rue) porte la plaque 渋谷 sur ses deux faces (seul emploi de ce nom),
+    (le train reste visible de la rue) porte la plaque 東口 sur ses deux faces,
     avec une clôture ajourée au-dessus. Néon le long du bas des poutres.
     Piles du couloir sur les trottoirs (x ∈ ±[47,5 ; 54,5]), à chapiteau en marteau ; autres piles tous les
     40 studs. Sous les voies, de part et d'autre, de hautes arches de brique (gādo-shita) abritent des
@@ -28,7 +28,7 @@ passerelle_pietons (≈ 160 à 200 pièces)
     direction bleu 駅 / 東口. Variante 1 : acier blanc-gris, garde-corps vitrés, auvent sur poteaux.
 
 Propriété intellectuelle : aucune livrée, aucun nom de compagnie ni de ligne réels ; seuls textes :
-渋谷 (une fois), 駅, 東口, 西口, ラーメン, 寿司, 喫茶, 本, 薬, 24H.
+駅, 東口, 西口, ラーメン, 寿司, 喫茶, 本, 薬, 24H.
 """
 
 from __future__ import annotations
@@ -607,7 +607,7 @@ def viaduc_ferroviaire(b, variant: int = 0, longueur: float = 476, hauteur_libre
                 if gare and xa >= gx0 - 1e-6 and xb <= gx1 + 1e-6:
                     continue
                 _tablier_beton(b, xa, xb, pal, yd, yc, ys, yp)
-        _travee_acier(b, -xt, xt, pal, yd, ys, yp, "渋谷")
+        _travee_acier(b, -xt, xt, pal, yd, ys, yp, "東口")
     _voies(b, -X, X, ys, yr)
 
     # --- gare ----------------------------------------------------------------------------------

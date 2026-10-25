@@ -316,7 +316,7 @@ def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> di
     data = json.loads(Path(parts_path).read_text(encoding="utf-8"))
     parts = data["parts"]
     mat = make_material()
-    root = bpy.data.collections.new("ZoneJujutsuKaisen")
+    root = bpy.data.collections.new("ZoneVilleNuit")
     bpy.context.scene.collection.children.link(root)
     accs: dict[str, MeshAccum] = {}
     cols: dict[str, bpy.types.Collection] = {}
