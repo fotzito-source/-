@@ -398,8 +398,8 @@ def _portail(b, w, h, tip, *, pierre, sombre, prof=1.2, jamb=1.0, y0=0.0):
 def _rose(b, y, r, *, pierre, rng):
     """Rose (repère de façade : plan z = 0, extérieur vers -z) : couronne de pierre, disque sombre, remplage,
     huit pétales de verre bleu et rouge, cœur doré (15 pièces)."""
-    b.cyl((0, y, -0.3), r + 0.6, 0.6, col(pierre), axis="z", collide=False, name="Rose")
-    b.cyl((0, y, -0.35), r, 0.7, col("fenetre"), axis="z", collide=False, name="Rose")
+    b.cyl((0, y, -0.3), r + 0.6, 0.6, col(pierre), axis="z", collide=False, name="Rosace")
+    b.cyl((0, y, -0.35), r, 0.7, col("fenetre"), axis="z", collide=False, name="Rosace")
     for k in range(4):
         b.part("block", (2 * r - 0.2, 0.3, 0.15), (0, y, -0.76), rot_z(k * 45 + 22.5), col(pierre),
                collide=False, shadow=False, name="Remplage")

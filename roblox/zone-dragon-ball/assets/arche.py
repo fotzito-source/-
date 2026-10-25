@@ -5,21 +5,28 @@ Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "h
 - arche_finale(passage=104, largeur=400, profondeur=34, hauteur=96) : arche de roche géante qui ferme toute la
     largeur de la zone et sous laquelle le couloir sort vers la zone suivante. ORIGINE : centre de l'entrée du
     passage, au sol. Exception à « l'avant regarde -Z » : sa façade (z = 0 local) regarde +Z, vers les joueurs
-    qui arrivent ; la masse occupe z ∈ [-profondeur, 0]. Strates horizontales de sable ocre, bandes violettes et
-    filets roses en saillie, couronne d'herbe sarcelle débordante à coulures, arbres « boules » et buissons sur
-    le dessus, contreforts et baies en retrait, deux cascades dans des fentes des jambes (vasques au pied), deux
-    pitons géants (110-130) qui l'encadrent, masses extérieures en deux gradins (arrière haut, avant bas) qui
-    rejoignent les falaises latérales. ≤ 1 500 pièces (repli de densité si un tirage déborde).
+    qui arrivent ; la masse occupe z ∈ [-profondeur, 0] (rien ne dépasse derrière). Strates horizontales épaisses
+    de sable ocre (bancs de 8 à 12), trois bandes violettes d'épaisseurs différentes et trois filets roses en
+    saillie, couronne d'herbe sarcelle débordante à coulures, arbres « boules » et buissons sur le dessus,
+    contreforts et baies en retrait, quelques lianes vertes contre les jambes, deux cascades dans des fentes des
+    jambes (nappes translucides, lèvre et traînées d'écume blanche, bouillon au pied, vasques), deux pitons géants
+    massifs (27 de large au pied, 110-130 de haut, coiffés d'arbres boules) qui l'encadrent, masses extérieures en
+    deux gradins (arrière haut, avant bas) qui rejoignent les falaises latérales. ≤ 1 500 pièces (≈ 800).
     v0 arche ronde ; v1 arche irrégulière à fenêtre dans une jambe ; v2 arche et petite arche secondaire au pied
     d'un piton.
 - pont_rocheux(portee=100, hauteur=36, epaisseur=12, largeur_pile=30) : pont naturel au-dessus du couloir.
     Origine au centre du pont, au sol, sur l'axe du couloir ; symétrique en X, profondeur ≈ 20 (z ∈ [-10, 10]).
     Deux piles-mesas (strates violettes, filets roses en saillie, dessus d'herbe verte) à |x| ∈ [portee/2,
-    portee/2 + largeur_pile] et un tablier dont le dessous reste ≥ hauteur - 2 au-dessus de |x| < 46. ≤ 350.
-    v0 arc régulier ; v1 dissymétrique (pile gauche plus haute) ; v2 tablier mince à lianes, pile droite fendue.
-- nuages_dores(largeur=50, profondeur=26, hauteur=24) : banc de nuages dorés posé sur sa base (y = 0) ;
-    coussin de galettes, rangées de boules or et or clair, couronnes crème, dessous ombre et orange. ≤ 70 pièces.
-    v0 banc long et bas ; v1 banc en tour ; v2 banc à deux lobes.
+    portee/2 + largeur_pile], un tablier épais dont le dessous reste ≥ hauteur - 2 (et ≥ 34) au-dessus de
+    |x| < 46, encorbellements en gradins de 4 entre |x| = 46 et les piles (vraie voûte), coulures, buissons et
+    lianes vertes le long du tablier. ≤ 440 pièces.
+    v0 arc régulier ; v1 dissymétrique (pile gauche plus haute) ; v2 tablier mince, pile droite fendue.
+- piton_geant(hauteur=62, demi=8, demi_haut=5,5) : piton de sable isolé de la planète (même construction que
+    les pitons de l'arche), coiffé d'arbres boules. Origine au centre du pied. ≤ 110 pièces.
+- nuages_dores(largeur=100, profondeur=30, hauteur=36) : banc de nuages dorés posé sur sa base (y = 0) : dessous
+    plat en galettes rondes (ombre dorée, or), trois rangées de grosses bouffées de tailles variées (devant or,
+    milieu or clair, derrière crème) ; dégradé net de bas en haut. ≤ 60 pièces.
+    v0 banc long et bosselé ; v1 banc en tour ; v2 banc à deux lobes.
 - vaisseau_rond(rayon=13) : vaisseau générique en lentille blanche à bande lavande (ou turquoise), coupole sur
     le dessus, trois hublots à l'AVANT seulement (-Z), trois ou quatre pattes inclinées à semelles studdées,
     rampe d'accès depuis une trappe avant, petite antenne. Emprise ≈ (2r + 6)², hauteur ≈ r + 11. ≤ 220.

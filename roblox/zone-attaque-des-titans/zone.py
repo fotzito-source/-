@@ -475,7 +475,7 @@ def prairie(b: Builder) -> None:
         place(b, "nature", "champ", (x, 0, z), group=f"Prairie/Champ{i}", emprise=(36, 24, 2), variant=v, largeur=36, profondeur=24)
     for i, (x, z) in enumerate(((-112, -48), (-120, -42), (-106, -38), (146, -50))):
         place(b, "nature", "meule_foin", (x, 0, z), group=f"Prairie/Meule{i}", emprise=(5, 5, 6), variant=i)
-    for i, (x, z, v) in enumerate(((-66, 0, 0), (-150, 4, 1), (-226, -36, 2), (68, 2, 3), (156, -4, 0), (222, -44, 1))):
+    for i, (x, z, v) in enumerate(((-66, 0, 0), (-150, 1, 1), (-226, -36, 2), (68, 2, 3), (156, -4, 0), (222, -44, 1))):
         place(b, "nature", "arbre", (x, 0, z), group=f"Prairie/Arbre{i}", emprise=(10, 10, 14), variant=v, taille=1.0 + 0.1 * (i % 3))
     for i, (x, z) in enumerate(((-72, -12), (-118, -4), (86, -8), (150, -28), (-170, -30), (206, -6))):
         place(b, "nature", "parterre_fleurs", (x, 0, z), group=f"Prairie/Fleurs{i}", emprise=(8, 6, 1), variant=i % 4,
@@ -487,7 +487,7 @@ def prairie(b: Builder) -> None:
         for i, z in enumerate((-4, -18, -32)):
             place(b, "mobilier", "cloture_bois", (s * 57, 0, z - 6), yaw=90, group=f"Prairie/Cloture{'G' if s < 0 else 'D'}{i}",
                   emprise=(12, 1, 3), longueur=12, variant=0)
-    place(b, "mobilier", "poteau_indicateur", (-60, 0, 4), yaw=-90, group="Prairie/Indicateur", emprise=(4, 1, 7),
+    place(b, "mobilier", "poteau_indicateur", (-60, 0, 0), yaw=90, group="Prairie/Indicateur", emprise=(4, 1, 7),
           textes=("MARCHÉ", "AUBERGE"), variant=0)
     place(b, "mobilier", "charrette", (-66, 0, -36), yaw=200, group="Prairie/Charrette", emprise=(5, 10, 5), variant=0)
     place(b, "mobilier", "bottes_foin", (-100, 0, -34), group="Prairie/Bottes", emprise=(5, 5, 3), variant=2)

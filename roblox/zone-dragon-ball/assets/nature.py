@@ -2,9 +2,10 @@
 planète extraterrestre.
 
 Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "hauteur": h}) :
-- palmier(hauteur=14) : tronc courbe en tronçons vrillés (bagues sombres), couronne de 5 à 8 palmes coudées
-    (montée, palier, pointe tombante en coin), cœur et pousse, noix de coco brunes. ≤ 36 pièces, tout tient
-    dans un rayon de 8 autour de l'origine. v0 droit, v1 penché, v2 double tronc, v3 court et touffu.
+- palmier(hauteur=14, rayon_max=7,9) : tronc courbe en tronçons vrillés (bagues sombres), couronne de 5 à 8
+    palmes coudées (montée, palier, pointe tombante en coin), cœur et pousse, noix de coco brunes. ≤ 36 pièces,
+    tout tient dans un rayon `rayon_max` autour de l'origine ; les grands palmiers (> 16) ont un tronc plus
+    épais et une couronne plus large si `rayon_max` le permet. v0 droit, v1 penché, v2 double tronc, v3 court.
 - arbre_rond(hauteur=12) : feuillu de la campagne, tronc brun et couronne « sphère en voxels » (trois pavés
     croisés, dessous sombre, chapeau clair, bosses ; studs sur les dessus), rayon de couronne ≤ 5. ≤ 24 pièces.
     v0 rond, v1 ovale haut, v2 à deux lobes, v3 rond fleuri.
@@ -14,13 +15,13 @@ Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "h
 - buisson(teinte="vert"|"alien") : 2 à 6 pièces, emprise ≤ 4 × 4, hauteur ≤ 3.
 - rocher(taille=1, teinte="violet"|"gris"|"orange"|"sable") : blocs trapus tournés et coins, tout dans ±2·taille
     en X et en Z, ≈ 4 × 4 × 2,5 à la taille 1. ≤ 8 pièces.
-- mesa(largeur, profondeur, hauteur) : butte à sommet plat des terres de combat : 4 ou 5 lobes verticaux qui se
-    chevauchent presque à la même hauteur (sommet plat au contour irrégulier) et au plus un épaulement bas,
-    strates violettes continues (filet sombre sur les grandes), une ou deux strates roses en saillie, côtes
-    rocheuses verticales en gradins qui reprennent les strates, éboulis en pente au pied des faces visibles et
-    rochers aux angles, chapeau d'herbe débordant et coulures, plaque d'herbe claire et buissons sur le dessus.
-    ≤ 100 pièces. v0 butte seule, v1 buttes jumelles et col, v2 tour étroite sur un épaulement bas d'un côté,
-    v3 large et basse à terrasse avant.
+- mesa(largeur, profondeur, hauteur) : butte à sommet plat des terres de combat : 3 à 5 lobes verticaux aux
+    angles abattus (plan en octogone à gradins sur les deux plus hauts) presque à la même hauteur, flancs à
+    léger fruit (petites corniches), strates violettes et bandes sombres à hauteurs fixes communes à toutes les
+    mesas (11,5 / 27,5 / 45,5 / 63,5), une ou deux strates roses en saillie, une fissure, grands éboulis clairs
+    en pente au pied et blocs aux angles, chapeau d'herbe épais (2) débordant de 1 à coulures, plaque d'herbe
+    claire et buissons. ≤ 110 pièces (≤ 135 au-delà de 50 de haut). v0 butte seule, v1 buttes jumelles et col,
+    v2 tour étroite sur un épaulement bas d'un côté, v3 large et basse à terrasse avant.
 - pic_rocheux(hauteur=40, teinte="orange"|"violet"|"sable") : aiguille karstique en tronçons empilés qui
     s'affinent en zigzag (du sombre au clair), filets de strate, bosses aux angles, éboulis au pied, replat et
     chapeau d'herbe à coulures, arbre ou buisson au sommet. Emprise ≤ 10 × 10 (≤ 12 × 12 au-delà de 46 de haut).
@@ -28,8 +29,8 @@ Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "h
 - cratere(rayon=10) : bourrelet de terre brûlée et de gravats (pente intérieure sombre, pente extérieure kaki),
     fond brûlé et fissures en étoile, cailloux projetés. VIDE. Emprise 2r + 4. ≤ 40 pièces.
 - cascade(hauteur=26, largeur=8) : chute d'eau plaquée contre une falaise (face = plan z = 0 local, falaise
-    derrière), lèvre sur le dessus, nappe en paliers, filets clairs, écume, brume, vasque bordée de pierres.
-    Emprise (largeur + 4) × 10. ≤ 40 pièces.
+    derrière), lèvre d'écume blanche sur le dessus, nappe translucide en paliers plus clairs, traînées d'écume
+    blanches, gros bouillon et brume au pied, vasque bordée de pierres. Emprise (largeur + 4) × 10. ≤ 40 pièces.
 - ile_herbeuse(largeur, profondeur, hauteur) : îlot du lac (flancs jusqu'à y = -2,1 sous l'eau), contour
     arrondi, strates de sable ocre, dessus d'herbe sarcelle débordant, plage, liseré d'écume. ≤ 40 pièces.
 
@@ -722,6 +723,8 @@ def mesa(b, variant: int = 0, largeur: float = 30, profondeur: float = 26, haute
             h -= 0.5
         hs.append(h)
         blocs.append(dict(x0=x0, x1=x1, z0=z0, z1=z1, c=cf, h=h, top=h - CAP))
+    if not blocs:                                        # butte très étroite : un seul lobe sur toute la surface
+        blocs.append(dict(x0=_q(ux0), x1=_q(ux1), z0=_q(uz0), z1=_q(uz1), c=0.0, h=H, top=H - CAP))
     # angles abattus seulement sur les deux plus hauts lobes (les autres restent d'un seul pavé : budget)
     for B in sorted(blocs, key=lambda B: -B["h"])[2:]:
         B["c"] = 0.0

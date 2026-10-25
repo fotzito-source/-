@@ -36,9 +36,9 @@ P = {
     "terre_fonce": "#94653B",
 
     # ---------------------------------------------------------------- Terres de combat
-    "kaki": "#BCA96A",             # terre nue kaki
-    "kaki_clair": "#D3C186",
-    "kaki_fonce": "#9C8A50",
+    "kaki": "#D6BE7C",             # terre nue kaki (claire et chaude)
+    "kaki_clair": "#E2CF95",
+    "kaki_fonce": "#BFA061",
     "ocre": "#D6A65A",
     "ocre_fonce": "#B38440",
     "fissure": "#6E5A36",          # fissures et terre brûlée
@@ -59,7 +59,7 @@ P = {
 
     # ---------------------------------------------------------------- Falaises et roches
     # Falaises orange en strates de la campagne (la référence actuelle, en mieux)
-    "falaise_orange": "#E58B3A",
+    "falaise_orange": "#EE8F34",
     "falaise_orange_claire": "#F2A85A",
     "falaise_orange_fonce": "#C06E2C",
     "falaise_brune": "#8E5530",
@@ -69,6 +69,10 @@ P = {
     "mesa_violet_fonce": "#6B45A8",
     "mesa_nuit": "#53358A",
     "mesa_rose": "#C27FCB",        # strate rose : rappel des ciels magenta
+    # Falaises basses des terres de combat : lavande pâle (rappel du ciel rose-lavande), les mesas s'y découpent
+    "falaise_lavande": "#C4B2E6",
+    "falaise_lavande_claire": "#D5C8EF",
+    "falaise_lavande_rose": "#D8BCE4",
     # Falaises de sable ocre de la planète extraterrestre
     "falaise_sable": "#D7B06E",
     "falaise_sable_claire": "#EACB8C",

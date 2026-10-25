@@ -1,19 +1,25 @@
 """Architecture rétro-futuriste en dômes de la zone 4 (style « stud »).
 
 Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "hauteur": h}) :
-- maison_dome(rayon=9) : maison-dôme blanche du village terrestre (r = 6 à 10), socle clair clouté à liseré
-    coloré, bande de couleur franche et filet d'une seconde couleur, hublots ronds à reflet, tunnel d'entrée
-    à porte ronde, équipement de toit, jardinet (massif fleuri, lampadaire, pot, boîte aux lettres) ;
+- maison_dome(rayon=9, tambour=0) : maison-dôme blanche du village terrestre (r = 6 à 17), socle clair clouté à
+    liseré coloré, tambour blanc optionnel (cylindre sous le dôme, à couronne de hublots) qui fait monter la
+    maison à 20-28 studs, bande de couleur franche (à la jonction tambour / dôme) et filet d'une seconde couleur,
+    hublots ronds à reflet, tunnel d'entrée à porte ronde, équipement de toit (agrandi avec le dôme), jardinet
+    (massif fleuri, lampadaire, pot, boîte aux lettres, à l'échelle des joueurs) ;
     v0 dôme seul, bande orange, parabole ; v1 dôme et aile cylindrique basse, bande bleue ;
     v2 deux dômes (r et 0,65 r) reliés par un tube, bande rouge ; v3 maison haute (dôme sur un étage
-    cylindrique à couronne de hublots), bande jaune ; v4 dôme à terrasse de toit (garde-corps, parasol),
-    bande turquoise. Au-delà de 4, mêmes formes, couleurs décalées. Emprise : X ≤ 2r + 4 (v2 : 2r + 12), Z ≤ 2r + 6.
-- boutique_dome() : boutique ronde 16 × 16 au bord de la rue, vitrine, store rayé, comptoir et tabourets,
-    tableau de menu en pictogrammes, et un OBJET GÉANT sur le toit (aucun texte) :
-    v0 cornet de glace, v1 brioche vapeur dans son panier de bambou, v2 gobelet à paille, v3 beignet glacé debout.
+    cylindrique à couronne de hublots et balcon), bande jaune ; v4 dôme à terrasse de toit (garde-corps,
+    parasol), bande turquoise ; v5 deux dômes empilés (tourelle-dôme et balcon annulaire sur le grand dôme).
+    Formes : variant % 6 ; couleurs : variant % 5, décalées au-delà. Emprise : X ≤ 2r + 4 (v2 : 2r + 12), Z ≤ 2r + 6.
+- boutique_dome(echelle=1) : boutique ronde 16 × 16 (× echelle, 1 à 1,6) au bord de la rue, vitrine, store rayé,
+    comptoir et tabourets (à l'échelle des joueurs), tableau de menu en pictogrammes, et un OBJET GÉANT sur le
+    toit (aucun texte) : v0 cornet de glace, v1 brioche vapeur dans son panier de bambou, v2 gobelet à paille,
+    v3 beignet glacé debout.
 - maison_alien(rayon=7) : habitation de la planète extraterrestre, dôme blanc sur tambour, hublots-bulles
     verts, socle de sable, cheminées courtes, lampe et arbuste boule ; v0 dôme seul, v1 grappe de deux dômes,
     v2 socle en gradins et deux aiguilles, v3 petit dôme à grande baie ronde. Emprise (2r + 4) × (2r + 4).
+- hameau_alien(rayon=10) : grand dôme extraterrestre relié par des tubes blancs à colliers lavande à deux dômes
+    satellites (0,55 r) ; v0 symétrique, v1 dissymétrique. Emprise ≈ (4,3 r + 6) × (2,2 r + 6).
 - voiture_volante() : voiture volante garée (9 × 5, ≤ 4 de haut), sans roues : quatre patins ronds à halo ;
     v0 rouge, v1 jaune, v2 bleue, v3 turquoise.
 

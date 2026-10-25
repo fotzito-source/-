@@ -14,9 +14,9 @@ les formes natives de Roblox (bloc, coin, cylindre, boule).
 - Couloir de course : **`x ∈ [-45, 45]`** (90 studs, élargi), de `z = 0` (porte de temple) à `z = -470` (sortie sous
   l'arche, vers la zone suivante). Trottoirs jusqu'à `|x| = 55`, premières façades à `|x| = 56`, falaises de `|x| = 135` à 216.
   Le joueur arrive par +Z et court vers -Z, puis revient : **les deux sens de lecture comptent**.
-- Séquence : approche (+40 → 0), porte de temple (z = 0), campagne terrestre et village de dômes (0 → -146),
+- Séquence : approche (+48 → 0, groupe `Approche`), porte de temple (z = 0), campagne terrestre et village de dômes (0 → -146),
   terres de combat et mesas (-146 → -282, pont de roche en z = -214), planète extraterrestre (-282 → -344),
-  arène des œufs (96 × 80 centrée en z = -389, dessus à y = 1), arche finale (façade z = -436, sortie z = -470).
+  arène des œufs (96 × 80 centrée en z = -389, dessus à y = 1,5, marches jusqu'à |x| = 53), arche finale (façade z = -436, sortie z = -470).
 
 ## API du kit (`kit.py`)
 
