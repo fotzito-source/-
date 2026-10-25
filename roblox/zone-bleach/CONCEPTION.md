@@ -5,7 +5,8 @@ vite. Il entre par une porte colossale dans une ville-forteresse céleste, trave
 une cité blanche aux murs interminables, prend son œuf dans une grande cour pavée et repart vers sa base. La
 colline de la tour blanche et du monolithe ferme la perspective.
 
-**Couloir de course vide** : `|x| < 32` (64 studs de large), trottoirs jusqu'à `|x| = 42`. Longueur : 522 studs
+**Couloir de course vide** (élargi à la demande de l'utilisateur) : `|x| < 45` (90 studs de large), trottoirs
+jusqu'à `|x| = 55` (façades et murs d'allée en `|x| = 55`). Longueur : 522 studs
 de la grande porte (z = 0) à la sortie (z = -522).
 
 ## 1. Ce qu'on garde des références, et ce qu'on corrige
@@ -42,13 +43,13 @@ toits débordants.
 
 | z | Moment | Repère | Vue à hauteur de joueur |
 |---|---|---|---|
-| +64 → +8 | **Esplanade** | La façade extérieure de la **grande porte blanche** : mur de 64 studs à chaperon ocre, bastions, corps de garde à toit ocre à deux étages, plaque 門. Les vantaux géants sont ouverts vers l'extérieur, en éventail | On ne voit que du blanc et du ciel ; dans l'ouverture (76 × 50), la rue de sable du faubourg et, très loin, la tour blanche |
-| +8 → -8 | **Passage de la porte** | Ouverture de 76 de large et 50 de haut, dalles sombres, épaisseur du mur 16 | Effet de seuil : on passe sous un linteau énorme |
-| -8 → -171 | **Faubourg** | Rue de sable et chemin central de grandes dalles. Cinq maisons de bois sombre par côté, à étage et balcon, tuiles grises, noren, sudare ; ruelles avec échoppes, puits, seaux d'incendie ; **trois tours de guet en bois** au-dessus des toits ; deux guirlandes de lampions (≥ 31 studs) ; jardins potagers et cerisiers à l'arrière | Ambiance chaude et vivante, bois sombre contre sable doré ; au bout, la **porte intérieure** blanche |
-| -171 → -181 | **Porte intérieure** | Tour-porte blanche (*yagura-mon*) : corps de garde au-dessus de 36 studs, balcon laqué rouge, toit ocre à deux étages, plaque 静, mur intérieur de 24 studs jusqu'aux remparts | Bascule nette : du bois sombre on passe au blanc éclatant |
-| -181 → -388 | **Cité blanche** | L'allée court entre deux **longs murs blancs de 10 studs à chaperon ocre**. Trois enclos par côté, chacun avec son **portail** (静 茶 白 宿 門), une cour de gravier blanc et un bâtiment blanc à toit ocre face au couloir. Derrière : bâtiments et **tours blanches** (40-46 studs, toits ocre, deux bleus), cerisiers qui dépassent des murs, un cerisier géant par côté, un jardin à étang et pont rouge. **Passerelle laquée rouge** couverte à 38 studs au-dessus du couloir (z = -286), entre deux tours blanches | Rythme régulier de murs, portails et lanternes ; la passerelle rouge cadre la colline au loin |
-| -388 → -476 | **Cour des œufs** | Cour pavée de 160 de large, fermée de murs blancs de 12 studs ; **mosaïque de fleur de cerisier** de rayon 34 (centre z = -430) ; deux pavillons à piliers rouges, lanternes, buissons, cerisiers, deux cerisiers géants derrière les murs ; deux piliers-lanternes à l'entrée | La colline remplit le fond : tour blanche à gauche, monolithe à droite, tunnel au centre |
-| -476 → -522 | **Colline de la tour et du monolithe** | Mur de soutènement de pierre pâle percé d'un **tunnel** (passage de 68, hauteur libre ≥ 38) sous un corps de garde blanc à toit ocre. Sur la colline : la **grande tour blanche à bandes rouges et flèches sombres** (sommet vers 150 studs) et le **monolithe géant** de pierre gris-bleu ceint d'une corde sacrée (sommet vers 140), des masses d'arbres verts, des pins, un escalier de pierre à lanternes | Le repère final, visible dès l'entrée par l'ouverture de la grande porte |
+| +64 → +8 | **Esplanade** | La façade extérieure de la **grande porte blanche** : mur de 64 studs à chaperon ocre, bastions, corps de garde à toit ocre à deux étages, plaque 門. Les vantaux géants, **enduits de blanc** comme des portes de *kura* (cadre laqué noir, gradin blanc, trois bandes de fer cloutées d'or), sont ouverts vers l'extérieur à ≈ 102° : presque perpendiculaires au mur, ils bordent l'esplanade (|x| ≈ 50 à 63) et laissent voir la façade. Lanternes de pierre et buissons entre le couloir et les vantaux, cerisiers au-delà | On ne voit que du blanc et du ciel ; dans l'ouverture (100 × 55 sous les solives), la rue de sable du faubourg et, très loin, la tour blanche |
+| +8 → -8 | **Passage de la porte** | Ouverture de 100 de large, 55 de haut sous les solives, dalles sombres, épaisseur du mur 16 | Effet de seuil : on passe sous un linteau énorme |
+| -8 → -171 | **Faubourg** | Rue de sable doré et chemin central de grandes dalles chaudes. Quatre maisons de bois sombre par côté, à étage et balcon, tuiles grises, noren, sudare ; ruelles avec échoppes, puits, seaux d'incendie ; **trois tours de guet en bois** au-dessus des toits ; trois guirlandes de lampions (≥ 34 studs) ; au bout de la rue, une **petite place plantée de cerisiers** devant la porte intérieure ; derrière les toits, deux **cerisiers géants** entre les potagers | Ambiance chaude et vivante, bois sombre contre sable doré ; au bout, la **porte intérieure** blanche |
+| -171 → -181 | **Porte intérieure** | Tour-porte blanche (*yagura-mon*) : passage de 92 × 35 (sous les solives), corps de garde au-dessus, balcon laqué rouge, toit ocre à deux étages, plaque 静, mur intérieur de 24 studs jusqu'aux remparts. Ses vantaux de bois sombre sont ouverts **côté faubourg**, couchés le long du trottoir | Bascule nette : du bois sombre on passe au blanc éclatant |
+| -181 → -388 | **Cité blanche** | L'allée (90 de large, trottoirs compris 110) court entre deux **longs murs blancs de 14 studs à chaperon ocre** (faces en |x| = 55). Sol : **chemin central de grandes dalles chaudes** (28 de large) bordé d'un liseré ocre, dalles blanches en appareil décalé de part et d'autre, un **joint sombre tous les 24 studs** (repère de vitesse), caniveau de pierre foncée. Trois enclos par côté, chacun avec son **portail** de 12 (静 茶 白 宿 門), une cour de gravier blanc et une **maison blanche à étage** face au couloir (un étage entier et le toit ocre dépassent du mur ; un hall à toit bleu par côté). Deux **tours d'allée** blanches juste derrière les murs (z ≈ -258 et -302), d'autres tours plus loin (40-46 studs, toits ocre, deux bleus), cerisiers plus grands qui débordent des murs, un cerisier géant par côté, un jardin à étang et pont rouge. **Passerelle laquée rouge** couverte à 38 studs au-dessus du couloir (z = -286, portée 130), entre deux tours blanches ; guirlandes à l'entrée de la cité (-204) et devant la cour (-372), loin de la passerelle | Rythme régulier de murs, portails, tours et lanternes ; la passerelle rouge cadre la colline au loin |
+| -388 → -476 | **Cour des œufs** | Cour pavée de 184 de large, fermée de murs blancs de 16 studs ; deux **tours blanches** encadrent son entrée ; **mosaïque de fleur de cerisier** de rayon 34 (centre z = -430) dans un cadre carré de pierre sombre, croix de dalles claires dans les axes ; deux pavillons à piliers rouges, lanternes, buissons, huit cerisiers, deux cerisiers géants derrière les murs ; deux piliers-lanternes à l'entrée | La colline remplit le fond : tour blanche à gauche, monolithe à droite, butte boisée au-dessus du tunnel |
+| -476 → -522 | **Colline de la tour et du monolithe** | Mur de soutènement de pierre pâle percé d'un **tunnel** (passage de 96, hauteur libre ≥ 38) sous un corps de garde blanc à toit ocre ; derrière lui, une **butte** de trois gradins de roche (jusqu'à 68) porte une masse d'arbres et des cèdres qui dépassent son toit. Sur la colline : la **grande tour blanche à bandes rouges, jupes de tuiles ocre et flèches sombres** (sommet vers 150 studs) et le **monolithe géant** de pierre grise et chaude (cinq colonnes, sommet coupé en biais, éboulis au pied) ceint d'une corde sacrée affaissée (sommet vers 143), des masses d'arbres verts, des pins, un escalier de pierre à lanternes | Le repère final, visible dès l'entrée par l'ouverture de la grande porte |
 | -522 | **Sortie** | Bouche du tunnel ouverte vers la zone suivante | — |
 
 Les **côtés** sont fermés par des remparts blancs de 28 studs (|x| = 150), avec chaperon ocre, meurtrières et
@@ -63,15 +64,17 @@ porte. Les deux faces des portes et de la passerelle sont soignées, et les guir
 `colline_tour` a pour origine le centre de l'entrée du tunnel (z = -476) et regarde +Z.
 - Le **mur de soutènement** (*ishigaki*) en gradins couvre toute la largeur. Le **portail du tunnel** est
   coiffé d'un corps de garde blanc à toit ocre et balcon rouge, tout au-dessus de 38 studs.
-- Le **tunnel** fait 46 studs de long, dégage `|x| < 34` jusqu'à y = 38 et débouche en z = -522.
-- La **tour blanche**, posée sur la colline à gauche (x ≈ -64), monte vers 150 studs. Elle a plusieurs corps
+- Le **tunnel** fait 46 studs de long, dégage `|x| < 48` jusqu'à y = 38 et débouche en z = -522.
+- La **tour blanche**, posée sur la colline à gauche (x ≈ -78), monte vers 150 studs. Elle a plusieurs corps
   qui se rétrécissent, des bandes rouges en saillie, des fenêtres sombres et une couronne de **flèches sombres**.
   Des ailes basses blanches à toits ocre entourent son pied.
-- Le **monolithe**, à droite (x ≈ +60), est une dalle de pierre verticale massive et légèrement irrégulière,
-  qui monte vers 140 studs. Il porte une **corde sacrée** (*shimenawa*) à papiers blancs et se dresse sur une
-  terrasse de pierre.
-- **Masses d'arbres verts** et pins sur les gradins, plus un escalier de pierre à lanternes qui monte vers la
-  tour (hors couloir).
+- Le **monolithe**, à droite (x ≈ +78), est une pierre verticale massive et irrégulière, large à la base
+  (≈ 28 × 18) et resserrée vers le haut (≈ 18), qui monte vers 143 studs : cinq colonnes de hauteurs
+  différentes, une fissure sombre, des arêtes claires, un sommet coupé en biais, des éboulis au pied. Il porte
+  une **corde sacrée** (*shimenawa*) épaisse vers le quart de sa hauteur, à grands papiers blancs, et se
+  dresse sur une terrasse de pierre.
+- **Masses d'arbres verts** et pins sur les gradins, une butte boisée à cèdres au-dessus du tunnel, plus un
+  escalier de pierre à lanternes qui monte vers la tour (hors couloir).
 
 ## 4. Palette (`palette.py`)
 
@@ -79,29 +82,32 @@ porte. Les deux faces des portes et de la passerelle sont soignées, et les guir
   (`blanc_pixel(rng)` tire au hasard).
 - **Ocre-orangé** (signature des toits et chaperons) : `ocre` #D8924A, `ocre_clair`, `ocre_fonce`,
   `ocre_brun`, `terre_cuite`.
-- **Pierre pâle chaude** (sol, bases) : `dallage`, `pierre_claire`, `pierre`, `pierre_fonce`, `bordure`,
-  `gravier`.
+- **Pierre pâle chaude** (sol, bases) : `dallage` et `dallage_ombre` (bien contrastés), `dalle_cite` (chemin
+  central de la cité), `pierre_claire`, `pierre`, `pierre_fonce`, `bordure`, `joint`, `gravier`.
 - **Faubourg** : `bois_fonce` à `bois_clair`, `bois_gris`, `tuile_grise`, `torchis`, `sable`, rideaux
   `noren_*`.
 - **Accents** : `laque_rouge` (passerelle, balcons, bandes de la tour), `bleu` / `bleu_profond` (deux toits de
   tour, rideaux, pots), `or` (plaques, épis), `ardoise_fleche` (flèches).
 - **Nature** : `sakura` (cinq roses), `tronc`, verts tendres `feuille*` et `pin` en petites masses, jamais en
-  vert émeraude dominant. **Colline** : `roche*` (pâle et chaude), `monolithe*` (gris-bleu), `lichen`.
+  vert émeraude dominant. **Colline** : `roche*` (pâle et chaude), `monolithe*` (gris chaud, pierre naturelle), `lichen`.
 
 ## 5. Budget de pièces (plafond 13 500)
 
-| Poste | Budget |
-|---|---|
-| Sol (couloir, trottoirs, côtés, mosaïque) | 1 070 (mesuré) |
-| Mobilier posé (lanternes, guirlandes, enseignes, objets) | 590 (mesuré) |
-| `assets/remparts.py` (grande porte 850, porte intérieure 420, passerelle 330, 44 murs ≈ 680, 10 tours ≤ 65, 6 portails ≤ 60) | ≈ 3 290 |
-| `assets/batiments.py` (14 maisons de bois, 6 maisons blanches, 4 casernes, 4 échoppes, 3 tours de guet, 2 pavillons, 10 quartiers lointains) | ≈ 3 750 |
-| `assets/vegetation.py` (29 cerisiers ≤ 40, 4 géants ≤ 150, 6 pins, 5 massifs, 8 buissons, 4 rochers, 1 étang) | ≈ 2 530 |
-| `assets/colline.py` (colline, tour, monolithe, tunnel) | ≤ 1 700 |
-| **Total au budget maximal** | **≈ 12 940** |
+Mesuré sur la zone assemblée (couloir élargi, `python zone.py --stats`) :
 
-`python zone.py --stats` vérifie chaque pose (`hors_budget`), le couloir (`couloir_encombre`) et la hauteur
-libre (`trop_bas_au_dessus_du_couloir`).
+| Poste | Pièces |
+|---|---|
+| Sol (couloir, trottoirs, côtés, mosaïque) et repères | 1 420 |
+| Mobilier posé (14 lanternes sur poteau, 8 lanternes de pierre, 2 piliers, 10 mâts, enseignes, objets) | 506 |
+| Guirlandes de lampions (3 au faubourg, 2 dans la cité) | 405 |
+| `assets/remparts.py` (grande porte, porte intérieure, passerelle, 44 murs, 16 tours, 6 portails) | 3 037 |
+| `assets/batiments.py` (18 maisons de bois, 10 maisons blanches, 2 casernes, 4 échoppes, 3 tours de guet, 2 pavillons, 10 quartiers lointains) | 3 460 |
+| `assets/vegetation.py` (34 cerisiers, 6 géants, 5 pins, 5 massifs, 8 buissons, 4 rochers, 1 étang) | 2 429 |
+| `assets/colline.py` (colline, tour, monolithe, tunnel, butte) | 1 552 |
+| **Total** | **12 809** |
+
+`python zone.py --stats` vérifie chaque pose (`hors_budget`), le couloir (`couloir_encombre`), la hauteur
+libre (`trop_bas_au_dessus_du_couloir`) et les chevauchements entre poses (boîtes orientées des pièces).
 
 ## 6. Propriété intellectuelle (obligatoire)
 

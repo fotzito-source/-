@@ -2,9 +2,14 @@
 
 Zone 2 du couloir « Volez un œuf », entre Naruto (zone 1) et Demon Slayer (zone 3). Les joueurs y arrivent
 plus vite (« VITESSE CONSEILLÉE : 200 ») : la zone mesure **400 studs** (Naruto : 364), le couloir est vide et
-large de 60 studs, le décor raconte une petite île de la mer de l'Est : on passe l'arche du port, on longe
+large de **90 studs** (`x ∈ [-45, 45]`, trottoirs et quais jusqu'à `|x| = 55`), le décor raconte une petite île de la mer de l'Est : on passe l'arche du port, on longe
 la campagne aux moulins, on traverse le bourg coloré, on court sur les quais entre les navires pirates,
 on attrape l'œuf sur le grand ponton à rose des vents, puis on file par la bouche du rocher du crâne.
+
+> **Couloir élargi (demande du joueur) :** le couloir de course fait désormais 90 studs (`|x| < 45`), trottoirs,
+> accotements et quais jusqu'à `|x| = 55`, façades à `|x| ≥ 55`. Rien de solide dans `|x| < 45` au sol, rien du tout
+> au-dessus de `|x| < 46` sous y = 30 ; ce qui enjambe le couloir (arche d'entrée, guirlandes, bouche du crâne) garde
+> ses appuis à `|x| ≥ 46` et passe à y ≥ 34. Les chiffres ci-dessous sont ceux du plan actuel (`zone.py`).
 
 ## 1. Ce que disent les références
 
@@ -37,22 +42,24 @@ studdés, tout ce qui est petit (cordages, fanions, lanternes) sans collision.
 |---|---|---|---|
 | +40 → 0 | **Abords** | palmiers, rochers, prairie | au fond, le crâne géant domine la ligne d'horizon ; à droite le phare rayé ; devant, l'arche |
 | 0 | **Arche du port** | arche de bois à cordages, bouées, filets, pavillons ; panneau bleu marine « ZONE RARE » (violet) et « VITESSE CONSEILLÉE : 200 » (jaune), lettres ≥ 4-5 studs, lisible des deux côtés ; palissade de pieux jusqu'aux collines | l'arche cadre le chemin de terre, les moulins tournent de chaque côté |
-| 0 → -112 | **Campagne aux moulins** | moulin de bois à ailes jaunes (gauche, près du chemin), moulin à tour rose (droite), tour de pierre à dôme sur une butte, moulins sur les collines, granges rouges, vaches, foin, verger de mandarines | chemin de terre à ornières bordé de clôtures rustiques ; collines vertes en gradins à `|x| ≥ 130` ; au fond, les toits colorés du bourg et les mâts |
-| -112 → -204 | **Bourg du port** | maisons colorées (blanc, bleu, jaune, rose, rouge ; toits rouges, bleus, turquoise ; auvents rayés), taverne à enseigne, étal de fruits, étal de viande sur l'os, viande à la broche ; seconde rangée sur une terrasse haute (`y = 6`) avec escaliers et palmiers | grandes dalles ocre ; trois guirlandes de fanions à 37 studs ; lanternes à potence ; les mâts des navires dépassent des toits |
-| -204 → -292 | **Port pirate** | à gauche le grand **galion** (coque brun-rouge, voiles crème, 3 mâts) à quai avec passerelle ; à droite la **caravelle** jaune et le **phare** rouge et blanc au bout d'une jetée ; pontons, barques, îlots à palmiers, plages au pied des collines, navire aux voiles rouges au mouillage au large | quai de planches ; bassins turquoise de chaque côté, écume au pied des quais ; bittes, canons tournés vers le large, tonneaux, filets ; deux guirlandes |
-| -292 → -366 | **Place des œufs** | grand ponton (`|x| ≤ 56`) à **rose des vents** (cercle de rayon 34, centre `z = -328`, nord rouge vers la sortie) ; quatre mâts de vigie à pavillons, guirlandes hautes, coffres au trésor, canons, ancre, barre de navire, pieux et cordages au bord | la mer s'ouvre des deux côtés ; devant, la face du crâne remplit le ciel |
-| -366 → -400 | **Rocher du crâne** | rocher ivoire en forme de **tête de mort générique** (≈ 100 de haut) : orbites sombres, nez, rangée de dents au-dessus du passage ; le couloir traverse **la bouche** (64 de large, plafond ≥ 36) jusqu'à la zone suivante ; épave échouée sur le flanc gauche, cascade et palmiers sur le flanc droit, pavillon au sommet | on court droit dans la bouche ; la lumière de la sortie au fond |
+| 0 → -112 | **Campagne aux moulins** | moulin de bois à ailes jaunes (gauche, près du chemin), champ de blé et de légumes et tour de pierre à dôme (gauche), grange rouge et enclos à vaches ouvert sur la route (gauche) ; verger de mandarines, moulin à calotte bleue sur une butte, moulin à tour rose, petite grange et second enclos (droite) ; moulins sur les collines | chemin de terre à deux paires d'ornières, bordé de clôtures rustiques, de buissons fleuris et de palmiers en quinconce ; collines vertes en gradins à `|x| ≥ 140` ; au fond, les toits colorés du bourg et les mâts |
+| -112 → -204 | **Bourg du port** | maisons colorées de 2 à 4 étages (blanc, bleu, jaune, rose, rouge ; toits rouges, bleus, turquoise ; auvents rayés), taverne à enseigne, étal de fruits, étal de viande sur l'os, viande à la broche ; seconde rangée sur une terrasse haute (`y = 6`) avec escaliers et palmiers | grandes dalles ocre de 12 × 12 en deux tons, chemin clair de 20 de large dans l'axe du crâne, liserés et bandes roses ; parasols de marché rayés et jardinières sur les trottoirs ; trois guirlandes de fanions à 37, 42 et 37 studs ; lanternes à potence ; les mâts des navires dépassent des toits |
+| -204 → -292 | **Port pirate** | à gauche le grand **galion** (coque brun-rouge, voiles crème, 3 mâts) à quai avec passerelle ; à droite la **caravelle** jaune et le **phare** rouge et blanc au bout d'une jetée ; étal de poissons sur le quai, pontons, barques, îlots à palmiers, plages au pied des collines ; au mouillage de part et d'autre de la place, le galion aux voiles rouges (gauche) et une caravelle turquoise (droite) | quai de planches en trois tons, traverse sombre tous les 20 studs, bordure de pierre claire le long des bassins ; bassins turquoise de chaque côté, écume au pied des quais ; bittes, canons tournés vers le large, tonneaux, filets ; deux guirlandes (42 et 37 studs) |
+| -292 → -366 | **Place des œufs** | grand ponton (`|x| ≤ 72`) à **rose des vents** (cercle de rayon 34, centre `z = -328`, nord rouge vers la sortie) ; quatre mâts de vigie à pavillons, une guirlande haute côté port (aucune devant la mâchoire), coffres au trésor, canons, ancre, barre de navire, pieux et cordages au bord | la mer s'ouvre des deux côtés ; devant, la face du crâne remplit le ciel |
+| -366 → -400 | **Rocher du crâne** | rocher ivoire en forme de **tête de mort générique** (130 de haut) : orbites sombres, nez, longues dents pointues sur fond sombre au-dessus du passage ; le couloir traverse **la bouche** (96 de large, pointes des dents à y ≥ 36) jusqu'à la zone suivante ; falaises de grès chaud à lianes de part et d'autre, épave échouée sur le flanc gauche, cascade et palmiers sur le flanc droit, pavillon au sommet | on court droit dans la bouche ; la lumière de la sortie au fond |
 
 Retour (vers +Z) : la bouche du crâne s'ouvre sur la place, puis le port et ses navires, le bourg, les moulins, l'arche
 (panneau lisible côté retour). Chaque section a un repère visible dans les deux sens (navires et phare hauts de 60-70,
-moulins de 22-30, crâne de 100).
+moulins de 22-30, crâne de 130).
 
 ## 3. Repère final et passage
 
 - Origine du rocher : centre de l'entrée du passage, au sol, en `z = -366` ; le rocher regarde +Z (vers les joueurs)
   et s'étend jusqu'à `z = -400` ; largeur 440 (il ferme toute la largeur de la zone, mer comprise).
-- Passage : `|x| < 32` libre du sol jusqu'à y = 36 au moins (les dents s'arrêtent à y ≥ 36) ; rien sous y = 30 au-dessus
-  du couloir ; sol de sable ; parois de roche en gradins éclairées de lanternes.
+- Passage : `|x| < 48` libre du sol jusqu'à y = 36 au moins (dessous de la mâchoire à y = 48, dents de 8 à 12 studs,
+  pointes à y ≥ 36,3, linteau de sortie à y = 45) ; rien sous y = 30 au-dessus du couloir ; sol de sable ; parois de
+  roche en gradins éclairées de lanternes ; crocs du bas en os foncé au pied des parois (hors du couloir). Le cadre de
+  sortie est posé dans l'épaisseur du rocher : rien ne dépasse `z = -400`.
 - Tête de mort **générique** (pas d'os croisés sur le rocher, pas de chapeau, pas d'emblème) : crâne arrondi en gradins
   studdés, orbites et nez en creux sombres (`grotte`), pommettes, dents ivoire au-dessus de la bouche, herbe et palmiers
   sur le sommet, pavillon générique planté au sommet.
@@ -69,7 +76,8 @@ moulins de 22-30, crâne de 100).
 - Murs : blanc `#F6F1E6`, crème, jaune `#F7D877`, bleu `#86B8E6`, rose, rouge `#D9574A`, turquoise ; toits rouge,
   bleu, turquoise, orange ; dômes de pierre bleu-gris `#8D9AAE`.
 - Végétation : palmes `#4FA23A` / `#6CBF45`, troncs `#9C6B3E`, mandarines `#FF9A1F`.
-- Rocher du crâne : ivoire `#EADFC4` → `#A99B7C`, creux `#3A3346`.
+- Rocher du crâne : ivoire `#EADFC4` → `#A99B7C`, dents `#FBF6EA`, creux `#3A3346`, fissures `#7E7266` ;
+  falaises de grès chaud `#D8B98A` / `#C49A6C` / `#9C7650`, pied mouillé `#7A5A3E`.
 - Panneau de jeu : fond `#1B2150`, « ZONE RARE » `#B48CFF`, « VITESSE CONSEILLÉE : 200 » `#FFE37A`.
 
 ## 5. Propriété intellectuelle
@@ -83,14 +91,15 @@ affiché de la zone dans le jeu.
 
 ## 6. Budget de pièces (≤ 12 500)
 
-| Ensemble | Fichier | Budget |
+| Ensemble | Fichier | Posé (version 1.0) |
 |---|---|---|
-| Sol, eau, collines, terrasse, mobilier placé, place des œufs | `zone.py` + `assets/mobilier.py` | ≈ 3 500 |
-| Arche d'entrée + rocher du crâne | `assets/monuments.py` | ≤ 1 500 |
-| Navires, barques, phare, pontons | `assets/port.py` | ≤ 2 200 |
-| Maisons (×13), taverne, étals, granges | `assets/batiments.py` | ≤ 2 400 |
-| Moulins (×8), palmiers, arbres, rochers, îlots, butte | `assets/nature.py` | ≤ 1 950 |
-| **Total visé** | | **≈ 11 550** (marge ≈ 950) |
+| Sol, eau, collines, terrasse, champ, ponton de la place, murs invisibles | `zone.py` | 1 783 |
+| Mobilier (clôtures, vaches, tonneaux, mâts, lanternes, fanions, parasols…) | `assets/mobilier.py` | ≈ 2 150 |
+| Arche d'entrée + rocher du crâne | `assets/monuments.py` | 1 547 |
+| Navires (×4), barques, phare, pontons | `assets/port.py` | 2 243 |
+| Maisons (×14), taverne, étals (×3), granges (×4) | `assets/batiments.py` | ≈ 2 530 |
+| Moulins (×8), palmiers, arbres, rochers, îlots, butte | `assets/nature.py` | ≈ 1 900 |
+| **Total** | | **≈ 12 220** (`python zone.py --stats` donne le compte exact) |
 
 ## 7. Découpage du travail
 

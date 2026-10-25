@@ -32,15 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((230, 250, 150), (0, 0, -250), 50),
-    "entree": ((0, 9, 30), (0, 27, -160), 72),          # devant le viaduc, la rue commerçante en enfilade
-    "rue": ((6, 8, -24), (0, 22, -200), 70),             # rue commerçante, passerelle 1 au fond
-    "tours": ((-6, 8, -158), (0, 34, -330), 70),         # quartier des tours et des écrans
-    "approche": ((-10, 9, -262), (12, 32, -400), 72),    # tour cylindrique, immeuble à écrans, carrefour
-    "place": ((44, 52, -322), (0, 0, -412), 64),         # vue plongeante sur le carrefour « scramble »
-    "retour": ((-4, 9, -470), (0, 16, 0), 70),           # retour vers la base, depuis l'incident
-    "cote": ((-320, 180, -60), (0, 10, -260), 45),
-    "final": ((0, 10, -414), (0, 44, -496), 74),         # l'immeuble effondré en arche, la sortie, les dômes
+    "aerienne": ((250, 430, 150), (0, 0, -236), 50),
+    "entree": ((0, 12, 74), (0, 34, -160), 62),         # devant le viaduc et son train, la rue commerçante en enfilade
+    "rue": ((10, 8, -20), (0, 24, -200), 70),            # rue commerçante, passerelle 1 au fond
+    "tours": ((-10, 8, -158), (0, 36, -330), 70),        # quartier des tours et des écrans
+    "approche": ((-36, 10, -306), (26, 18, -392), 72),    # après la passerelle 2 : tour cylindrique, carrefour, arche
+    "place": ((-20, 98, -310), (4, 0, -424), 66),        # vue plongeante sur le carrefour « scramble »
+    "retour": ((-6, 9, -468), (0, 18, 0), 70),           # retour vers la base, depuis l'incident
+    "cote": ((-340, 330, 60), (0, 0, -250), 46),
+    "final": ((0, 11, -414), (0, 46, -496), 74),         # l'immeuble effondré en arche, la sortie, les dômes
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -76,6 +76,16 @@ def main() -> None:
     attente = sorted({p.name for p in b.parts if p.name.startswith("ATTENTE_")})
     gene = zone.couloir_libre(b)
     print(json.dumps({"pieces": len(b.parts), "en_attente": attente, "couloir_encombre": len(gene)}, ensure_ascii=False))
+    # aucune caméra à l'intérieur d'une pièce (marge de 0,5 stud)
+    boites = [zone._boite(p) for p in b.parts if p.transparency < 0.99]
+    for nom, vue in VUES.items():
+        if vue is None:
+            continue
+        pos = vue[0]
+        dedans = [p.group for p, (lo, hi) in zip([q for q in b.parts if q.transparency < 0.99], boites)
+                  if all(lo[k] - 0.5 < pos[k] < hi[k] + 0.5 for k in range(3))]
+        if dedans:
+            print(f"ATTENTION : la caméra « {nom} » est dans {sorted(set(dedans))[:4]}")
 
     bs.reset_scene()
     st = bs.build(pj)
@@ -101,9 +111,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -232), (0, 0, -232.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -228), (0, 0, -228.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 580
+                cam.data.ortho_scale = 600
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:

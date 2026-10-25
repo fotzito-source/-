@@ -1,4 +1,4 @@
-"""Bâtiments de la zone Bleach (la cité blanche aux toits ocre), style « stud ».
+"""Bâtiments de la zone 6 (la cité blanche aux toits ocre), style « stud ».
 
 Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "hauteur": h}) :
 - maison_bois(largeur=20, profondeur=16, simple=False) : maison de marchand d'Edo à étage du FAUBOURG (bois
@@ -9,7 +9,7 @@ Fonctions publiques (chacune : `f(b, variant=0, ...)` → {"emprise": (x, z), "h
 - echoppe() : échoppe de ruelle 8 × 5 (≤ 9 de haut) ; v0 poisson (bâche bleue), v1 légumes (ocre),
     v2 étoffes 呉服 (rouge), v3 poteries (indigo), v4 douceurs 団子 (blanche) ;
 - tour_guet_bois(hauteur=28) : tour de guet à incendie (hinomi-yagura) 7 × 7 ; v0 plateforme et toit,
-    v1 deux plateformes, v2 échelle haute et cloche seule ;
+    v1 deux plateformes, v2 échelle haute et cloche seule (croix de Saint-André sur trois baies, deux pour v1) ;
 - maison_blanche(largeur=24, profondeur=18, simple=False) : bâtiment de la CITÉ BLANCHE (enduit blanc en
     panneaux, poteaux sombres, socle de pierre, toits de tuiles ocre-orangé), 14-26 de haut ; v0 hall à
     véranda et toit irimoya à fronton, v1 deux étages et deux rangs de toits ocre, v2 hall à pignon sur l'allée
@@ -29,6 +29,15 @@ Débords (règles de la mise en page) : maisons de bois, avant ≤ 3 au-dessus d
 enseignes, lanternes) et ≤ 1 au sol (marche, noren, banc), arrière ≤ 1, côtés ≤ 1 (toit) ; bâtiments de la
 cité, toits ≤ 2 hors emprise. Uniquement des éléments japonais génériques ; textes permis seulement
 (茶 宿 米 湯 薬 団子 蕎麦 甘味 呉服 豆腐 本 花 桜 門 静 白).
+
+Couloir élargi (|x| < 45, rien au-dessus de |x| < 46 sous y = 30) : tout est paramétrique et tient dans son
+emprise ; posés avec les façades du faubourg en |x| = 55, les échoppes en 57,6 et les façades de la cité en
+65,4 (mur d'allée 55-57,4 + cour de 8), aucun élément ne descend sous |x| = 52 (débord avant de 3 des maisons
+de bois, au-dessus de y = 7).
+
+Murs blancs « vivants » : façades en travées (`_travees`), revers et arrières en panneaux de blancs voisins
+entre poteaux sombres (`_revers`), pignons en panneaux (`_cotes_blancs(z_mur=...)`) ; aucun aplat blanc de plus
+de ~16 studs, y compris vu d'avion ou en biais depuis l'allée.
 """
 
 from __future__ import annotations
@@ -170,9 +179,9 @@ def _toit_hirairi(b, x0, x1, zf, zb, H, pente, toit, pignon, *, deb_av=2.2, deb_
     _pan_z(b, zf, H + k, zm, H + hu + k, xa, xb, ep, tv(), ext_a=0.25, ext_b=0.5)
     _pan_z(b, zm, H + hu + k, zb, H + k, xa, xb, ep, tv(), ext_a=0.5, ext_b=0.25)
     if deb_av > 0:
-        _pan_z(b, zf - deb_av, H - deb_av * pe + ke, zf, H + ke, xa, xb, ep, tv(), ext_b=0.15, name="Debord")
+        _pan_z(b, zf - deb_av, H - deb_av * pe + ke, zf, H + ke, xa - 0.1, xb + 0.1, ep, tv(), ext_b=0.15, name="Debord")
     if deb_ar > 0:
-        _pan_z(b, zb, H + ke, zb + deb_ar, H - deb_ar * pe + ke, xa, xb, ep, tv(), ext_a=0.15, name="Debord")
+        _pan_z(b, zb, H + ke, zb + deb_ar, H - deb_ar * pe + ke, xa - 0.1, xb + 0.1, ep, tv(), ext_a=0.15, name="Debord")
     rc = col(J["rive"])
     for zt, s_, d_ in ((zf - deb_av, -1, deb_av), (zb + deb_ar, 1, deb_ar)):
         if d_ <= 0:
@@ -234,12 +243,13 @@ def _toit_tsumairi(b, x0, x1, zf, zb, H, pente, toit, pignon, *, deb=0.8, deb_av
     _pan_x(b, x0, H + k, xm, H + hu + k, za, zb_, ep, tv(), ext_a=0.25, ext_b=0.5)
     _pan_x(b, xm, H + hu + k, x1, H + k, za, zb_, ep, tv(), ext_a=0.5, ext_b=0.25)
     if deb > 0:
-        _pan_x(b, x0 - deb, H - deb * pe + ke, x0, H + ke, za, zb_, ep, tv(), ext_b=0.15, name="Debord")
-        _pan_x(b, x1, H + ke, x1 + deb, H - deb * pe + ke, za, zb_, ep, tv(), ext_a=0.15, name="Debord")
+        _pan_x(b, x0 - deb, H - deb * pe + ke, x0, H + ke, za - 0.1, zb_ + 0.1, ep, tv(), ext_b=0.15, name="Debord")
+        _pan_x(b, x1, H + ke, x1 + deb, H - deb * pe + ke, za - 0.1, zb_ + 0.1, ep, tv(), ext_a=0.15, name="Debord")
     yr = H + hu + k
     hc = col(hafu) if hafu else col(J["verge"])
     z0h, z1h = za - 0.35, za + 0.3
-    segs = [(x0, H + k + 0.15, xm, yr + 0.15, 0.25, 0.45), (xm, yr + 0.15, x1, H + k + 0.15, 0.45, 0.25)]
+    # les deux planches se rejoignent au faîte sans se croiser (pas de « cornes » au-dessus du pignon)
+    segs = [(x0, H + k + 0.15, xm, yr + 0.15, 0.25, 0.05), (xm, yr + 0.15, x1, H + k + 0.15, 0.05, 0.25)]
     if deb > 0.3:
         segs += [(x0 - deb + 0.2, H - (deb - 0.2) * pe + ke + 0.15, x0, H + ke + 0.15, 0.0, 0.2),
                  (x1, H + ke + 0.15, x1 + deb - 0.2, H - (deb - 0.2) * pe + ke + 0.15, 0.2, 0.0)]
@@ -250,7 +260,7 @@ def _toit_tsumairi(b, x0, x1, zf, zb, H, pente, toit, pignon, *, deb=0.8, deb_av
           name="Faitage")
     top = yr + 0.55
     if oni:
-        b.box((xm - 1.1, yr - 0.6, za - 0.72), (xm + 1.1, yr + 0.8, za + 0.4), col(J["oni"]), name="Oni")
+        b.box((xm - 1.1, yr - 0.7, za - 0.72), (xm + 1.1, yr + 0.8, za + 0.4), col(J["oni"]), name="Oni")
         top = yr + 0.8
     if gegyo:
         b.box((xm - 0.7, yr - 2.4, z0h - 0.25), (xm + 0.7, yr - 0.2, z0h + 0.3), hc, name="Gegyo")
@@ -262,10 +272,10 @@ def _toit_tsumairi(b, x0, x1, zf, zb, H, pente, toit, pignon, *, deb=0.8, deb_av
             xx = xm + i * run / 3.2
             hh = hu * (1 - abs(xx - xm) / run) - 0.25
             if hh > 0.6:
-                b.box((xx - 0.13, H + 0.1, zt0), (xx + 0.13, H + hh, zt1), tc, name="Treillis")
+                b.box((xx - 0.13, H + 0.1, zt0), (xx + 0.13, H + hh, zt1), tc, collide=False, name="Treillis")
         yy = H + hu * 0.42
         half = run * 0.58 - 0.2
-        b.box((xm - half, yy - 0.13, zt0 + 0.07), (xm + half, yy + 0.13, zt1 - 0.04), tc, name="Treillis")
+        b.box((xm - half, yy - 0.13, zt0 + 0.07), (xm + half, yy + 0.13, zt1 - 0.04), tc, collide=False, name="Treillis")
     return top
 
 
@@ -412,7 +422,7 @@ def _koshi(b, xa, xb, y0, y1, bois, fond, *, pas=1.0, neon=False):
     n = max(2, int(round((xb - xa) / pas)))
     for i in range(1, n):
         xx = xa + i * (xb - xa) / n
-        b.box((xx - 0.16, y0 + 0.45, -0.5), (xx + 0.16, y1 - 0.45, 0.0), bois, name="Latte")
+        b.box((xx - 0.16, y0 + 0.45, -0.5), (xx + 0.16, y1 - 0.45, 0.0), bois, collide=False, name="Latte")
 
 
 def _mushiko(b, x, y, w, h, barreaux, *, n=None, fond=INTERIEUR, appui=None):
@@ -423,7 +433,7 @@ def _mushiko(b, x, y, w, h, barreaux, *, n=None, fond=INTERIEUR, appui=None):
     n = n or max(3, int(round(w / 0.95)))
     for i in range(1, n):
         xx = x - w / 2 + i * w / n
-        b.box((xx - 0.22, y, -0.4), (xx + 0.22, y + h, 0.0), m, name="Barreau")
+        b.box((xx - 0.22, y + 0.05, -0.4), (xx + 0.22, y + h - 0.05, 0.0), m, collide=False, name="Barreau")
     b.box((x - w / 2 - 0.4, y - 0.45, -0.45), (x + w / 2 + 0.4, y, 0.3), a, studs="top", name="Appui")
     b.box((x - w / 2 - 0.4, y + h, -0.45), (x + w / 2 + 0.4, y + h + 0.45, 0.3), a, name="Linteau")
 
@@ -437,10 +447,10 @@ def _shoji(b, xa, xb, ya, yb, cadre, *, n=3, lumiere=True, traverse=True, papier
     b.box((xa, ya, -0.32), (xb, yb, 0.0), col("fenetre_lumiere" if lumiere else papier), name="Shoji", **kw)
     for i in range(1, n):
         xx = xa + i * (xb - xa) / n
-        b.box((xx - 0.12, ya, -0.45), (xx + 0.12, yb, -0.2), cd, name="Kumiko")
+        b.box((xx - 0.12, ya, -0.45), (xx + 0.12, yb, -0.2), cd, collide=False, name="Kumiko")
     if traverse:
         ym = (ya + yb) / 2
-        b.box((xa, ym - 0.11, -0.41), (xb, ym + 0.11, -0.2), cd, name="Kumiko")
+        b.box((xa, ym - 0.11, -0.41), (xb, ym + 0.11, -0.2), cd, collide=False, name="Kumiko")
 
 
 def _fenetre_simple(b, x, y, w, h, cadre, *, lumiere=False, papier="papier"):
@@ -451,17 +461,18 @@ def _fenetre_simple(b, x, y, w, h, cadre, *, lumiere=False, papier="papier"):
           name="Shoji", **kw)
     b.box((x - w / 2 - 0.35, y + h, -0.4), (x + w / 2 + 0.35, y + h + 0.4, 0.3), cd, name="Linteau")
     b.box((x - w / 2 - 0.35, y - 0.4, -0.5), (x + w / 2 + 0.35, y, 0.3), cd, studs="top", name="Appui")
-    b.box((x - 0.12, y, -0.3), (x + 0.12, y + h, 0.0), cd, name="Meneau")
+    b.box((x - 0.12, y, -0.3), (x + 0.12, y + h, 0.0), cd, collide=False, name="Meneau")
 
 
 def _fenetre_cite(b, x, y, w, h, cadre="bois_fonce", *, n=3, encadrement="blanc_pur", fond="fenetre"):
     """Fenêtre de la cité blanche (2 + n - 1 pièces) : encadrement d'enduit en relief, ouverture sombre en
     avant, barreaux de bois sombre (treillis vertical)."""
-    b.box((x - w / 2 - 0.35, y - 0.4, -0.22), (x + w / 2 + 0.35, y + h + 0.35, 0.05), col(encadrement), name="Encadrement")
+    b.box((x - w / 2 - 0.35, y - 0.4, -0.22), (x + w / 2 + 0.35, y + h + 0.35, 0.05), col(encadrement), collide=False,
+          name="Encadrement")
     b.box((x - w / 2, y, -0.34), (x + w / 2, y + h, 0.05), col(fond), name="Fenetre")
     for i in range(1, n):
         xx = x - w / 2 + i * w / n
-        b.box((xx - 0.13, y, -0.5), (xx + 0.13, y + h, -0.2), col(cadre), name="Barreau")
+        b.box((xx - 0.13, y + 0.05, -0.5), (xx + 0.13, y + h - 0.05, -0.2), col(cadre), collide=False, name="Barreau")
 
 
 def _garde_corps(b, xa, xb, y, z, cadre, *, h=1.8, pas=1.8, plein=None):
@@ -475,7 +486,7 @@ def _garde_corps(b, xa, xb, y, z, cadre, *, h=1.8, pas=1.8, plein=None):
     n = max(1, int(round((xb - xa) / pas)))
     for i in range(n + 1):
         xx = xa + 0.22 + i * (xb - xa - 0.44) / n
-        b.box((xx - 0.15, y, z - 0.15), (xx + 0.15, y + h - 0.35, z + 0.15), cd, name="Balustre")
+        b.box((xx - 0.15, y, z - 0.15), (xx + 0.15, y + h - 0.35, z + 0.15), cd, collide=False, name="Balustre")
 
 
 def _banc_rouge(b, x, z, w, *, d=1.2, h=1.6, rng=None):
@@ -500,7 +511,7 @@ def _panneaux(b, xs, ya, yb, rng, *, z0=-0.1, z1=0.05, name="Panneau"):
     le grand mur blanc se lit en « pixels » de blancs voisins."""
     for xa, xb in zip(xs, xs[1:]):
         if xb - xa > 0.4:
-            b.box((xa, ya, z0), (xb, yb, z1), blanc_pixel(rng), name=name)
+            b.box((xa, ya, z0), (xb, yb, z1), blanc_pixel(rng), collide=False, name=name)
 
 
 # ---------------------------------------------------------------------------
@@ -583,7 +594,7 @@ def maison_bois(b, variant=0, largeur=20, profondeur=16, simple=False):
         if RET:
             b.box((x0 + 0.7, YK + 0.6, zf), (x1 - 0.7, HS, zf + RET), shade(col(S["rdc"]), 0.85), name="Ranma")
         b.box((x0 - 0.15, H2 - 0.8, zf - 0.15), (x1 + 0.15, H2, zb + 0.15), cadre, name="Sabliere")
-        b.box((x0 - 0.05, HS - 0.4, zf + 0.1), (x1 + 0.05, HS + 0.25, zb + 0.05), cadre, name="Bandeau")
+        b.box((x0 - 0.1, HS - 0.4, zf + 0.1), (x1 + 0.1, HS + 0.25, zb + 0.1), cadre, name="Bandeau")
         for xa in (x0 - 0.1, x1 - 0.7):
             b.box((xa, YS, zf - 0.3), (xa + 0.8, H2 - 0.8, zf + 0.7), cadre, name="Poteau_angle")
             b.box((xa, YS, zb - 0.7), (xa + 0.8, H2 - 0.8, zb + 0.1), cadre, name="Poteau_angle")
@@ -595,7 +606,7 @@ def maison_bois(b, variant=0, largeur=20, profondeur=16, simple=False):
         b.box((da, YS, zr - 0.1), (db, YK, zr + 0.3), col(INTERIEUR), name="Entree")
         b.box((da + 0.4, 0, -1.0), (db - 0.4, 0.4, -0.4), vr("pierre", rng, 0.03), studs="top", name="Marche")
         nf, ne, nt = S["noren"]
-        _noren(b, da + 0.2, db - 0.2, YK, 2.9, -0.75, nf, ne, nt, n=3 if len(nt) == 1 else 4)
+        _noren(b, da + 0.2, db - 0.2, YK, 2.9, -0.55, nf, ne, nt, n=3 if len(nt) == 1 else 4)
         for xp in poteaux:
             b.box((xp - 0.4, YS, -0.3), (xp + 0.4, YA - 0.1, 0.4), cadre, name="Poteau")
         for (sa, sb) in boutiques:
@@ -684,15 +695,20 @@ def maison_bois(b, variant=0, largeur=20, profondeur=16, simple=False):
                 for xx in (-bw / 3, 0.0, bw / 3):
                     b.box((xx - bw / 7, H2 - 3.1, -PB + 0.45), (xx + bw / 7, H2 - 0.85, -PB + 0.65), col("sudare"),
                           collide=False, name="Sudare")
+                    for xc_ in (xx - bw / 7 + 0.4, xx + bw / 7 - 0.4):      # cordons pendus au débord du toit
+                        b.box((xc_ - 0.05, H2 - 0.95, -PB + 0.5), (xc_ + 0.05, H2 - 0.15, -PB + 0.6), cadre,
+                              collide=False, name="Cordon")
         elif et == "sudare":
             # grande baie de shoji éclairés derrière un store de bambou à demi baissé, petit garde-corps
             bw = W - 4.0
             _shoji(b, -bw / 2, bw / 2, YA + 0.9, H2 - 1.6, cadre, n=5, lumiere=True)
+            b.box((-bw / 2 - 0.2, H2 - 1.1, -1.0), (bw / 2 + 0.2, H2 - 0.8, -0.25), cadre, collide=False,
+                  name="Latte")
             for k, (xa_, xb_, yb_) in enumerate(((-bw / 2 - 0.2, -0.1, H2 - 3.6), (0.1, bw / 2 + 0.2, H2 - 2.5))):
                 b.box((xa_, yb_, -0.8 - 0.1 * k), (xb_, H2 - 1.1, -0.6 - 0.1 * k), col("sudare"), collide=False,
                       name="Sudare")
-                b.box(((xa_ + xb_) / 2 - 0.1, yb_ + 0.3, -1.05), ((xa_ + xb_) / 2 + 0.1, H2 - 1.1, -0.9), cadre,
-                      collide=False, name="Lien")
+                b.box(((xa_ + xb_) / 2 - 0.1, yb_ + 0.3, -0.95 - 0.1 * k), ((xa_ + xb_) / 2 + 0.1, H2 - 1.1,
+                      -0.78 - 0.1 * k), cadre, collide=False, name="Lien")
             _garde_corps(b, -bw / 2 - 0.3, bw / 2 + 0.3, YA + 0.5, -0.75, cadre, h=1.2, pas=3.2, plein=S["cadre"])
         else:  # shoji : trois fenêtres éclairées
             n = 3
@@ -730,8 +746,12 @@ def maison_bois(b, variant=0, largeur=20, profondeur=16, simple=False):
                 b.box((-0.35, HS + 0.25, -0.22), (0.35, H2 - 0.8, 0.3), cadre, name="Poteau")
                 b.box((-0.3, YS, -0.18), (0.3, HS - 0.4, 0.3), cadre, name="Poteau")
         with b.at((0, 0, zb), yaw=180):
-            _fenetre_simple(b, W / 5, HS + 1.6, 3.4, 2.2, cadre, lumiere=(variant % 3 == 1))
+            for k, xx in enumerate((W / 5 + 0.6, -W / 5 - 0.6)):
+                _fenetre_simple(b, xx, HS + 1.6, 3.2, 2.2, cadre, lumiere=((variant + k) % 3 == 1))
             b.box((-W / 4 - 1.4, YS, -0.12), (-W / 4 + 1.4, YK, 0.3), cadre, name="Porte")
+            # petit auvent arrière (hisashi) sur toute la largeur : dos de machiya, lu d'avion et des ruelles
+            _pan_z(b, -0.9, YA - 1.0, 0.3, YA - 0.52, x0 + 0.3, x1 - 0.3, 0.5, vr(toit, rng, 0.02), name="Auvent")
+            b.box((x0 + 0.3, YA - 1.55, -1.0), (x1 - 0.3, YA - 0.95, -0.75), col(J["rive"]), name="Rive")
 
     # --- toit ----------------------------------------------------------------------------------------------
     with b.group("Toit"):
@@ -797,7 +817,7 @@ def _maison_bois_simple(b, variant, largeur, profondeur):
         b.box((x0, YS, zf), (x1, HS, zb), vr(S["rdc"], rng, 0.03), name="Mur_rdc")
         b.box((x0, HS, zf), (x1, H2 - 0.8, zb), vr(mur, rng, 0.02), name="Mur_etage")
         b.box((x0 - 0.15, H2 - 0.8, zf - 0.15), (x1 + 0.15, H2, zb + 0.15), cadre, name="Sabliere")
-        b.box((x0 - 0.05, HS - 0.4, zf - 0.05), (x1 + 0.05, HS + 0.25, zb + 0.05), cadre, name="Bandeau")
+        b.box((x0 - 0.1, HS - 0.4, zf - 0.1), (x1 + 0.1, HS + 0.25, zb + 0.1), cadre, name="Bandeau")
         for xa in (x0 - 0.1, x1 - 0.7):
             for za in (zf - 0.1, zb - 0.7):
                 b.box((xa, YS, za), (xa + 0.8, H2 - 0.8, za + 0.8), cadre, name="Poteau_angle")
@@ -871,7 +891,7 @@ def echoppe(b, variant=0):
                 b.box((sx * 3.7 - 0.2, 0.3, zp - 0.2), (sx * 3.7 + 0.2, yt, zp + 0.2), bois, name="Montant")
         for zp in (-2.0, 2.0):
             yt = bache(zp) - 0.25
-            b.box((-3.95, yt - 0.45, zp - 0.22), (3.95, yt, zp + 0.22), bm, name="Traverse")
+            b.box((-3.95, yt - 0.45, zp - 0.3), (3.95, yt, zp + 0.3), bm, name="Traverse")
         b.box((-3.5, 0.3, -2.3), (3.5, 2.4, -1.0), vr(bm, rng, 0.03), name="Comptoir")
         b.box((-3.8, 2.4, -2.5), (3.8, 2.8, -0.8), bois, studs="top", name="Plateau")
         b.box((-3.5, 0.3, 0.5), (3.5, 3.2, 1.9), vr(bm, rng, 0.03), studs="top", name="Gradin")
@@ -879,7 +899,7 @@ def echoppe(b, variant=0):
     with b.group("Bache"):
         _pan_z(b, za, ya, zb_, yb_, -4.0, 4.0, 0.3, vr(S["bache"], rng, 0.02), name="Bache", material="Fabric")
         for xx in (-1.6, 1.6):
-            _pan_z(b, za, ya + 0.1, zb_, yb_ + 0.1, xx - 0.6, xx + 0.6, 0.3, col(S["rayure"]), studs="top",
+            _pan_z(b, za, ya + 0.15, zb_, yb_ + 0.15, xx - 0.6, xx + 0.6, 0.3, col(S["rayure"]), studs="top",
                    name="Rayure", material="Fabric", collide=False)
         p = b.box((-4.0, 6.0, za - 0.12), (4.0, ya - 0.2, za + 0.12), col(S["bord"]), material="Fabric",
                   collide=False, name="Lambrequin")
@@ -984,11 +1004,12 @@ def tour_guet_bois(b, variant=0, hauteur=28):
         for yl in niveaux:
             rl = r(yl)
             for s in (-1, 1):
-                b.box((-rl - 0.5, yl - 0.25, s * rl - 0.2), (rl + 0.5, yl + 0.25, s * rl + 0.2 + 0.15 * s), bf, name="Nuki")
+                b.box((-rl - 0.5, yl - 0.25, s * rl - 0.2), (rl + 0.5, yl + 0.25, s * rl + 0.2 + 0.15 * s), bf,
+                      collide=False, name="Nuki")
                 xa, xb = sorted((s * rl - 0.2, s * rl + 0.2 + 0.15 * s))
-                b.box((xa - 0.02 * s, yl - 0.2, -rl - 0.45), (xb, yl + 0.2, rl + 0.45), bf, name="Nuki")
+                b.box((xa - 0.02 * s, yl - 0.2, -rl - 0.45), (xb, yl + 0.2, rl + 0.45), bf, collide=False, name="Nuki")
         # croix de Saint-André sur trois faces (la face avant porte l'échelle)
-        baies = list(zip([0.4] + niveaux, niveaux))[: (3 if v == 2 else 2)]
+        baies = list(zip([0.4] + niveaux, niveaux))[: (2 if v == 1 else 3)]
         for (ya_, yb_) in baies:
             ra, rb = r(ya_ + 0.3), r(yb_ - 0.3)
             rm = (ra + rb) / 2
@@ -1001,7 +1022,7 @@ def tour_guet_bois(b, variant=0, hauteur=28):
                     else:
                         p0 = (off[0] + d_ * n[0], ya_ + 0.3, -sgn * ra)
                         p1 = (off[0] + d_ * n[0], yb_ - 0.3, sgn * rb)
-                    _poutre(b, p0, p1, 0.32, 0.22, bgc, normale=n, name="Croix")
+                    _poutre(b, p0, p1, 0.32, 0.22, bgc, normale=n, collide=False, name="Croix")
         # échelle sur la face avant, du sol au palier
         n_bar = int((yp - 1.0) / 2.0)
         for sx in (-0.75, 0.75):
@@ -1014,7 +1035,7 @@ def tour_guet_bois(b, variant=0, hauteur=28):
     with b.group("Plateforme"):
         paliers = [yp] + ([yp / 2 + 0.3 + 0.5] if v == 1 else [])
         for k, yq in enumerate(paliers):
-            rq = min(3.45, (rp if k == 0 else r(yq)) + (0.85 if v != 2 else 0.6))
+            rq = min(3.35, (rp if k == 0 else r(yq)) + (0.85 if v != 2 else 0.6))
             b.box((-rq, yq - 0.5, -rq), (rq, yq, rq), vr("bois_gris", rng, 0.04), studs="top", name="Plancher")
             if v != 2:
                 hg = 1.5 if k == 0 else 1.2
@@ -1025,6 +1046,12 @@ def tour_guet_bois(b, variant=0, hauteur=28):
                     if k == 0:
                         b.box((-rq + 0.1, yq, s * rq - 0.1), (rq - 0.1, yq + 0.7, s * rq + 0.1), bgc, name="Plinthe")
                         b.box((s * rq - 0.1, yq, -rq + 0.3), (s * rq + 0.1, yq + 0.7, rq - 0.3), bgc, name="Plinthe")
+                # balustres d'angle : du plancher au dessous des lisses, en retrait (aucune face coplanaire)
+                for sx in (-1, 1):
+                    for sz in (-1, 1):
+                        xa_, xb_ = sorted((sx * (rq - 0.3), sx * (rq - 0.02)))
+                        za_, zb_ = sorted((sz * (rq - 0.3), sz * (rq - 0.02)))
+                        b.box((xa_, yq, za_), (xb_, yq + hg - 0.3, zb_), bf, collide=False, name="Balustre")
 
     with b.group("Toit"):
         rt = r(yr)
@@ -1033,7 +1060,7 @@ def tour_guet_bois(b, variant=0, hauteur=28):
             b.box((-rt - 0.3, yr - 0.45, s * rt - 0.25), (rt + 0.3, yr, s * rt + 0.25), bf, name="Entrait")
         ht = 1.7 if v != 2 else 1.3
         tg = vr("tuile_grise", rng, 0.02)
-        b.box((-dt, yr, -dt), (dt, yr + 0.3, dt), col("tuile_grise_fonce"), name="Rive")
+        b.box((-dt, yr, -dt), (dt, yr + 0.3, dt), col("tuile_grise_fonce"), collide=False, name="Rive")
         b.wedge((-dt, yr + 0.3, -dt), (dt, yr + 0.3 + ht, 0), tg, down="-z", studs="top", name="Toit")
         b.wedge((-dt, yr + 0.3, 0), (dt, yr + 0.3 + ht, dt), tg, down="+z", studs="top", name="Toit")
         b.box((-dt - 0.2, yr + ht - 0.1, -0.45), (dt + 0.2, yr + ht + 0.6, 0.45), col("tuile_grise_fonce"), studs="top",
@@ -1066,10 +1093,10 @@ def _travees(b, xs, ya, yb, rng, cadre, *, poteaux=True, panneaux=True, saillie=
     if panneaux:
         for xa, xb in zip(xs, xs[1:]):
             if xb - xa > 1.0:
-                b.box((xa + 0.3, ya, -0.1), (xb - 0.3, yb, 0.05), blanc_pixel(rng), name="Panneau")
+                b.box((xa + 0.3, ya, -0.1), (xb - 0.3, yb, 0.05), blanc_pixel(rng), collide=False, name="Panneau")
     if poteaux:
         for xx in xs:
-            b.box((xx - 0.3, ya, -saillie), (xx + 0.3, yb, 0.05), col(cadre), name="Poteau")
+            b.box((xx - 0.3, ya, -saillie), (xx + 0.3, yb, 0.0), col(cadre), name="Poteau")
 
 
 def _poutre_h(b, xa, xb, ya, yb, cadre, *, saillie=0.42, name="Nageshi"):
@@ -1085,15 +1112,40 @@ def _porte_cite(b, x, w, y0, h, cadre, *, battants="bois_fonce"):
     b.box((x - w / 2 + 0.2, y0 + h * 0.45, -0.6), (x + w / 2 - 0.2, y0 + h * 0.45 + 0.3, -0.4), col("or"), name="Ferrure")
 
 
-def _cotes_blancs(b, W, D, ya, yb, rng, cadre, *, fenetres=((0.0, 9.0, 3.0, 2.2),), poteau=True):
+def _cotes_blancs(b, W, D, ya, yb, rng, cadre, *, fenetres=((0.0, 9.0, 3.0, 2.2),), poteau=True, z_mur=None,
+                  poutre=None):
     """Pignons latéraux d'un bâtiment blanc (murs x = ±W/2, repère du bâtiment) : poteau central sombre et
-    fenêtres (z_rel, y, w, h) à barreaux ; z_rel est mesuré vers l'arrière."""
+    fenêtres (z_rel, y, w, h) à barreaux ; z_rel est mesuré vers l'arrière. `z_mur` = (z0, z1) du mur : deux
+    panneaux de blancs voisins de part et d'autre du poteau (le côté se lit en « pixels », vu en biais depuis
+    l'allée dans les deux sens) ; `poutre` = hauteur d'une poutre horizontale sombre."""
     for side in (-1, 1):
         with b.at((side * W / 2, 0, 0), yaw=-90 * side):
             if poteau:
                 b.box((-0.3, ya, -0.3), (0.3, yb, 0.05), col(cadre), name="Poteau")
+            if z_mur is not None:
+                la, lb = sorted((z_mur[0] * side, z_mur[1] * side))
+                _panneaux(b, [la + 0.05, -0.3, 0.3, lb - 0.05] if poteau else [la + 0.05, lb - 0.05], ya, yb, rng)
+                if poutre is not None:
+                    b.box((la + 0.05, poutre, -0.4), (lb - 0.05, poutre + 0.5, 0.05), col(cadre), name="Nageshi")
             for (zr, y, w, h) in fenetres:
                 _fenetre_cite(b, zr * side, y, w, h, cadre, n=3)
+
+
+def _revers(b, xa, xb, ya, yb, rng, cadre, *, n=3, ym=None, plinthe=None, h_plinthe=2.4):
+    """Mur secondaire (arrière, retour) en repère de façade (mur en z = 0, extérieur vers -z) : n panneaux de
+    blancs voisins (0,1 en saillie) entre n + 1 poteaux sombres (0,3 en saillie, les poteaux d'extrémité restent
+    dans la longueur du mur), poutre horizontale à `ym`, soubassement de planches `plinthe` (2n + 2 à 2n + 4
+    pièces). Aucun grand aplat blanc."""
+    xs = [xa + 0.3 + i * (xb - xa - 0.6) / n for i in range(n + 1)]
+    for x_a, x_b in zip(xs, xs[1:]):
+        b.box((x_a + 0.3, ya, -0.1), (x_b - 0.3, yb, 0.05), blanc_pixel(rng), collide=False, name="Panneau")
+    for xx in xs:
+        b.box((xx - 0.3, ya, -0.3), (xx + 0.3, yb, 0.0), col(cadre), name="Poteau")
+    if ym is not None:
+        b.box((xa + 0.6, ym, -0.4), (xb - 0.6, ym + 0.5, 0.05), col(cadre), name="Nageshi")
+    if plinthe is not None:
+        b.box((xa + 0.6, ya, -0.2), (xb - 0.6, ya + h_plinthe, 0.05), col(plinthe), name="Koshi_ita")
+    return xs
 
 
 # ---------------------------------------------------------------------------
@@ -1142,14 +1194,17 @@ def maison_blanche(b, variant=0, largeur=24, profondeur=18, simple=False):
                         _panneaux(b, [xa + 0.3, xb - 0.3], YS + 0.5, 8.6, rng)
                         _fenetre_cite(b, (xa + xb) / 2, 4.6, 2.6, 2.4, cadre, n=3)
                 _poutre_h(b, x0 + 1.2, x1 - 1.2, 8.6, 9.2, cadre)
-                _panneaux(b, [xx + (0.3 if k else 0.3) for k, xx in enumerate(xs)], 9.2, HM - 0.6, rng)
+                for xa, xb in zip(xs, xs[1:]):
+                    _panneaux(b, [xa + 0.3, xb - 0.3], 9.2, HM - 0.6, rng)
                 for xa, xb in list(zip(xs, xs[1:]))[1:3]:
                     _fenetre_cite(b, (xa + xb) / 2, 10.0, xb - xa - 2.2, 1.6, cadre, n=5, encadrement="blanc_creme")
                 _poutre_h(b, x0 + 1.2, x1 - 1.2, HM - 0.6, HM, cadre, name="Sabliere")
-            _cotes_blancs(b, W - 2.4, D, YS, HM, rng, cadre, fenetres=((zw / 2 + zb / 2 - 0.6, 9.6, 3.0, 2.0),))
+            _cotes_blancs(b, W - 2.4, D, YS, HM, rng, cadre, fenetres=(((zb - 1.2) / 2 + 0.15, 9.6, 3.0, 2.0),),
+                          z_mur=(zw, zb - 1.2), poutre=8.6)
             with b.at((0, 0, zb - 1.2), yaw=180):
-                for xx in (-W / 4, W / 4):
-                    _fenetre_cite(b, xx, 9.4, 3.2, 2.0, cadre, n=4)
+                xs_r = _revers(b, -(W / 2 - 1.2), W / 2 - 1.2, YS, HM, rng, cadre, n=4, ym=8.6)
+                for xa, xb in (xs_r[:2], xs_r[-2:]):
+                    _fenetre_cite(b, (xa + xb) / 2, 9.4, 3.0, 2.0, cadre, n=4)
         with b.group("Toit"):
             R = _toit_irimoya(b, x0 - 1.4, x1 + 1.4, zf - 0.8, zb + 1.6, HM, ocre, a_z0=4.6, a_z1=4.2, a_x0=4.4,
                               a_x1=4.4, h1=2.4, h2=5.0, tri="blanc", rng=rng, gegyo="or", deb_g=0.8)
@@ -1181,7 +1236,9 @@ def maison_blanche(b, variant=0, largeur=24, profondeur=18, simple=False):
                 for xx in ((xs[0] + xs[1]) / 2, (xs[3] + xs[4]) / 2):
                     _fenetre_cite(b, xx, 4.4, 2.8, 2.2, cadre, n=3)
                 _poutre_h(b, x0 + 1.0, x1 - 1.0, H1 - 0.6, H1, cadre, name="Sabliere")
-            _cotes_blancs(b, W - 2.0, D, YS, H1 - 0.6, rng, cadre, fenetres=((-1.0, 4.6, 2.8, 2.0),))
+            _cotes_blancs(b, W - 2.0, D, YS, H1 - 0.6, rng, cadre, fenetres=((-3.2, 4.6, 2.8, 2.0),))
+            with b.at((0, 0, zb - 1.0), yaw=180):
+                _revers(b, x0 + 1.0, x1 - 1.0, YS, H1 - 0.6, rng, cadre, n=4)
         if v == 1:
             with b.group("Jupe"):
                 _jupe(b, x0 - 0.6, x1 + 0.6, zf - 0.6, zb + 0.6, H1, 1.7, ocre, a=3.6, rng=rng)
@@ -1224,6 +1281,7 @@ def maison_blanche(b, variant=0, largeur=24, profondeur=18, simple=False):
                 with b.at((ux1 if side > 0 else ux0, 0, 0), yaw=-90 * side):
                     _fenetre_cite(b, ((uz0 + uz1) / 2) * side, ya + 1.4, 3.0, 2.2, cadre, n=3)
             with b.at((0, 0, uz1), yaw=180):
+                _revers(b, -wu / 2, wu / 2, ya, H2 - 0.6, rng, cadre, n=2)
                 for xx in (-wu / 4, wu / 4):
                     _fenetre_cite(b, xx, ya + 1.4, 3.0, 2.2, cadre, n=3)
             if v == 4:
@@ -1260,21 +1318,25 @@ def maison_blanche(b, variant=0, largeur=24, profondeur=18, simple=False):
                 # auvent bleu au-dessus de l'entrée (lu d'en haut)
                 _pan_z(b, -1.8, 7.2, 0.3, 8.0, -3.0, 3.0, 0.5, "bleu", name="Auvent")
             _cotes_blancs(b, wx1 - wx0, D, YS, HM - 0.6, rng, cadre,
-                          fenetres=((-4.0, 9.4, 2.8, 2.0), (4.0, 9.4, 2.8, 2.0)))
+                          fenetres=((-4.0, 9.4, 2.8, 2.0), (4.0, 9.4, 2.8, 2.0)), z_mur=(wz0, wz1), poutre=8.4)
             with b.at((0, 0, wz1), yaw=180):
-                _fenetre_cite(b, 0.0, 9.4, 3.4, 2.0, cadre, n=4)
+                xs_r = _revers(b, wx0, wx1, YS, HM - 0.6, rng, cadre, n=4, ym=8.4)
+                for xa, xb in (xs_r[:2], xs_r[-2:]):
+                    _fenetre_cite(b, (xa + xb) / 2, 9.4, 3.0, 2.0, cadre, n=4)
         with b.group("Toit"):
             top = _toit_tsumairi(b, wx0, wx1, wz0, wz1, HM, 0.56, "bleu", "blanc", deb=1.7, deb_av=1.8, deb_ar=1.6,
                                  ep=0.9, hafu="blanc_pur", gegyo="or", rng=rng)
-            with b.at((0, 0, wz0)):
-                # fronton blanc : poutre de base, poteaux et lisse sombres, fenêtre d'aération à barreaux
-                run = (wx1 - wx0) / 2
-                _poutre_h(b, wx0 + 0.2, wx1 - 0.2, HM + 0.05, HM + 0.6, cadre, saillie=0.35, name="Tsuma_poutre")
-                for xx in (-run * 0.45, run * 0.45):
-                    hh = run * 0.55 * 0.56 * 1.0
-                    b.box((xx - 0.25, HM + 0.6, -0.25), (xx + 0.25, HM + 0.6 + hh, 0.05), col(cadre), name="Tsuka")
-                b.box((-run * 0.62, HM + 2.6, -0.28), (run * 0.62, HM + 3.05, 0.05), col(cadre), name="Nuki")
-                _fenetre_cite(b, 0.0, HM + 3.6, 2.6, 1.5, cadre, n=4)
+            for zz, yaw in ((wz0, 0), (wz1, 180)):
+                with b.at((0, 0, zz), yaw=yaw):
+                    # fronton blanc (devant et derrière) : poutre de base, poteaux et lisse sombres, fenêtre
+                    # d'aération à barreaux
+                    run = (wx1 - wx0) / 2
+                    _poutre_h(b, wx0 + 0.2, wx1 - 0.2, HM + 0.05, HM + 0.6, cadre, saillie=0.35, name="Tsuma_poutre")
+                    for xx in (-run * 0.45, run * 0.45):
+                        hh = run * 0.55 * 0.56 * 1.0
+                        b.box((xx - 0.25, HM + 0.6, -0.25), (xx + 0.25, HM + 0.6 + hh, 0.05), col(cadre), name="Tsuka")
+                    b.box((-run * 0.62, HM + 2.6, -0.28), (run * 0.62, HM + 3.05, 0.05), col(cadre), name="Nuki")
+                    _fenetre_cite(b, 0.0, HM + 3.6, 2.6, 1.5, cadre, n=4)
     else:
         # --- entrepôt blanc (kura) : soubassement de planches sombres, petites fenêtres hautes, toit lourd ---
         YS, HM = 1.4, 15.0
@@ -1291,9 +1353,20 @@ def maison_blanche(b, variant=0, largeur=24, profondeur=18, simple=False):
                     xx = wx0 + 0.8 + k * (wx1 - wx0 - 1.6) / 6
                     if abs(xx) > 2.6:
                         b.box((xx - 0.15, YS + 0.2, -0.2), (xx + 0.15, 5.4, 0.05), col("bois"), name="Couvre_joint")
+            # enduit en « pixels » au-dessus du bandeau : trois panneaux devant et derrière, deux par pignon
+            yp0, yp1 = 6.1, HM - 1.2
+            for zz, yaw in ((wz0, 0), (wz1, 180)):
+                with b.at((0, 0, zz), yaw=yaw):
+                    _panneaux(b, [wx0 + 0.05, -3.4, 3.4, wx1 - 0.05], yp0, yp1, rng)
+            for side in (-1, 1):
+                with b.at((side * (wx1 - wx0) / 2, 0, 0), yaw=-90 * side):
+                    _panneaux(b, [wz0 + 0.05, 0.0, wz1 - 0.05], yp0, yp1, rng)
+            with b.at((0, 0, wz1), yaw=180):
+                for xx in (-W / 4 - 0.6, W / 4 + 0.6):
+                    _fenetre_kura(b, xx, 10.4, 1.8, "blanc", volets=False)
             with b.at((0, 0, wz0)):
                 b.box((-2.6, YS, -0.5), (2.6, 7.6, 0.05), c("blanc_pur"), name="Encadrement")
-                b.box((-1.8, YS, -0.7), (1.8, 6.6, -0.45), col("bois_fonce"), name="Porte")
+                b.box((-1.8, YS + 0.05, -0.7), (1.8, 6.6, -0.45), col("bois_fonce"), name="Porte")
                 b.box((-1.8, 4.0, -0.85), (1.8, 4.3, -0.65), col("fer"), name="Ferrure")
                 _pan_z(b, -2.0, 7.8, 0.3, 8.7, -3.4, 3.4, 0.6, ocre, name="Auvent")
                 for xx in (-W / 4 - 0.6, W / 4 + 0.6):
@@ -1337,11 +1410,17 @@ def _maison_blanche_simple(b, variant, largeur, profondeur):
         b.box((wx0 - 0.3, 5.4, wz0 - 0.3), (wx1 + 0.3, 5.9, wz1 + 0.3), c("blanc_pur"), studs="top", name="Bandeau")
         with b.at((0, 0, wz0)):
             b.box((-2.4, 1.4, -0.45), (2.4, 7.2, 0.05), c("blanc_pur"), name="Encadrement")
-            b.box((-1.7, 1.4, -0.65), (1.7, 6.4, -0.4), col("bois_fonce"), name="Porte")
+            b.box((-1.7, 1.45, -0.65), (1.7, 6.4, -0.4), col("bois_fonce"), name="Porte")
             for xx in (-W / 4 - 0.6, W / 4 + 0.6):
                 _fenetre_kura(b, xx, 9.6, 1.9, "blanc", volets=False)
         with b.at((0, 0, wz1), yaw=180):
             _fenetre_kura(b, 0.0, 9.6, 1.9, "blanc", volets=False)
+        for zz, yaw in ((wz0, 0), (wz1, 180)):
+            with b.at((0, 0, zz), yaw=yaw):
+                _panneaux(b, [wx0 + 0.05, -3.2, 3.2, wx1 - 0.05], 5.9, HM - 0.3, rng)
+        for side in (-1, 1):
+            with b.at((side * (wx1 - wx0) / 2, 0, 0), yaw=-90 * side):
+                _panneaux(b, [wz0 + 0.05, 0.0, wz1 - 0.05], 5.9, HM - 0.3, rng)
         top, _ = _toit_hirairi(b, wx0, wx1, wz0, wz1, HM, 0.52, "ocre", "blanc", deb_av=1.8, deb_ar=1.8, deb_cote=1.4,
                                ep=1.0, rng=rng, fait=1.2, verge=False)
         return {"emprise": (W, D), "hauteur": round(top, 2)}
@@ -1352,6 +1431,8 @@ def _maison_blanche_simple(b, variant, largeur, profondeur):
     with b.at((0, 0, zf + 1.0)):
         _travees(b, xs, 1.4, H1, rng, cadre, panneaux=False)
         _porte_cite(b, 0.0, 3.0, 1.4, 5.0, cadre)
+    with b.at((0, 0, zb - 1.0), yaw=180):
+        _revers(b, x0 + 1.0, x1 - 1.0, 1.4, H1, rng, cadre, n=3)
     _jupe(b, x0 - 0.5, x1 + 0.5, zf - 0.5, zb + 0.5, H1, 1.6, "ocre", a=3.4, rng=rng)
     ux0, ux1, uz0, uz1 = x0 + 3.0, x1 - 3.0, zf + 3.0, zb - 3.0
     b.box((ux0, H1, uz0), (ux1, H2, uz1), c("blanc"), name="Murs")
@@ -1360,7 +1441,7 @@ def _maison_blanche_simple(b, variant, largeur, profondeur):
         _travees(b, xs2, H1 + 1.6, H2 - 0.5, rng, cadre)
         for xa, xb in zip(xs2, xs2[1:]):
             _fenetre_cite(b, (xa + xb) / 2, H1 + 2.6, 2.6, 2.0, cadre, n=3)
-        _poutre_h(b, ux0 - 0.2, ux1 + 0.2, H2 - 0.5, H2, cadre, name="Sabliere")
+        _poutre_h(b, ux0 - 0.2, ux1 + 0.2, H2 - 0.6, H2, cadre, name="Sabliere")
     with b.at((0, 0, uz1), yaw=180):
         _fenetre_cite(b, 0.0, H1 + 2.6, 3.0, 2.0, cadre, n=3)
     R = _toit_irimoya(b, ux0 - 2.0, ux1 + 2.0, uz0 - 2.0, uz1 + 2.0, H2, "ocre", a_z0=3.4, a_z1=3.4, a_x0=3.4, a_x1=3.4,
@@ -1409,9 +1490,12 @@ def caserne(b, variant=0, longueur=40, profondeur=14, simple=False):
                 _travees(b, xs2, H1 + 1.2, HM - 0.5, rng, cadre)
                 for xa, xb in zip(xs2, xs2[1:]):
                     _fenetre_cite(b, (xa + xb) / 2, H1 + 2.0, 1.6, 1.7, cadre, n=2)
-                _poutre_h(b, x0 + 1.2, x1 - 1.2, HM - 0.5, HM, cadre, name="Sabliere")
-            _cotes_blancs(b, L - 2.8, D, H1, HM, rng, cadre, fenetres=((0.0, H1 + 2.0, 2.2, 1.7),))
+                _poutre_h(b, x0 + 1.2, x1 - 1.2, HM - 0.6, HM, cadre, name="Sabliere")
+            _cotes_blancs(b, L - 2.8, D, H1, HM, rng, cadre, fenetres=((0.0, H1 + 2.0, 2.2, 1.7),), poteau=False)
+            with b.at((0, 0, zb - 0.8), yaw=180):
+                _revers(b, x0 + 0.8, x1 - 0.8, YS, H1, rng, cadre, n=4)
             with b.at((0, 0, zb - 1.6), yaw=180):
+                _revers(b, x0 + 1.4, x1 - 1.4, H1 + 1.2, HM - 0.5, rng, cadre, n=3)
                 for k in range(3):
                     _fenetre_cite(b, -L / 3 + k * L / 3, H1 + 2.0, 1.8, 1.7, cadre, n=2)
         with b.group("Toit"):
@@ -1435,7 +1519,7 @@ def caserne(b, variant=0, longueur=40, profondeur=14, simple=False):
             b.box((x0 + 0.7, HM - 0.7, zf + 0.6), (x1 - 0.7, HM, zf + 1.5), col(cadre), name="Sabliere")
         with b.at((0, 0, zw)):
             _travees(b, xs, YS, HM - 0.5, rng, cadre, panneaux=False)
-            b.box((x0 + 0.8, YS, -0.18), (x1 - 0.8, 3.0, 0.05), col("bois"), name="Lambris")
+            b.box((x0 + 0.9, YS, -0.18), (x1 - 0.9, 3.0, 0.05), col("bois"), name="Lambris")
             _poutre_h(b, x0 + 0.8, x1 - 0.8, 8.0, 8.5, cadre)
             _panneaux(b, [xx + 0.3 * (1 if k else 1) for k, xx in enumerate(xs)][:-1] + [xs[-1] - 0.3], 8.5, HM - 0.5,
                       rng)
@@ -1448,9 +1532,10 @@ def caserne(b, variant=0, longueur=40, profondeur=14, simple=False):
                     _fenetre_cite(b, xc, 9.1, xb - xa - 1.8, 1.9, cadre, n=3)
                 if i in (1, nb - 2) and not (v == 2 and abs(xc) < 4):
                     b.box((xc - 1.4, YS, -0.3), (xc + 1.4, 6.6, 0.05), col("bois_fonce"), name="Porte")
-            _poutre_h(b, x0 + 0.8, x1 - 0.8, HM - 0.5, HM, cadre, name="Sabliere")
-        _cotes_blancs(b, L - 1.6, D, YS, HM, rng, cadre, fenetres=((0.0, 8.8, 2.4, 2.0),))
+            _poutre_h(b, x0 + 0.8, x1 - 0.8, HM - 0.6, HM, cadre, name="Sabliere")
+        _cotes_blancs(b, L - 1.6, D, YS, HM, rng, cadre, fenetres=((0.0, 8.8, 2.4, 2.0),), poteau=False)
         with b.at((0, 0, zb - 0.8), yaw=180):
+            _revers(b, x0 + 0.8, x1 - 0.8, YS, HM - 0.5, rng, cadre, n=4, ym=8.0)
             for k in range(4):
                 _fenetre_cite(b, -L * 0.375 + k * L / 4, 9.1, 2.2, 1.8, cadre, n=2)
     with b.group("Toit"):
@@ -1462,9 +1547,9 @@ def caserne(b, variant=0, longueur=40, profondeur=14, simple=False):
             # porche central à pignon (karahafu simplifié) : deux poteaux, fronton blanc treillissé, rives claires
             wp = 8.0
             for s in (-1, 1):
-                b.box((s * (wp / 2 - 0.4) - 0.4, YS + 0.45, zf + 0.2), (s * (wp / 2 - 0.4) + 0.4, 10.4, zf + 1.0),
+                b.box((s * (wp / 2 - 0.4) - 0.4, YS + 0.45, zf + 0.2), (s * (wp / 2 - 0.4) + 0.4, 10.3, zf + 1.0),
                       col("laque_rouge"), name="Pilier")
-            b.box((-wp / 2, 9.8, zf + 0.1), (wp / 2, 10.4, zw), col(cadre), name="Linteau")
+            b.box((-wp / 2 + 0.1, 9.8, zf + 0.1), (wp / 2 - 0.1, 10.4, zw), col(cadre), name="Linteau")
             t2 = _toit_tsumairi(b, -wp / 2, wp / 2, zf + 0.6, zw + 2.0, 10.4, 0.62, toit, "blanc", deb=0.8, deb_av=0.9,
                                 deb_ar=0.0, ep=0.8, gegyo="or", rng=rng, treillis=cadre, pignon_z=(zf + 0.6, zf + 2.0))
             top = max(top, t2)
@@ -1508,7 +1593,9 @@ def _caserne_simple(b, v, L, D, nb, toit):
             for xa, xb in zip(xs, xs[1:]):
                 _fenetre_cite(b, (xa + xb) / 2, 9.0, xb - xa - 2.4, 1.9, cadre, n=3)
         y_t, zt0, zt1 = HM, zf - 0.6, zb + 0.8
-    with b.at((0, 0, zb - 0.8), yaw=180):
+    with b.at((0, 0, zb - (1.6 if v == 1 else 0.8)), yaw=180):
+        if v != 1:
+            _revers(b, x0 + 0.8, x1 - 0.8, 1.2, HM, rng, cadre, n=3)
         for k in range(3):
             _fenetre_cite(b, -L / 3 + k * L / 3, y_t - 3.2, 2.2, 1.8, cadre, n=2)
     R = _toit_irimoya(b, x0 - 0.8, x1 + 0.8, zt0, zt1, y_t, toit, a_z0=3.4, a_z1=3.4, a_x0=3.4, a_x1=3.4,
@@ -1566,7 +1653,7 @@ def pavillon(b, variant=0):
         for s in (-1, 1):
             b.box((s * R_ - 0.2, YC - 2.3, -R_ - 0.3), (s * R_ + 0.2, YC - 1.9, R_ + 0.3), rouge, name="Nuki")
         for (cx, cz) in cols[:4]:
-            b.box((cx - 0.55, YC, cz - 0.55), (cx + 0.55, YC + 0.45, cz + 0.55), col("or"), name="Masu")
+            b.box((cx - 0.55, YC - 0.1, cz - 0.55), (cx + 0.55, YC + 0.4, cz + 0.55), col("or"), name="Masu")
         if v == 1:
             # frises ajourées (ranma) sous les poutres des côtés et de l'arrière
             for s in (-1, 1):
@@ -1627,23 +1714,26 @@ def pavillon(b, variant=0):
 
 # bâtiments (cx, cz, w, d, h, faîtage) dans un îlot de 56 × 48 ; « x » = faîtage le long de X
 _QUARTIERS = [
-    # 0 : cour en U (grand hall au fond, deux ailes, corps d'entrée) + deux annexes
+    # 0 : cour en U (grand hall au fond, deux ailes, corps d'entrée) + annexes et deux maisons de façade
     [(0, 12, 30, 12, 10, "x"), (-19, -4, 10, 18, 8, "z"), (19, -4, 10, 18, 8, "z"), (0, -15, 14, 7, 7, "x"),
-     (-6, -3, 6, 6, 6, "x"), (7, 1, 8, 6, 6, "z")],
-    # 1 : quatre bâtiments en damier, tour blanche dans l'angle
-    [(-13, 9, 20, 12, 9, "x"), (13, -9, 20, 12, 9, "x"), (-13, -11, 16, 10, 7, "x"), (12, 11, 14, 10, 8, "z")],
-    # 2 : trois longues halles parallèles et deux pavillons
-    [(0, 13, 44, 8, 8, "x"), (-4, 0, 36, 8, 9, "x"), (2, -13, 40, 8, 7, "x"), (20, 0, 6, 6, 6, "z"),
+     (-6, -3, 6, 6, 6, "x"), (7, 1, 8, 6, 6, "z"), (-17, -18, 12, 6, 6, "x"), (17, -18, 12, 6, 6, "x")],
+    # 1 : quatre bâtiments en damier, une longue maison entre eux, tour blanche dans la cour libre
+    [(-13, 9, 20, 12, 9, "x"), (13, -9, 20, 12, 9, "x"), (-13, -11, 16, 10, 7, "x"), (12, 11, 14, 10, 8, "z"),
+     (-13, -1.5, 16, 5, 6, "x")],
+    # 2 : trois longues halles parallèles et trois pavillons
+    [(0, 13, 44, 8, 8, "x"), (-1, 0, 30, 8, 9, "x"), (4, -13, 36, 8, 7, "x"), (20, 0, 6, 6, 6, "z"),
      (-21, -13, 6, 6, 6, "z"), (-21, 0, 6, 8, 6, "z")],
-    # 3 : deux rangées décalées, tour au centre
-    [(-14, 12, 18, 10, 8, "x"), (12, 12, 20, 10, 9, "x"), (-12, -12, 22, 10, 9, "x"), (15, -12, 14, 10, 7, "x")],
-    # 4 : grand hall de temple au centre, deux ailes en équerre, porche
+    # 3 : deux rangées décalées, deux maisons basses de part et d'autre de la tour centrale
+    [(-14, 12, 18, 10, 8, "x"), (12, 12, 20, 10, 9, "x"), (-12, -12, 22, 10, 9, "x"), (15, -12, 14, 10, 7, "x"),
+     (-15, 0, 14, 6, 6, "x"), (15, 0, 14, 6, 6, "x")],
+    # 4 : grand hall de temple au centre, deux ailes en équerre, porche, longue maison au fond
     [(0, 4, 26, 18, 12, "x"), (-21, 2, 8, 30, 8, "z"), (21, 2, 8, 30, 8, "z"), (0, -16, 10, 6, 7, "x"),
-     (-12, -16, 8, 6, 6, "x"), (12, -16, 8, 6, 6, "x")],
+     (-12, -16, 8, 6, 6, "x"), (12, -16, 8, 6, 6, "x"), (0, 18, 26, 6, 7, "x")],
     # 5 : îlot dense en escalier, tour en avant
-    [(-12, 13, 24, 10, 10, "x"), (14, 10, 16, 14, 8, "z"), (-16, -6, 14, 12, 8, "z"), (4, -4, 14, 10, 9, "x")],
+    [(-12, 13, 24, 10, 10, "x"), (14, 10, 16, 14, 8, "z"), (-16, -6, 14, 12, 8, "z"), (4, -4, 14, 10, 9, "x"),
+     (-12, -18, 18, 6, 6, "x")],
 ]
-_TOURS = {1: (17, 10, 44, "bleu"), 3: (0, 0, 38, "ocre"), 5: (17, -14, 32, "bleu")}
+_TOURS = {1: (18, 1.5, 44, "bleu"), 3: (0, 0, 38, "ocre"), 5: (17, -14, 32, "bleu")}
 
 
 def quartier_lointain(b, variant=0, largeur=56, profondeur=48):

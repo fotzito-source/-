@@ -32,6 +32,7 @@ P = {
     "pave": "#E6D5AE",             # pavés ocre clair du bourg
     "pave_fonce": "#D0BA8E",
     "pave_rose": "#E8C4A8",        # pavés rosés (motifs)
+    "pave_clair": "#F2E8CF",       # chemin clair dans l'axe de la rue du bourg
     "pierre": "#D9CDB4",           # quais, murs de soutènement
     "pierre_claire": "#ECE3CF",
     "pierre_fonce": "#B9AA8C",
@@ -138,6 +139,12 @@ P = {
     "os_fonce": "#CDBF9E",
     "os_ombre": "#A99B7C",
     "grotte": "#3A3346",           # orbites, bouche, intérieur des grottes
+    "os_fissure": "#7E7266",       # fissures du crâne (modelé)
+    "dent": "#FBF6EA",             # dents du crâne, plus claires que le visage
+    "gres": "#C49A6C",             # falaises de grès chaud autour du crâne
+    "gres_clair": "#D8B98A",
+    "gres_fonce": "#9C7650",
+    "gres_mouille": "#7A5A3E",     # pied des falaises, à la ligne d'eau
 
     # --- Animaux ---------------------------------------------------------------------------------
     "vache_blanc": "#FAFAF5",

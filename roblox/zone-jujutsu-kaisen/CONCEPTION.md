@@ -69,15 +69,17 @@ magasin et aucun logo.
 
 | Élément | Valeur | Constante de `zone.py` |
 |---|---|---|
-| Couloir de course (vide) | 64 de large, x ∈ [-32, 32] | `DEMI_COULOIR` |
-| Rien au-dessus du couloir sous 30 studs | sur \|x\| < 33 | `X_LIBRE_HAUT` |
-| Dessous des ouvrages qui l'enjambent | viaduc 36 ; passerelles et immeuble effondré 34 | `H_VIADUC`, `H_LIBRE` |
-| Trottoirs | \|x\| de 32 à 42 (bordure, bande foncée, bande podotactile jaune, dalles) | `X_FACADE` |
-| Seconde rangée, tours de fond, bord du sol | \|x\| = 84, 136, 242 | `X_SECOND`, `X_SKYLINE`, `X_FOND` |
+| Couloir de course (vide) | **90 de large**, x ∈ [-45, 45] (élargi à la demande de l'utilisateur ; 64 au départ) | `DEMI_COULOIR` |
+| Rien au-dessus du couloir sous 30 studs | sur \|x\| < 46 | `X_LIBRE_HAUT` |
+| Dessous des ouvrages qui l'enjambent | viaduc 36 ; passerelles et immeuble effondré 34 ; appuis en \|x\| ≥ 46 (92 studs libres au moins) | `H_VIADUC`, `H_LIBRE` |
+| Trottoirs | \|x\| de 45 à 55 (bordure, bande foncée, bande podotactile jaune, dalles) | `X_FACADE` |
+| Façades derrière les escaliers des passerelles | en retrait de 4,5 (\|x\| = 59,5) | `RECUL_ESCALIER` |
+| Seconde rangée, tours de fond, bord du sol | \|x\| = 97, 151, 263 | `X_SECOND`, `X_SKYLINE`, `X_FOND` |
 | Entrée → sortie | z = 0 → z = -496 | `Z_PORTE`, `Z_SORTIE` |
 | Place des œufs (carrefour) | cercle de rayon 34, centre z = -400 (81 %) | `Z_PLACE`, `R_PLACE` |
-| Carré peint du carrefour | \|x\| ≤ 46, z ∈ [-446, -354] | `X_CARREFOUR` |
-| Sol d'approche (côté apparition) | z de 0 à +32 (groupe `Sol/Approche`, peut être supprimé) | `Z_APPROCHE` |
+| Carré peint du carrefour | \|x\| ≤ 59, z ∈ [-446, -354] (chaussée transversale de 68) | `X_CARREFOUR`, `DEMI_TRANSVERSALE` |
+| Sol d'approche (côté apparition) | z de 0 à +56 (groupe `Sol/Approche`, peut être supprimé) | `Z_APPROCHE` |
+| Sortie sous l'immeuble effondré | 110 studs libres entre les moignons (\|x\| ≥ 55) | `Z_EFFONDRE` |
 
 ## 4. Séquence, de l'entrée à la sortie
 
@@ -86,10 +88,10 @@ Le joueur arrive par +Z et court vers -Z, puis revient : les deux sens de lectur
 ### 1. Entrée : le viaduc et la gare aérienne (z +32 → -12)
 - **Repère** : un viaduc ferroviaire en béton et poutres d'acier bleues traverse toute la largeur de la
   zone en z = 0 (dessous à 36 studs, rails à 42). Un train de banlieue argenté à bandes violette et cyan
-  (livrée inventée) sort de la gare aérienne (quais couverts en x ∈ [-150, -50]) et passe au-dessus de la
+  (livrée inventée) sort de la gare aérienne (quais couverts en x ∈ [-163, -59]) et passe au-dessus de la
   rue. Sur la poutre au-dessus du couloir, une grande plaque de gare porte 渋谷, sur les deux faces. C'est
   le seul emploi de ce nom de lieu.
-- Sous les arches, de part et d'autre (\|x\| ≥ 44), des petites boutiques éclairées (gādo-shita) :
+- Sous les arches, de part et d'autre (\|x\| ≥ 59), des petites boutiques éclairées (gādo-shita) :
   ラーメン, 寿司, 喫茶. On voit aussi l'entrée de la gare avec un panneau 駅.
 - **Vue joueur** : en arrivant, on voit le viaduc, le train au-dessus de soi, puis toute la rue
   commerçante en enfilade, la passerelle 1 au loin et le sommet des tours.
@@ -106,19 +108,19 @@ Le joueur arrive par +Z et court vers -Z, puis revient : les deux sens de lectur
   gauche.
 
 ### 3. Le quartier des tours et des écrans (z -156 → -296)
-- Grandes tours de bureaux (80 à 124 studs) à rubans de fenêtres blancs ou bleus, grilles de verre,
+- Grandes tours de bureaux (96 à 146 studs) à rubans de fenêtres blancs ou bleus, grilles de verre,
   bandes de néon aux angles et feux rouges d'obstacle sur les toits. Deux **grands magasins à écrans
   géants**, avec écran magenta et écran cyan. La seconde rangée et les tours de fond ferment l'horizon.
 - Lampadaires, arbres d'alignement (dont un ginkgo jaune), garde-corps blancs le long de la bordure.
 - **Moment** : la **passerelle 2** (z = -300) encadre la vue sur le carrefour.
 
 ### 4. L'approche du carrefour (z -300 → -354)
-- **Repère** : à droite, la **tour cylindrique** (rayon 22, 76 studs) à affiches verticales, avec ses
+- **Repère** : à droite, la **tour cylindrique** (rayon 22, 84 studs, 108 avec l'aileron) à affiches verticales, avec ses
   anneaux lumineux et sa couronne qui brille. Elle a un petit parvis planté d'arbres et de bancs. À gauche,
   l'**immeuble à écrans** du coin : écrans géants sur deux faces et bandeau défilant.
 
 ### 5. Le grand carrefour « scramble » = place des œufs (z -354 → -446, centre -400)
-- Carré peint de 92 × 92 studs : quatre passages piétons sur les côtés et deux en diagonale (X). La
+- Carré peint de 118 × 92 studs : quatre passages piétons sur les côtés et deux en diagonale (X). La
   grande rue transversale part à gauche et à droite et finit contre les dômes.
 - Coins : la tour cylindrique (nord-est), l'immeuble à écrans (nord-ouest), la **gare** à longue façade
   vitrée éclairée (sud-ouest, 駅 / 東口) et une tour de verre déjà fissurée (sud-est). Huit feux tricolores.
@@ -130,11 +132,11 @@ Le joueur arrive par +Z et court vers -Z, puis revient : les deux sens de lectur
   marquages s'effacent, les trottoirs sont salis. Il y a des gravats, des voitures abandonnées, des
   barrières et des cônes 立入禁止 (toujours hors du couloir), la tour de verre éventrée et sa voisine.
 - **Repère de fond** : deux **dômes de barrière** violet nuit en gradins, translucides, à liserés de
-  néon. Le grand dôme (rayon 72) se dresse à gauche, derrière la gare. Le petit dôme (rayon 48) est à
+  néon. Le grand dôme (rayon 70) se dresse à gauche, derrière la gare. Le petit dôme (rayon 52) est à
   droite. La rue transversale vient buter contre eux.
 
 ### 7. La sortie : l'immeuble effondré (z -474 → -496)
-- **Repère final** : deux moignons de tours (\|x\| de 42 à 100) et, coincé entre eux, le haut d'une tour
+- **Repère final** : deux moignons de tours (\|x\| de 55 à 103) et, coincé entre eux, le haut d'une tour
   tombé en travers, légèrement incliné. Il forme une **arche brisée** au-dessus du couloir, dont le dessous
   reste à 34 studs ou plus. On voit des planchers à nu, des fers tordus, du verre brisé, des lueurs
   violettes dans les fissures et des tas de gravats au pied des moignons.

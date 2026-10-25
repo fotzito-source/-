@@ -76,8 +76,8 @@ def lanterne_pierre(b, variant: int = 0) -> dict:
         b.box((-0.6, 0.7, -0.6), (0.6, 3.4, 0.6), p, name="Fut")
         b.box((-1.15, 3.4, -1.15), (1.15, 3.85, 1.15), pf, name="Plateau")
         b.box((-0.9, 3.85, -0.9), (0.9, 5.4, 0.9), p, name="Chambre")
-        b.box((-0.55, 4.1, -0.95), (0.55, 5.15, 0.95), c("jaune_lampion"), material="Neon", collide=False, shadow=False, name="Lumiere")
-        b.box((-0.95, 4.1, -0.55), (0.95, 5.15, 0.55), c("jaune_lampion"), material="Neon", collide=False, shadow=False, name="Lumiere")
+        b.box((-0.55, 4.1, -1.0), (0.55, 5.15, 1.0), c("jaune_lampion"), material="Neon", collide=False, shadow=False, name="Lumiere")
+        b.box((-1.0, 4.1, -0.55), (1.0, 5.15, 0.55), c("jaune_lampion"), material="Neon", collide=False, shadow=False, name="Lumiere")
         b.box((-1.7, 5.4, -1.7), (1.7, 5.9, 1.7), pf, studs="top", name="Toit")
         b.box((-1.05, 5.9, -1.05), (1.05, 6.4, 1.05), p, studs="top", name="Toit")
         b.box((-0.4, 6.4, -0.4), (0.4, 7.0, 0.4), pf, name="Bouton")
@@ -220,10 +220,10 @@ def nobori(b, texte: str = "茶", variant: int = 0, hauteur: float = 9.0) -> dic
         b.box((-0.1, hauteur - 0.2, -larg - 0.4), (0.1, hauteur + 0.05, -0.1), c("bois_fonce"), collide=False, name="Bras")
         y1, y0 = hauteur - 0.2, hauteur - 0.2 - (1.2 + 1.6 * len(texte))
         for sx, face in ((-1, "Left"), (1, "Right")):
-            xa, xb = sorted((0.0, sx * 0.07))
+            xa, xb = sorted((0.0, sx * 0.1))          # 0,1 : taille minimale Roblox du projet
             t = b.box((xa, y0, -larg - 0.3), (xb, y1, -0.3), c(fond), collide=False, shadow=False, name="Toile")
             t.label = {"face": face, "text": texte, "color": encre, "font": "brush", "vertical": True}
-        b.box((-0.11, y0, -larg - 0.4), (0.11, y0 + 0.4, -larg - 0.2), c(fond), collide=False, shadow=False, name="Ourlet")
+        b.box((-0.15, y0, -larg - 0.4), (0.15, y0 + 0.4, -larg - 0.2), c(fond), collide=False, shadow=False, name="Ourlet")
     return {"emprise": (1.4, larg + 1.2), "hauteur": hauteur + 0.6}
 
 
@@ -326,7 +326,7 @@ def puits(b, variant: int = 0) -> dict:
             b.box((sx * 1.5 - 0.25, 2.4, -0.25), (sx * 1.5 + 0.25, 6.6, 0.25), c("bois_fonce"), name="Poteau")
         b.box((-2.0, 6.6, -0.3), (2.0, 7.0, 0.3), c("bois_fonce"), name="Traverse")
         b.cyl((0, 6.2, 0), 0.45, 0.3, c("bois_moyen"), axis="x", collide=False, name="Poulie")
-        b.box((-0.04, 3.6, -0.04), (0.04, 5.9, 0.04), c("corde"), collide=False, shadow=False, name="Corde")
+        b.box((-0.05, 3.6, -0.05), (0.05, 5.9, 0.05), c("corde"), collide=False, shadow=False, name="Corde")
         b.cyl((0.0, 3.2, 0.0), 0.45, 0.8, c("bois_moyen"), axis="y", collide=False, name="Seau")
         b.wedge((-2.4, 7.0, -1.8), (2.4, 8.4, 0), toit, down="-z", studs="top", name="Toit")
         b.wedge((-2.4, 7.0, 0), (2.4, 8.4, 1.8), toit, down="+z", studs="top", name="Toit")

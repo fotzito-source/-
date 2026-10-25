@@ -54,6 +54,11 @@ P = {
     "mur_joint": "#8E8676",        # joints profonds, embrasures
     "mur_base": "#9C9381",         # soubassement taluté
     "mur_mousse": "#8FA05C",       # traînées de mousse au pied (rare)
+    "mur_coulure": "#B3AA97",      # coulures de pluie sous les gargouilles et les embrasures
+    "lierre": "#5C8A3E",           # lierre au pied des remparts et des maisons (petites touches)
+    "lierre_clair": "#78A64C",
+    "chemin_ronde": "#C6BEAC",     # dallage du chemin de ronde (studs)
+    "bois_echafaud": "#9A7A55",    # grues, monte-charges, échafaudages de bois clair
 
     # Sol de la ville
     "pave": "#ABA69B",             # pavés gris chaud
@@ -97,6 +102,10 @@ P = {
     "ardoise": "#505A68",          # toits d'ardoise (église, beffroi, quelques maisons)
     "ardoise_fonce": "#3C4350",
     "ardoise_claire": "#66717F",
+    "cuivre_vert": "#6FA593",      # flèches et bulbes de cuivre vert-de-gris (clochers, beffroi), en accent
+    "cuivre_vert_fonce": "#548474",
+    "gres": "#C9B48E",             # grès blond (église, encadrements)
+    "gres_fonce": "#AE9774",
     "chaume": "#C9A85E",           # toits de chaume des fermes
     "chaume_fonce": "#A8884A",
     "brique": "#A9573F",           # cheminées

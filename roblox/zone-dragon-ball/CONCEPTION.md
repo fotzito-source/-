@@ -4,7 +4,7 @@ Quatrième zone du couloir du jeu « Volez un œuf », après Naruto, One Piece 
 La zone mêle **trois paysages emblématiques et génériques** de la série dans une seule course :
 la campagne terrestre, les terres de combat, puis une planète extraterrestre. Elle finit sous une arche de
 roche géante cadrée de nuages dorés.
-Le **couloir de course reste vide** au centre (64 studs) et tout le décor l'entoure.
+Le **couloir de course reste vide** au centre (**90 studs**, élargi à la demande du client) et tout le décor l'entoure.
 
 ## 1. Ce que dit la recherche (repères visuels génériques)
 
@@ -26,23 +26,24 @@ dômes blancs à hublots ronds teintés de vert), article de l'exposition du Bar
 
 | z (studs) | Moment | Repère | Vue à hauteur de joueur |
 |---|---|---|---|
-| +40 → 0 | **Approche** | Grande **porte de temple** (z = 0) : deux énormes piliers rouges, double toit de tuiles orange à coins relevés, plaque 武道 lisible des deux côtés, murs blancs à chaperon orange jusqu'aux falaises (\|x\| = 124), deux lions de pierre gardiens | La porte cadre la rue blanche du village ; au loin, le pont de roche violet |
+| +40 → 0 | **Approche** | Grande **porte de temple** (z = 0) : deux énormes piliers rouges, double toit de tuiles orange à coins relevés, plaque 武道 lisible des deux côtés, murs blancs à chaperon orange jusqu'aux falaises (\|x\| = 135), deux lions de pierre gardiens ; ouverture de 92 entre les socles des piliers, dessous à 34,2 | La porte cadre la rue blanche du village ; au loin, le pont de roche violet |
 | 0 → -146 | **Campagne terrestre** | Rue de **maisons-dômes** blanches à bandes orange, bleues, rouges, jaunes ; deux **boutiques-dômes** à enseigne-objet ; palmiers entre les maisons ; dojo 道場 et terrain d'entraînement (mannequins, jarres) à gauche ; **pagodes** ; voitures volantes garées ; **falaises orange** en strates à chapeau d'herbe avec **4 cascades** ; pitons orange | Couleurs franches sur fond blanc, lampadaires ronds, fanions colorés au-dessus de la rue (≥ 34 studs) |
-| -146 → -290 | **Terres de combat** | Sol kaki taché d'ocre, **mesas violettes** à sommet vert de toutes tailles (près : 20-30 de haut, loin : 40-55), **pont de roche naturel** au-dessus du couloir (z = -222, dessous à 34 studs, piles = mesas), **cratères**, rochers, pitons violets ; deux traces d'impact peintes au sol du couloir | Grand espace ouvert, épique ; le pont cadre la suite ; strates roses dans les falaises |
-| -290 → -358 | **Planète extraterrestre** | Herbe bleu-vert, allée de **sable clair**, **canaux turquoise** des deux côtés (\|x\| 46-60), **lac** à droite avec îlots herbus aux bords de sable, **arbres boules**, **dômes blancs** aux hublots verts, **vaisseau rond sur pattes** à gauche, **pitons de sable ocre** | Ambiance étrange et douce, verticales des arbres fins |
-| -358 → -426 | **Place des œufs : l'arène** | **Arène carrée 68 × 68** en dalles claires (dessus à 1 stud, rampes de 5 studs dans le couloir, marches sur les côtés), grand **武** rouge dans un cercle doré, 4 poteaux d'angle à flamme ; **temple d'arts martiaux** à gauche (toits orange, colonnade rouge), **tribunes** et **gong** à droite, bannières 武 / 気 / 修行 / 武道, deux cordons de fanions (≥ 34 studs) | L'arène au premier plan, l'arche géante au fond, des nuages dorés de chaque côté |
-| -426 → -470 | **Arche finale** | **Arche de roche géante** (façade z = -436, 34 de profondeur, ~96 de haut) aux strates sable ocre et violettes, couronnée d'herbe et d'arbres boules, deux **cascades** sur ses flancs, deux **pitons géants** qui l'encadrent ; **bancs de nuages dorés** à ses pieds ; le couloir passe dessous (dessous ≥ 34 studs) vers la zone suivante | Une porte naturelle majestueuse, lumineuse, qui ferme la zone |
+| -146 → -282 | **Terres de combat** | Sol kaki taché d'ocre, **mesas violettes** à sommet vert de toutes tailles (près : 20-30 de haut, loin : 40-55), **pont de roche naturel** au-dessus du couloir (z = -214, 100 studs entre les piles, dessous à 34 studs, piles = mesas), **cratères**, rochers, pitons violets ; deux traces d'impact peintes au sol du couloir | Grand espace ouvert, épique ; le pont cadre la suite ; strates roses dans les falaises |
+| -282 → -344 | **Planète extraterrestre** | Herbe bleu-vert, allée de **sable clair**, **canaux turquoise** des deux côtés (\|x\| 59-71), **lac** à droite avec îlots herbus aux bords de sable, **arbres boules**, **dômes blancs** aux hublots verts, **vaisseau rond sur pattes** à gauche, **pitons de sable ocre** | Ambiance étrange et douce, verticales des arbres fins |
+| -344 → -434 | **Place des œufs : l'arène** | **Arène 96 × 80** en dalles claires qui couvre tout le couloir (dessus à 1 stud, rampes de 5 studs, marches sur les côtés), grand **武** rouge dans un cercle doré, 4 poteaux à flamme sur ses coins (hors couloir) ; **temple d'arts martiaux** à gauche (toits orange, colonnade rouge), **tribunes** et **gong** à droite, bannières 武 / 気 / 修行 / 武道, deux cordons de fanions (≥ 34 studs) | L'arène au premier plan, l'arche géante au fond, des nuages dorés de chaque côté |
+| -434 → -470 | **Arche finale** | **Arche de roche géante** (façade z = -436, 34 de profondeur, ~96 de haut) aux strates sable ocre et violettes, couronnée d'herbe et d'arbres boules, deux **cascades** sur ses flancs, deux **pitons géants** qui l'encadrent ; **bancs de nuages dorés** à ses pieds ; le couloir passe dessous (104 de large, dessous ≥ 34 studs) vers la zone suivante | Une porte naturelle majestueuse, lumineuse, qui ferme la zone |
 
 Retour avec l'œuf (vers +Z) : l'arène, la planète, le pont de roche, puis la rue blanche et la porte de temple (plaque lisible
 aussi de ce côté). Les deux sens de lecture comptent.
 
 ## 3. Plan (vue de dessus, studs)
 
-- Couloir \|x\| < 32 ; trottoirs 32 → 42 ; premières façades à \|x\| = 44 ; falaises latérales de \|x\| = 124 à 200.
+- Couloir \|x\| < 45 (90 studs) ; trottoirs 45 → 55 (lampadaires et mâts à 50, mobilier à 52,5) ; premières façades à \|x\| = 56 ;
+  falaises latérales de \|x\| = 135 à 216. Ce qui enjambe le couloir garde ses appuis à \|x\| ≥ 46 et passe à 34 studs ou plus.
 - Sol : route crème (campagne), terre kaki (friche), sable clair (planète), dalles de l'arène, dalles violettes (arche).
   Les trottoirs : pavés terre cuite, gravats, sable, parvis de pierre. Transitions tramées « pixel » sur ±6 studs.
-- Eau : canaux \|x\| 46-60 de z = -298 à -352, lac à droite (centre x = 92, z = -322), surface à y = -0,4.
-- Repères invisibles (`Reperes`) : `ZoneOeufs` posée sur l'arène (y = 1), `Entree`, `Sortie`, `Couloir`.
+- Eau : canaux \|x\| 59-71 de z = -340 à -288, lac à droite (centre x = 106, z = -314), surface à y = -0,4, fond turquoise foncé.
+- Repères invisibles (`Reperes`) : `ZoneOeufs` posée sur l'arène (96 × 80, y = 1), `Entree`, `Sortie`, `Couloir`.
 
 ## 4. Palette (voir `palette.py`)
 
@@ -70,13 +71,16 @@ Vert émeraude jamais dominant : l'herbe est vert-jaune vif, puis sarcelle. Pas 
 
 ## 6. Budget de pièces (≤ 13 500)
 
-| Bloc | Pièces visées |
+Compte réel de la zone intégrée (`zone.py --stats`, couloir de 90) :
+
+| Bloc | Pièces posées |
 |---|---|
-| Sol (route, trottoirs, côtés, eau, arène) | ~1 100 |
-| Falaises latérales | ~600 |
-| Mobilier posé par `zone.py` (lampadaires, bannières, fanions, poteaux…) | ~550 |
-| `assets/temple.py` (porte, lions, temple, tribunes, dojo, pagodes) | ≤ 2 150 |
-| `assets/batiments.py` (dômes, boutiques, dômes extraterrestres, voitures) | ≤ 2 100 |
-| `assets/nature.py` (palmiers, arbres, mesas, pitons, cratères, cascades, îlots…) | ≤ 3 300 |
-| `assets/arche.py` (arche finale, pont de roche, nuages dorés, vaisseau) | ≤ 2 500 |
-| **Total visé** | **~12 300** (marge ~1 200) |
+| Sol (couloir, trottoirs, côtés, arène, eau et fonds d'eau) | 1 450 |
+| Falaises latérales en quatre gradins | 767 |
+| Pièces posées par `zone.py` (mâts de fanions, rosace, traces d'impact, repères) | 256 |
+| `assets/mobilier.py` (lampadaires, bancs, bannières, poteaux d'arène, gong, fanions…) | 407 |
+| `assets/temple.py` (porte, lions, temple, tribunes, dojo, pagodes) | 1 733 |
+| `assets/batiments.py` (dômes, boutiques, dômes extraterrestres, voitures) | 1 725 |
+| `assets/nature.py` (palmiers, arbres, mesas, pitons, cratères, cascades, îlots, arbres des crêtes…) | 3 646 |
+| `assets/arche.py` (arche finale, pont de roche, nuages dorés, vaisseau) | 1 485 |
+| **Total** | **11 469** (marge ~2 000) |

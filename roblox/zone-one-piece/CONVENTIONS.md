@@ -11,22 +11,25 @@ les formes natives de Roblox (bloc, coin, cylindre, boule).
 - Origine de l'asset : centre de son emprise au sol, **y = 0 = niveau du sol** (exceptions ci-dessous).
 - **L'avant de l'asset regarde -Z local.** La mise en page tourne l'asset pour que son avant regarde le couloir
   (`yaw = -90` à gauche du couloir, `+90` à droite).
-- Couloir de course : `x ∈ [-30, 30]`, de `z = 0` (arche d'entrée) à `z = -400` (sortie vers la zone suivante).
-  Trottoirs, accotements ou quais jusqu'à `|x| = 40` ; façades et bord des bassins en `|x| = 40`.
+- Couloir de course : `x ∈ [-45, 45]` (90 studs), de `z = 0` (arche d'entrée) à `z = -400` (sortie vers la zone suivante).
+  Trottoirs, accotements ou quais jusqu'à `|x| = 55` ; façades et bord des bassins en `|x| = 55`.
   Le joueur arrive par +Z et court vers -Z, puis revient : **les deux sens de lecture comptent**.
 - Séquence (voir `CONCEPTION.md`) :
 
   | z | Section | Côtés |
   |---|---|---|
   | +40 → 0 | abords | prairie, palmiers |
-  | 0 | **arche du port** « ZONE RARE / VITESSE CONSEILLÉE : 200 » | palissade jusqu'à `|x| = 130` |
+  | 0 | **arche du port** « ZONE RARE / VITESSE CONSEILLÉE : 200 » | palissade jusqu'à `|x| = 140` |
   | 0 → -112 | campagne aux moulins | prairies, clôtures, moulins, granges, vaches, verger |
-  | -112 → -204 | bourg du port | maisons colorées en `|x|` 40-60, terrasse haute (`y = 6`) en `|x|` 77-130 |
-  | -204 → -292 | port | bassins d'eau (`y = -1,5`) de `|x| = 40` au large, navires à quai, phare, pontons |
-  | -292 → -366 | place des œufs | grand ponton `|x| ≤ 56`, rose des vents (cercle de rayon 34, centre `z = -328`) |
-  | -366 → -400 | rocher du crâne | le couloir traverse la bouche (passage de 64, plafond ≥ 36) |
+  | -112 → -204 | bourg du port | maisons colorées en `|x|` 55-75, terrasse haute (`y = 6`) en `|x|` 93-140 |
+  | -204 → -292 | port | bassins d'eau (`y = -1,5`) de `|x| = 55` au large, navires à quai, phare, pontons |
+  | -292 → -366 | place des œufs | grand ponton `|x| ≤ 72`, rose des vents (cercle de rayon 34, centre `z = -328`) |
+  | -366 → -400 | rocher du crâne | le couloir traverse la bouche (passage de 96, plafond ≥ 36) |
 
-  Collines vertes en gradins pour `|x| ≥ 130` de `z = +40` à `-196` ; plages de `-196` à `-224` ; mer au-delà.
+  Collines vertes en gradins pour `|x| ≥ 140` de `z = +40` à `-196` ; plages de `-196` à `-224` ; mer au-delà.
+  **Bornes en z** : rien ne dépasse `z = -400` (la zone suivante commence là, le cadre de sortie est dans l'épaisseur du
+  rocher). Les 40 studs d'approche (`z > 0` : sol, palmiers, panneau BIENVENUE, début des collines) sont rangés dans le
+  dossier racine `Abords`, qu'on peut supprimer quand la zone est collée au bout de la zone précédente.
 - **Eau** : surface en `y = -1,5` (sol et quais en `y = 0`). Les navires, barques et îlots ont leur origine
   **à la surface de l'eau** (y = 0 local = flottaison) : la zone les pose en `y = -1,5`. Prolonger les coques
   d'un stud sous la flottaison pour qu'aucun jour n'apparaisse.
@@ -75,7 +78,8 @@ Formes Roblox à connaître :
 `drapeau_pirate(b, variant, hauteur, largeur, mat=True)` (pavillon générique, drapeau vers +X local), `guirlande_fanions(b, p0, p1, n, creux, variant)`,
 `cordage(b, p0, p1, creux)`, `bouee(b, variant)` (anneau rouge et blanc), `lanterne_quai`, `tonneaux`, `caisses`, `bitte`,
 `canon`, `ancre`, `coffre_tresor`, `barre_navire`, `filet_peche`, `panneau(b, texte, variant)`, `banc`, `cloture_bois`,
-`vache`, `botte_foin`, `crabe`, `mouette`, `coquillages`, `viande_geante`, `mat_guirlande`, `mat_vigie`.
+`vache`, `botte_foin`, `crabe`, `mouette`, `coquillages`, `viande_geante`, `mat_guirlande`, `mat_vigie`,
+`parasol(b, variant, demi, hauteur)` (parasol de marché rayé, table et tabourets), `jardiniere(b, variant)`.
 Import : `from assets.mobilier import drapeau_pirate, bouee` (appel dans un `with b.at(...)` pour les placer).
 
 ## Style « stud » attendu
@@ -117,11 +121,17 @@ Import : `from assets.mobilier import drapeau_pirate, bouee` (appel dans un `wit
 - Budget de pièces : respecter celui donné pour l'asset (Roblox mobile, **12 500 pièces au maximum pour toute la zone**).
   Un grand aplat = un seul bloc.
 - `collide=False` pour les petits détails décoratifs (cordages, fanions, voiles, enseignes, feuillage fin, gréement).
-- Le couloir `|x| < 30` reste **vide** au sol (de y = 0,05 à y = 12, rien de solide) ; **rien du tout au-dessus du couloir
-  (|x| < 31) sous y = 30** (la caméra Roblox saute quand le joueur passe dessous). Les arches qui enjambent le couloir
-  (arche d'entrée, bouche du crâne) gardent leur dessous à y ≥ 34-36. Vérifier avec `python zone.py` :
+  En fin de plan, `zone.alleger` retire en plus la collision des pièces de moins de 1 stud³ et des détails de façade
+  et de clôture (`DETAILS_SANS_COLLISION` : cadres, vitres, appuis, volets, lisses…), et l'ombre portée des petits
+  détails sans collision (moins de 2 stud³).
+- Le couloir `|x| < 45` reste **vide** au sol (de y = 0,05 à y = 12, rien de solide) ; **rien du tout au-dessus du couloir
+  (|x| < 46) sous y = 30** (la caméra Roblox saute quand le joueur passe dessous). Les arches qui enjambent le couloir
+  (arche d'entrée, bouche du crâne) ont leurs appuis à `|x| ≥ 46` (92 studs libres au moins, 96 pour la bouche)
+  et gardent leur dessous à y ≥ 34-36. Vérifier avec `python zone.py` :
   `nb_couloir_encombre` et `trop_bas_au_dessus_du_couloir` doivent être vides.
 - Les grands ensembles (sol, eau, collines, arche, rocher) sont découpés en blocs de 64 × 64 studs par `zone.decouper`.
+- Deux murs invisibles (`Limites`, transparence 1, avec collision) bordent la carte en `|x| = 220` : on ne sort pas de la
+  zone en marchant sur la mer.
 
 ## Aperçu
 
@@ -131,6 +141,7 @@ PY=/tmp/claude-0/-home-user--/599f147d-b38d-564f-a2c6-ca8116a1da4e/scratchpad/bv
 $PY apercu.py assets.port:galion --variant 0 --res 1200x675 --samples 12        # → apercus/port-galion-v0-{a,b}.png
 $PY apercu.py assets.monuments:porte_entree --cam "60,30,90" --target-pt "0,25,0" --res 1200x675 --samples 12
 $PY zone.py --stats                                                             # plan complet, couloir, budget
+$PY zone.py --chevauchements                                                    # assets posés qui se recoupent (boîtes orientées)
 $PY rendu.py --rapide --sans-export --vues entree,port                          # vues de contrôle de la zone
 ```
 

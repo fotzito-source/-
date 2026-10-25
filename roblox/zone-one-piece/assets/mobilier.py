@@ -249,7 +249,7 @@ def _tonneau_debout(b, x, y, z, r: float = 1.05, h: float = 2.8, col=None) -> No
     b.cyl((x, y + h / 2, z), r + 0.08, h * 0.45, shade(col, 1.12), collide=False, name="Ventre")
     for yy in (0.35, h - 0.35):
         b.cyl((x, y + yy, z), r + 0.06, 0.22, c("fer"), collide=False, name="Cercle")
-    b.cyl((x, y + h + 0.03, z), r * 0.85, 0.08, c("bois_pale"), collide=False, name="Couvercle")
+    b.cyl((x, y + h + 0.05, z), r * 0.85, 0.12, c("bois_pale"), collide=False, name="Couvercle")
 
 
 def _tonneau_couche(b, x, y, z, r: float = 1.05, h: float = 2.8, col=None) -> None:
@@ -607,6 +607,46 @@ def cloture_bois(b, longueur: float = 12, variant: int = 0, hauteur: float = 3.6
 # ---------------------------------------------------------------------------
 # Campagne : vaches, foin
 # ---------------------------------------------------------------------------
+
+
+def parasol(b, variant: int = 0, demi: float = 3.0, hauteur: float = 8.6) -> dict:
+    """Parasol de marché carré, toile en gradins rayés (bandes concentriques) sur un mât lesté, petite table ronde et
+    deux tabourets dessous. Toile de y = hauteur - 1,1 à hauteur, demi-côté `demi` (axes alignés : |x| ≥ x_mât - demi).
+    0 rouge et blanc, 1 bleu et blanc, 2 jaune et blanc, 3 turquoise et blanc. Seuls le lest et le mât ont une
+    collision. 11 pièces."""
+    a, bb = [(c("toile_rouge"), c("blanc")), (c("toile_bleue"), c("blanc")), (c("toile_jaune"), c("blanc")),
+             (c("turquoise"), c("blanc"))][variant % 4]
+    y0 = hauteur - 1.1
+    with b.group("Parasol"):
+        b.cyl((0, 0.2, 0), 0.75, 0.4, c("pierre_fonce"), studs="top", name="Lest")
+        b.cyl((0, (0.4 + hauteur) / 2, 0), 0.16, hauteur - 0.4, c("bois_fonce"), name="Mat")
+        # toile : quatre gradins de couleurs alternées, le plus large en bas, frange débordante
+        for k, (d, col) in enumerate(((demi, a), (demi * 0.74, bb), (demi * 0.48, a), (demi * 0.22, bb))):
+            b.box((-d, y0 + 0.28 * k, -d), (d, y0 + 0.28 * (k + 1), d), col, studs="top" if k == 3 else (),
+                  collide=False, name="Toile")
+        b.box((-demi - 0.1, y0 - 0.3, -demi - 0.1), (demi + 0.1, y0, demi + 0.1), shade(a, 0.9), collide=False,
+              name="Frange")
+        b.ball((0, hauteur + 0.25, 0), 0.3, c("laiton"), collide=False, name="Pomme")
+        # table ronde et tabourets
+        b.cyl((0, 2.45, 0), 1.0, 0.2, c("bois_clair"), studs="top", collide=False, name="Plateau")
+        for dz in (-1.7, 1.7):
+            b.cyl((0, 0.8, dz), 0.45, 1.6, c("bois"), studs="top", collide=False, name="Tabouret")
+    return {"emprise": (2 * demi + 0.2, 2 * demi + 0.2), "hauteur": hauteur + 0.55}
+
+
+def jardiniere(b, variant: int = 0, longueur: float = 3.2) -> dict:
+    """Jardinière de bois fleurie posée au bord du trottoir (le long de X) : bac, terre, feuillage, fleurs.
+    0 rouges, 1 jaunes, 2 roses, 3 blanches. 7 pièces."""
+    fleur = (c("fleur_rouge"), c("fleur_jaune"), c("fleur_rose"), c("fleur_blanche"))[variant % 4]
+    L = longueur / 2
+    with b.group("Jardiniere"):
+        b.box((-L, 0, -0.6), (L, 1.0, 0.6), c("bois"), name="Bac")
+        b.box((-L - 0.1, 0.85, -0.7), (L + 0.1, 1.05, 0.7), c("bois_fonce"), studs="top", name="Rebord")
+        b.box((-L + 0.25, 1.05, -0.4), (L - 0.25, 1.5, 0.4), c("feuillage"), studs="top", collide=False, name="Feuillage")
+        for k, dx in enumerate((-L + 0.7, -0.1, L - 0.8, 0.55)):
+            b.ball((dx, 1.65 if k < 3 else 1.8, 0.15 if k % 2 else -0.15), 0.38, fleur, collide=False, shadow=False,
+                   name="Fleur")
+    return {"emprise": (longueur + 0.2, 1.4), "hauteur": 2.2}
 
 
 def vache(b, variant: int = 0) -> dict:

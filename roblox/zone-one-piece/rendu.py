@@ -32,15 +32,16 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((210, 235, 120), (0, 0, -205), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),             # l'arche, la campagne aux moulins, le crâne au loin
-    "campagne": ((4, 9, -4), (0, 17, -150), 74),           # chemin de terre, clôtures, moulins, granges
-    "bourg": ((6, 8, -104), (0, 20, -280), 70),            # maisons colorées, étals, fanions
-    "port": ((6, 9, -198), (0, 24, -330), 74),             # navires à quai, phare, bassins
-    "place": ((18, 12, -284), (0, 44, -400), 72),          # rose des vents, mâts de vigie, crâne
-    "retour": ((-4, 9, -356), (0, 14, 0), 70),
-    "cote": ((-290, 160, -40), (0, 10, -230), 45),
-    "crane": ((0, 22, -296), (0, 52, -390), 72),           # repère final : le couloir traverse la bouche du crâne
+    "aerienne": ((0, 270, 200), (0, 0, -185), 46),        # le couloir au centre, du portail au crâne
+    "entree": ((0, 14, 66), (0, 60, -160), 70),            # l'arche, la campagne aux moulins, le crâne au loin
+    "campagne": ((-10, 46, 10), (-96, 6, -72), 60),        # moulin à ailes jaunes, grange, champ, vaches, collines
+    "bourg": ((8, 8, -104), (0, 20, -280), 70),            # maisons colorées, étals, fanions
+    "port": ((8, 9, -196), (0, 24, -330), 74),             # navires à quai, phare, bassins
+    "quai": ((-38, 12, -214), (-96, 22, -268), 66),        # le galion à quai, l'eau turquoise, le crâne au fond
+    "place": ((34, 40, -262), (0, 8, -344), 62),           # rose des vents, mâts de vigie, coffres, bouche du crâne
+    "retour": ((-6, 9, -352), (0, 16, 0), 70),
+    "cote": ((-300, 110, -190), (0, 25, -200), 52),        # port, navires, phare, bourg et crâne de côté
+    "crane": ((0, 16, -312), (0, 62, -392), 72),           # repère final : le couloir traverse la bouche du crâne
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -56,7 +57,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,campagne,bourg,port,place,retour,cote,crane,plan")
+    ap.add_argument("--vues", default="aerienne,entree,campagne,bourg,port,quai,place,retour,cote,crane,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")

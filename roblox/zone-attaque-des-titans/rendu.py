@@ -32,14 +32,16 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((200, 230, 120), (0, 0, -215), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),
-    "village": ((6, 8, -36), (0, 20, -260), 70),
-    "glycines": ((4, 7, -160), (0, 22, -330), 70),
-    "place": ((18, 11, -282), (0, 48, -400), 72),
-    "retour": ((-4, 9, -352), (0, 14, 0), 70),
-    "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 84, -304), (0, 60, -404), 64),
+    "aerienne": ((250, 250, 140), (0, 0, -270), 50),
+    "entree": ((0, 6, 7), (0, 46, -72), 80),             # vue joueur : chemin, prairie, muraille et porte colossale entières
+    "prairie": ((34, 8, 6), (-20, 40, -72), 74),          # 3/4 sur la prairie : moulin, ferme, muraille et tunnel
+    "rue": ((10, 9, -92), (0, 22, -300), 70),             # place de la porte → rue des colombages
+    "eglise": ((24, 10, -192), (-56, 34, -252), 66),       # église et clocher à gauche, mât de fête
+    "canal": ((47, 13, -262), (68, 4, -404), 62),          # le canal, ses ponts et la rive droite
+    "place": ((-20, 12, -398), (70, 32, -462), 72),        # grand-place des œufs : cadran, beffroi, muraille intérieure
+    "retour": ((-4, 9, -470), (0, 22, -60), 70),           # vers la base : la rue et la muraille d'entrée
+    "cote": ((-370, 200, -60), (0, 20, -300), 45),
+    "final": ((0, 14, -398), (0, 64, -548), 68),           # muraille intérieure et tunnel de sortie
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -55,7 +57,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,village,glycines,place,retour,cote,montagne,plan")
+    ap.add_argument("--vues", default="aerienne,entree,prairie,rue,eglise,canal,place,retour,cote,final,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -80,7 +82,7 @@ def main() -> None:
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
-        # soleil bas derrière la montagne, ciel violet : les lanternes (Neon) ressortent
+        # soleil bas derrière la muraille, ciel violet : les lanternes (Neon) ressortent
         bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
                        ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
         bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
@@ -100,9 +102,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -205), (0, 0, -205.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -270), (0, 0, -270.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 540
+                cam.data.ortho_scale = 600
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:

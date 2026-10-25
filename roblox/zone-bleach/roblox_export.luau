@@ -245,8 +245,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local surfaces = textureId == nil
 	if not surfaces and opts.mode == "materiau" then
 		local ms = game:GetService("MaterialService")
-		local mv = ms:FindFirstChild("StudsBleach") or Instance.new("MaterialVariant")
-		mv.Name = "StudsBleach"
+		local mv = ms:FindFirstChild("StudsCiteBlanche") or Instance.new("MaterialVariant")
+		mv.Name = "StudsCiteBlanche"
 		mv.BaseMaterial = Enum.Material.SmoothPlastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
@@ -266,7 +266,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				end
 				n += 1
 			elseif opts.mode == "materiau" then
-				part.MaterialVariant = "StudsBleach"
+				part.MaterialVariant = "StudsCiteBlanche"
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -286,7 +286,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 			end
 		end
 	end
-	print(("Zone Bleach : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
+	print(("Cité blanche : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
 		elseif opts.mode == "materiau" then "pièces en matériau stud" else "textures stud posées"))
 end
 ]]

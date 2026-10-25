@@ -144,8 +144,11 @@ for _, p in data.parts do
 		part.Reflectance = p.reflectance
 	end
 	part.CanCollide = p.collide ~= false
-	part.CanTouch = false
-	if p.collide == false then
+	-- Repères du jeu (ZoneOeufs, Entree, Sortie, Couloir) : invisibles et traversables, mais ils doivent
+	-- déclencher Touched et répondre aux requêtes spatiales (GetPartsInPart, Raycast…).
+	local repere = string.match(p.group or "", "^Reperes") ~= nil
+	part.CanTouch = repere
+	if p.collide == false and not repere then
 		part.CanQuery = false
 	end
 	part.CastShadow = p.shadow ~= false
@@ -245,8 +248,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local surfaces = textureId == nil
 	if not surfaces and opts.mode == "materiau" then
 		local ms = game:GetService("MaterialService")
-		local mv = ms:FindFirstChild("StudsDragonBall") or Instance.new("MaterialVariant")
-		mv.Name = "StudsDragonBall"
+		local mv = ms:FindFirstChild("StudsZone4") or Instance.new("MaterialVariant")
+		mv.Name = "StudsZone4"
 		mv.BaseMaterial = Enum.Material.SmoothPlastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
@@ -266,7 +269,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				end
 				n += 1
 			elseif opts.mode == "materiau" then
-				part.MaterialVariant = "StudsDragonBall"
+				part.MaterialVariant = "StudsZone4"
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -286,7 +289,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 			end
 		end
 	end
-	print(("Zone Dragon Ball : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
+	print(("Zone 4 : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
 		elseif opts.mode == "materiau" then "pièces en matériau stud" else "textures stud posées"))
 end
 ]]

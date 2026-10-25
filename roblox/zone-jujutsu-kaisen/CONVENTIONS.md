@@ -21,23 +21,23 @@ intellectuelle).
   - Rue commerçante : z -12 → -150 (petite rue transversale z ∈ [-100, -84]).
   - Passerelle 1 : z = -150. Quartier des tours : z -156 → -296. Passerelle 2 : z = -300.
   - Approche : z -300 → -354.
-  - Grand carrefour = place des œufs : carré \|x\| ≤ 46, z ∈ [-446, -354], centre z = -400, rayon 34.
+  - Grand carrefour = place des œufs : carré \|x\| ≤ 59, z ∈ [-446, -354], centre z = -400, rayon 34.
   - Incident : z -446 → -474. Immeuble effondré (sortie) : z -474 → -496.
-- **Couloir de course** : `x ∈ [-32, 32]`. Trottoirs jusqu'aux façades en `|x| = 42`. Seconde rangée à
-  partir de `|x| = 84`, tours de fond à partir de `|x| = 136`, bord du sol en `|x| = 242`.
+- **Couloir de course** : `x ∈ [-45, 45]` (90 de large). Trottoirs jusqu'aux façades en `|x| = 55`. Seconde
+  rangée à partir de `|x| = 97`, tours de fond à partir de `|x| = 151`, bord du sol en `|x| = 263`.
 
 ## Règles du couloir (vérifiées par `zone.py --stats`)
 
-1. **Rien de solide** dans `|x| < 32` entre y = 0,05 et y = 12, sauf le sol (`couloir_libre` doit trouver 0).
-2. **Rien du tout**, solide ou non, au-dessus de `|x| < 33` sous **y = 30**
+1. **Rien de solide** dans `|x| < 45` entre y = 0,05 et y = 12, sauf le sol (`couloir_libre` doit trouver 0).
+2. **Rien du tout**, solide ou non, au-dessus de `|x| < 46` sous **y = 30**
    (`trop_bas_au_dessus_du_couloir` doit être vide). Un ouvrage qui enjambe le couloir a son dessous à
-   **34 ou plus** (viaduc : 36).
-3. Les façades sont en `|x| = 42`. Une façade peut avoir des saillies vers le trottoir :
+   **34 ou plus** (viaduc : 36) et ses appuis en `|x| ≥ 46` (92 studs libres) ; la sortie a 110 studs libres.
+3. Les façades sont en `|x| = 55`. Une façade peut avoir des saillies vers le trottoir :
    - entre y = 0 et y = 7 : 0,6 stud au plus (seuils, cadres, lampions plaqués), parce que le mobilier est
      posé contre les façades ;
-   - au-dessus de y = 7 : 4 studs au plus (auvents, balcons, enseignes, climatiseurs), soit `|x| ≥ 38`.
-4. Les escaliers des passerelles occupent `|x| ∈ [33,5 ; 41,5]` le long du trottoir (zones réservées dans
-   `zone.py`).
+   - au-dessus de y = 7 : 4 studs au plus (auvents, balcons, enseignes, climatiseurs), soit `|x| ≥ 51`.
+4. Les escaliers des passerelles occupent `|x| ∈ [46,5 ; 54,5]` le long du trottoir (zones réservées dans
+   `zone.py`) ; les immeubles qui sont derrière reculent de 4,5 (`RECUL_ESCALIER`).
 5. Le mobilier de trottoir est placé par `zone.py`, qui réserve les zones occupées (`reserver`) pour
    éviter les chevauchements. Un asset n'ajoute rien sur le trottoir hors de son emprise et de ses
    saillies autorisées.

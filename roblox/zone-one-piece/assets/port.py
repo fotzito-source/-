@@ -1,4 +1,4 @@
-"""Port pirate de la zone One Piece (mer de l'Est) : galions, caravelle, barques, phare rayé et pontons, en style stud.
+"""Port pirate de la zone 2 (mer de l'Est) : galions, caravelle, barques, phare rayé et pontons, en style stud.
 
 Navires génériques de dessin animé, sans nom, sans emblème d'équipage et sans figure de proue reconnaissable
 (proue à simple volute) ; pavillons : `mobilier.drapeau_pirate` uniquement.
@@ -11,8 +11,13 @@ Repères :
   pour la jetée (x local ≤ -10).
 - pontons : origine au milieu du bout côté quai, plancher à y = 0, le ponton s'étend vers -Z local.
 
-Les voiles sont « gonflées » : trois tranches décalées (ventre vers la proue) ; les vergues sont brassées de 25°
-pour que les voiles se lisent depuis le couloir (côté +X local des navires).
+Les voiles sont « gonflées » : trois tranches décalées (ventre vers la proue, vent arrière : flammes et pavillons
+flottent aussi vers la proue). Les vergues sont brassées (`brasse`, en degrés) pour que les voiles se lisent de face
+depuis le couloir : galion (proue vers -Z monde) +25°, le dos des voiles regarde les joueurs qui arrivent et le ventre
+ceux qui reviennent ; caravelle (posée à yaw 180, proue vers +Z monde) -25°, le ventre regarde les joueurs qui arrivent.
+
+Rien ne dépend de la largeur du couloir : la zone règle `passerelle` (distance du centre du navire à la margelle du
+quai) et `longueur` des pontons et de la jetée selon l'alignement des quais.
 """
 
 from __future__ import annotations
@@ -21,7 +26,7 @@ import math
 
 import numpy as np
 
-from assets.mobilier import barre_navire, bitte, caisses, cordage, drapeau_pirate, filet_peche, tonneaux
+from assets.mobilier import barre_navire, bitte, bouee, caisses, cordage, drapeau_pirate, filet_peche, tonneaux
 from kit import mix, rot_x, rot_z, shade
 from palette import c, vary
 
@@ -166,11 +171,14 @@ def _voile(S, y_haut, y_bas, larg, col, ombre, z0=-1.4, bande=None, name="Voile"
             e = 0.12 + 0.02 * k
             S.box((a[0] - 0.05, ya, a[2] - e), (bb[0] + 0.05, yb, bb[2] + e), bande, name="Bande", **ND)
     S.cyl((0, y_haut + 0.35, z0), 0.38, larg + 1.4, c("bois_fonce"), axis="x", name="Vergue", **ND)
+    # racage : collier qui tient la vergue contre le mât (aucun jour entre les deux)
+    S.box((-0.3, y_haut + 0.05, z0), (0.3, y_haut + 0.65, -0.2), c("bois_fonce"), name="Racage", **NDS)
 
 
 def _voile_ferlee(S, y_vergue, larg, col, z0=-1.4):
     """Voile ferlée sur sa vergue (navire au mouillage) : vergue, rouleau de toile, deux rabans."""
     S.cyl((0, y_vergue, z0), 0.38, larg + 1.4, c("bois_fonce"), axis="x", name="Vergue", **ND)
+    S.box((-0.3, y_vergue - 0.3, z0), (0.3, y_vergue + 0.3, -0.2), c("bois_fonce"), name="Racage", **NDS)
     S.cyl((0, y_vergue - 0.75, z0), 0.62, larg * 0.92, col, axis="x", name="VoileFerlee", **ND)
     for x in (-larg * 0.25, larg * 0.25):
         S.cyl((x, y_vergue - 0.75, z0), 0.7, 0.35, c("corde"), axis="x", name="Raban", **NDS)
@@ -190,18 +198,27 @@ def _mat(S, z, y0, y_hune, y_top, r=0.9, hune=1.9, nid=False, bois=None):
         S.cyl((0, yn + 0.1, z), 2.35, 0.3, c("bois_fonce"), name="NidDePie", **ND)
 
 
-def _haubans(S, z, y_pied, hw, y_hune, hune, y_top, cote=(-1, 1), col=None):
-    """Haubans : deux par bord du pavois à la hune, un de la hune vers le haut du mât de hune."""
+def _haubans(S, z, y_pied, hw, y_hune, hune, y_top, cote=(-1, 1), col=None, enfle=4, dz=2.6):
+    """Haubans en éventail du pavois à la hune (trois par bord), `enfle` enfléchures (échelons de corde) entre eux,
+    et un galhauban de la hune vers le haut du mât de hune."""
     col = col or c("corde_fonce")
     for sg in cote:
-        for dz in (-2.0, 2.0):
-            _seg(S, (sg * hw, y_pied, z + dz), (sg * hune * 0.8, y_hune, z), 0.13, col, name="Hauban", **NDS)
+        pieds = [np.array((sg * hw, y_pied, z + d)) for d in (-dz, 0.0, dz)]
+        tete = np.array((sg * hune * 0.8, y_hune, z))
+        for pd in pieds:
+            _seg(S, pd, tete, 0.14, col, name="Hauban", **NDS)
+        for k in range(enfle):
+            t = (k + 0.7) / (enfle + 0.6)
+            a, bb = pieds[0] + (tete - pieds[0]) * t, pieds[2] + (tete - pieds[2]) * t
+            _seg(S, a, bb, 0.08, c("corde"), name="Enflechure", **NDS)
         _seg(S, (sg * hune * 0.9, y_hune + 0.5, z), (0, y_top - 2.5, z), 0.1, col, name="Hauban", **NDS)
 
 
-def _flamme(S, x, y, z, long, col):
-    """Flamme (longue banderole triangulaire) qui flotte vers l'arrière (+Z)."""
-    S.wedge((x - 0.08, y - 1.1, z), (x + 0.08, y, z + long), col, down="+z", name="Flamme", **NDS)
+def _flamme(S, x, y, z, long, col, sens=-1):
+    """Flamme (longue banderole triangulaire) qui flotte vers l'avant (sens = -1, vent arrière comme les voiles)
+    ou vers l'arrière (sens = +1)."""
+    z0, z1 = sorted((z, z + sens * long))
+    S.wedge((x - 0.08, y - 1.1, z0), (x + 0.08, y, z1), col, down="-z" if sens < 0 else "+z", name="Flamme", **NDS)
 
 
 def _ecume(S, hw, z_av, z_ar, l_proue, ronde=False, marge=0.9):
@@ -221,7 +238,7 @@ def _ancre_suspendue(S, sg, x, y, z, col, t=1.0):
     """Ancre pendue au bossoir contre le bordé (plan y-z), côté sg ; (x, y, z) = haut de la verge."""
     with S.group("Ancre"):
         S.box((x - 0.25 * t, y - 4.2 * t, z - 0.25 * t), (x + 0.25 * t, y, z + 0.25 * t), col, name="Verge", **ND)
-        S.box((x - 0.25 * t, y - 0.8 * t, z - 1.6 * t), (x + 0.25 * t, y - 0.4 * t, z + 1.6 * t), c("bois_fonce"),
+        S.box((x - 0.35 * t, y - 0.8 * t, z - 1.6 * t), (x + 0.35 * t, y - 0.4 * t, z + 1.6 * t), c("bois_fonce"),
               name="Jas", **ND)
         for s2 in (-1, 1):
             S.part("block", (0.5 * t, 0.45 * t, 2.2 * t), (x, y - 3.85 * t, z + s2 * 0.9 * t), rot_x(-s2 * 35), col,
@@ -266,7 +283,7 @@ _GALION = {
 }
 
 
-def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, brasse: float = 15.0) -> dict:
+def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, brasse: float = 25.0) -> dict:
     """Grand galion pirate de dessin animé, coque en gradins, trois mâts à voiles gonflées.
 
     Origine au centre de la coque à la flottaison, proue vers -Z. `longueur` (beaupré compris) met tout à l'échelle
@@ -284,6 +301,7 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
         voile, ombre = c("blanc"), shade(c("blanc"), 0.9)
     bois_f = c("bois_fonce")
     pont = P["pont"]
+    bande = shade(ombre, 0.93) if v != 2 else c("rouge_fonce")      # bande de ris sur les basses voiles
 
     # Cotes (repère de référence, longueur 72)
     HW = 10.5             # demi-largeur de la coque
@@ -302,21 +320,21 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
                           name="Bouchain")
             _coin_plan(S, 0, -20, sg * 9.6, -8.2, 1.0, 3.0, shade(coque, 0.82), name="Bouchain")
         S.wedge_under((-8.5, 1.0, 29), (8.5, 3.0, 31), shade(coque, 0.82), down="+z", name="Bouchain")
-        # bordé principal en trois virures
-        for (y0, y1, f) in ((3.0, 5.0, 0.9), (5.0, 7.0, 1.0), (7.0, Y_PONT, 0.94)):
-            _etage(S, y0, y1, HW, -22, 31, 9, vary(shade(coque, f), rng, 0.03), name="Borde")
+        # bordé principal en trois virures, de plus en plus longues vers l'avant (étrave inclinée)
+        for (y0, y1, za, lp, f) in ((3.0, 5.0, -21, 8.0, 0.9), (5.0, 7.0, -22, 8.5, 1.0), (7.0, Y_PONT, -22, 9.5, 0.94)):
+            _etage(S, y0, y1, HW, za, 31, lp, vary(shade(coque, f), rng, 0.03), name="Borde")
         # préceinte dorée (bande) sur les flancs et la proue
         k = (HW + 0.25) / HW
         for sg in (-1, 1):
             xa, xb = sorted((sg * HW, sg * (HW + 0.25)))
             S.box((xa, 7.2, -22), (xb, 8.0, 31), lis, name="Preceinte")
-            _coin_plan(S, 0, -22, sg * (HW + 0.25), -9 * k, 7.2, 8.0, lis, name="Preceinte")
+            _coin_plan(S, 0, -22, sg * (HW + 0.25), -9.5 * k, 7.2, 8.0, lis, name="Preceinte")
         for sg in (-1, 1):
             xa, xb = sorted((sg * HW, sg * (HW + 0.2)))
-            S.box((xa, 3.0, -22), (xb, 3.4, 31), lis, name="Preceinte", **ND)
-            _coin_plan(S, 0, -22, sg * (HW + 0.2), -9 * (HW + 0.2) / HW, 3.0, 3.4, lis, name="Preceinte", **ND)
+            S.box((xa, 3.0, -21), (xb, 3.4, 31), lis, name="Preceinte", **ND)
+            _coin_plan(S, 0, -21, sg * (HW + 0.2), -8.0 * (HW + 0.2) / HW, 3.0, 3.4, lis, name="Preceinte", **ND)
         # gaillard d'avant
-        _etage(S, Y_PONT, Y_GAIL, HW, -22, Z_GAIL, 11, shade(haut, 1.06), name="Gaillard")
+        _etage(S, Y_PONT, Y_GAIL, HW, -22, Z_GAIL, 11.5, shade(haut, 1.06), name="Gaillard")
         # dunette, débordant à l'arrière, et pont de poupe
         S.box((-HW, Y_PONT, Z_DUN), (HW, Y_DUN, 33), shade(haut, 1.06), name="Dunette")
         S.wedge_under((-HW, 7.0, 31), (HW, Y_PONT, 33), shade(coque, 0.94), down="+z", name="Voute")
@@ -343,48 +361,69 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
                 xa, xb = sorted((sg * hw, sg * (hw + 0.2)))
                 S.box((xa, y0, z0_), (xb, y0 + 0.5, z1_), lis, name="Lisere", **ND)
         for sg in (-1, 1):
-            _coin_plan(S, 0, -22, sg * (HW + 0.2), -11 * (HW + 0.2) / HW, Y_GAIL - 0.5, Y_GAIL, lis, name="Lisere", **ND)
+            _coin_plan(S, 0, -22, sg * (HW + 0.2), -11.5 * (HW + 0.2) / HW, Y_GAIL - 0.5, Y_GAIL, lis, name="Lisere", **ND)
         S.box((-HW - 0.2, Y_DUN - 0.5, 33), (HW + 0.2, Y_DUN, 33.2), lis, name="Lisere", **ND)
         S.box((-9.7, Y_POUPE - 0.5, 34.5), (9.7, Y_POUPE, 34.7), lis, name="Lisere", **ND)
-        # étrave dorée et volute de proue (sans figure)
-        _poutre(S, (0, 0.5, -27.2), (0, Y_GAIL - 0.2, -33.4), 0.7, 0.9, lis, name="Etrave", **ND)
-        S.cyl((0, 11.6, -33.7), 0.95, 1.0, lis, axis="x", name="Volute", **ND)
-        S.cyl((0, 11.6, -33.7), 0.45, 1.3, shade(lis, 0.8), axis="x", name="Volute", **ND)
+        # étrave dorée qui suit la proue inclinée puis se relève en crosse, volute de proue (sans figure)
+        _poutre(S, (0, 0.2, -27.6), (0, Y_GAIL, -34.2), 0.8, 1.0, lis, name="Etrave", **ND)
+        _poutre(S, (0, Y_GAIL - 0.3, -34.1), (0, 16.4, -35.3), 0.8, 1.0, lis, name="Etrave", **ND)
+        S.cyl((0, 16.3, -35.6), 1.05, 1.0, lis, axis="x", name="Volute", **ND)
+        S.cyl((0, 16.3, -35.6), 0.5, 1.3, shade(lis, 0.75), axis="x", name="Volute", **ND)
+        # lisses de l'éperon : deux barres dorées du bordé à l'étrave, sous le beaupré
+        for sg in (-1, 1):
+            _poutre(S, (sg * 3.2, 9.6, -29.0), (sg * 0.3, 13.4, -33.8), 0.4, 0.5, lis, name="Eperon", **ND)
 
     with S.group("Sabords"):
         for sg in (-1, 1):
             for i in range(7):
                 z = -16 + 6 * i
                 x_out = sg * HW
-                S.box((x_out - 0.95, 4.35, z - 0.95), (x_out + 0.95, 6.25, z + 0.95), shade(coque, 0.55),
-                      name="Cadre", **ND)
-                S.box((x_out - 0.8 + sg * 0.15, 4.5, z - 0.8), (x_out + 0.8 + sg * 0.15, 6.1, z + 0.8), c("noir"),
-                      name="Sabord", **ND)
-                S.cyl((x_out + sg * 0.75, 5.3, z), 0.42, 1.3, c("metal_fonce"), axis="x", name="Canon", **ND)
+                xa, xb = sorted((x_out - sg * 0.5, x_out + sg * 0.35))
+                S.box((xa, 4.35, z - 0.95), (xb, 6.25, z + 0.95), shade(coque, 0.55), name="Cadre", **ND)
+                xa, xb = sorted((x_out - sg * 0.3, x_out + sg * 0.45))
+                S.box((xa, 4.5, z - 0.8), (xb, 6.1, z + 0.8), c("noir"), name="Sabord", **ND)
+                S.cyl((x_out + sg * 0.6, 5.3, z), 0.42, 0.8, c("metal_fonce"), axis="x", name="Canon", **ND)
                 # mantelet relevé (rouge vif) au-dessus du sabord
                 S.part("block", (0.25, 1.7, 1.8), (x_out + sg * 0.55, 6.85, z), rot_z(-sg * 35),
                        c("rouge") if v != 1 else c("blanc"), name="Mantelet", **ND)
-            # fenêtres des bouteilles (galeries de poupe sur les flancs)
-            for z in (19.0, 23.5, 28.0):
-                xa, xb = sorted((sg * HW, sg * (HW + 0.15)))
-                S.box((xa, 10.6, z - 1.2), (xb, 13.4, z + 1.2), bois_f, name="Cadre", **ND)
-                xa, xb = sorted((sg * HW, sg * (HW + 0.3)))
-                S.box((xa, 10.9, z - 0.85), (xb, 13.1, z + 0.85), c("fenetre_lumiere"), material="Neon",
+        # bouteilles : galeries de quart en saillie sur les flancs du château arrière (toit, cul-de-lampe, fenêtres)
+        for sg in (-1, 1):
+            xo = sg * (HW + 0.7)
+            xa, xb = sorted((sg * HW, xo))
+            S.box((xa, 10.0, 21.0), (xb, 14.2, 31.0), shade(haut, 1.14), name="Bouteille")
+            S.wedge((xa, 14.2, 21.0), (xb, 15.0, 31.0), lis, down="+x" if sg > 0 else "-x", name="Bouteille", **ND)
+            S.wedge_under((xa, 8.6, 21.0), (xb, 10.0, 31.0), shade(haut, 0.95), down="+x" if sg > 0 else "-x",
+                          name="Bouteille", **ND)
+            for z in (23.0, 26.0, 29.0):
+                xa, xb = sorted((xo - sg * 0.05, xo + sg * 0.15))
+                S.box((xa, 10.6, z - 1.1), (xb, 13.6, z + 1.1), bois_f, name="Cadre", **ND)
+                xa, xb = sorted((xo - sg * 0.1, xo + sg * 0.3))
+                S.box((xa, 10.9, z - 0.75), (xb, 13.3, z + 0.75), c("fenetre_lumiere"), material="Neon",
                       name="Fenetre", **NDS)
 
     with S.group("Poupe"):
         # rangée de fenêtres du château arrière (miroir) et de la poupe
         for x in (-6.4, -3.2, 0.0, 3.2, 6.4):
-            S.box((x - 1.1, 10.3, 33), (x + 1.1, 13.6, 33.2), bois_f, name="Cadre", **ND)
-            S.box((x - 0.75, 10.6, 33), (x + 0.75, 13.3, 33.35), c("fenetre_lumiere"), material="Neon",
+            S.box((x - 1.1, 10.3, 32.95), (x + 1.1, 13.6, 33.2), bois_f, name="Cadre", **ND)
+            S.box((x - 0.75, 10.6, 32.9), (x + 0.75, 13.3, 33.35), c("fenetre_lumiere"), material="Neon",
                   name="Fenetre", **NDS)
         for x in (-4.5, -1.5, 1.5, 4.5):
-            S.box((x - 1.0, 15.6, 34.5), (x + 1.0, 18.0, 34.7), bois_f, name="Cadre", **ND)
-            S.box((x - 0.65, 15.9, 34.5), (x + 0.65, 17.7, 34.85), c("fenetre_lumiere"), material="Neon",
+            S.box((x - 1.0, 15.6, 34.45), (x + 1.0, 18.0, 34.7), bois_f, name="Cadre", **ND)
+            S.box((x - 0.65, 15.9, 34.4), (x + 0.65, 17.7, 34.85), c("fenetre_lumiere"), material="Neon",
                   name="Fenetre", **NDS)
+        # galerie de poupe : balcon sur consoles devant les fenêtres du miroir, balustres et main courante dorée
+        S.box((-8.6, 9.4, 33.0), (8.6, 9.9, 35.6), shade(haut, 1.1), studs="top", name="Balcon")
+        for x in (-6.0, 0.0, 6.0):
+            S.wedge_under((x - 0.4, 7.6, 33.0), (x + 0.4, 9.4, 35.2), lis, down="+z", name="Console", **ND)
+        for x in (-8.3, -4.8, -1.6, 1.6, 4.8, 8.3):
+            S.box((x - 0.18, 9.9, 35.1), (x + 0.18, 11.3, 35.45), lis, name="Balustre", **ND)
+        S.box((-8.6, 11.3, 35.0), (8.6, 11.65, 35.6), lis, name="MainCourante", **ND)
+        for sg in (-1, 1):
+            xa, xb = sorted((sg * 8.25, sg * 8.6))
+            S.box((xa, 11.3, 33.0), (xb, 11.65, 35.0), lis, name="MainCourante", **ND)
         # fanaux de poupe sur consoles
         for sg in (-1, 1):
-            S.box((sg * 8.4 - 0.4, Y_POUPE, 33.6), (sg * 8.4 + 0.4, Y_POUPE + 2.2, 34.4), bois_f, name="Console", **ND)
+            S.box((sg * 8.4 - 0.4, Y_POUPE + 0.25, 33.6), (sg * 8.4 + 0.4, Y_POUPE + 2.2, 34.4), bois_f, name="Console", **ND)
             _fanal(S, sg * 8.4, Y_POUPE + 2.2, 34.0, c("fer"), t=1.3)
 
     with S.group("Ponts"):
@@ -397,7 +436,7 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
         planches(-9.9, 9.9, Y_PONT, Z_GAIL, Z_DUN)
         planches(-9.9, 9.9, Y_GAIL, -22, Z_GAIL)
         for sg in (-1, 1):
-            _coin_plan(S, 0, -22, sg * 9.9, -11 * 9.9 / HW, Y_GAIL, Y_GAIL + 0.25, c(pont), studs=True, name="Pont")
+            _coin_plan(S, 0, -22, sg * 9.9, -11.5 * 9.9 / HW, Y_GAIL, Y_GAIL + 0.25, c(pont), studs=True, name="Pont")
         planches(-9.9, 9.9, Y_DUN, Z_DUN, Z_POUPE)
         planches(-8.9, 8.9, Y_POUPE, Z_POUPE, 34.0, n=2)
         # écoutille à caillebotis, cabestan
@@ -431,7 +470,7 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
         y = Y_GAIL + 0.25
         for sg in (-1, 1):
             _rambarde(S, (sg * (HW - 0.3), Z_GAIL), (sg * (HW - 0.3), -22), y, pot, ram)
-            _rambarde(S, (sg * (HW - 0.3), -22), (0, -32.4), y, pot, ram, bouts=False)
+            _rambarde(S, (sg * (HW - 0.3), -22), (0, -32.9), y, pot, ram, bouts=False)
             _rambarde(S, (sg * (HW - 0.3), Z_GAIL + 0.2), (sg * 8.2, Z_GAIL + 0.2), y, pot, ram, bouts=False)
             _rambarde(S, (sg * 5.3, Z_GAIL + 0.2), (sg * 1.2, Z_GAIL + 0.2), y, pot, ram)
         # dunette : flancs et bord avant
@@ -460,13 +499,14 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
                     if v == 2 and i == 0:
                         _voile_ferlee(S, yv, larg, shade(voile, 0.9))
                     else:
-                        _voile(S, yv - 0.3, yb, larg, voile, ombre)
-            pied = Y_GAIL if nom == "Misaine" else (Y_PONT + 2.2 if nom == "GrandMat" else Y_DUN + 1.8)
+                        _voile(S, yv - 0.3, yb, larg, voile, ombre, bande=bande if i == 0 else None)
+            pied = Y_GAIL if nom == "Misaine" else (Y_PONT + 2.2 if nom == "GrandMat" else Y_DUN - 0.5)
             _haubans(S, zm, pied, HW + 0.2, yh, 2.0, yt)
             # porte-haubans
+            yph = Y_DUN - 0.9 if nom == "Artimon" else pied - 1.6
             for sg in (-1, 1):
                 xa, xb = sorted((sg * HW, sg * (HW + 0.45)))
-                S.box((xa, pied - 1.6, zm - 2.8), (xb, pied - 1.2, zm + 2.8), bois_f, name="PorteHauban", **ND)
+                S.box((xa, yph, zm - 2.8), (xb, yph + 0.4, zm + 2.8), bois_f, name="PorteHauban", **ND)
 
     with S.group("Beaupre"):
         tip = np.array([0.0, 18.3, -37.0])
@@ -487,15 +527,20 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
             _seg(S, (sg * 9.2, Y_POUPE + 1.8, 33.5), (0, 47.0, 18.0), 0.1, cr, name="Pataras", **NDS)
 
     # Pavillon au grand mât, flammes aux autres mâts
-    with S.at((0, 64.4, 0), yaw=-90, group="Pavillon"):
+    with S.at((0, 64.4, 0), yaw=90, group="Pavillon"):
         drapeau_pirate(b, variant=0, hauteur=6.0 * s, largeur=8.5 * s, mat=True)
-    _flamme(S, 0, 54.2, -16.6, 7.0, c("rouge") if v != 0 else c("rouge"))
-    _flamme(S, 0, 48.2, 18.4, 6.0, c("jaune") if v != 2 else c("blanc"))
+    _flamme(S, 0, 54.2, -17.4, 7.0, c("rouge"))
+    _flamme(S, 0, 48.2, 17.6, 6.0, c("jaune") if v != 2 else c("blanc"))
+
+    # Bouées de sauvetage accrochées au pavois de l'embelle (deux côté quai, une côté large)
+    for sg, zb in ((1, -7.5), (1, 7.0), (-1, 0.0)):
+        with S.at((sg * (HW + 0.1), 8.4, zb), yaw=-90 * sg, group="Bouees"):
+            bouee(b, variant=1, rayon=1.2 * s)
 
     # Ancres pendues aux bossoirs, des deux bords
     for sg in (-1, 1):
-        S.box((sg * HW - (0.4 if sg > 0 else -0.4), 12.0, -21.6), (sg * (HW + 1.4), 12.6, -20.4), bois_f, name="Bossoir", **ND)
-        _ancre_suspendue(S, sg, sg * (HW + 0.75), 11.3, -21.0, c("metal_fonce"))
+        S.box((sg * HW - (0.4 if sg > 0 else -0.4), 12.0, -21.6), (sg * (HW + 1.0), 12.6, -20.4), bois_f, name="Bossoir", **ND)
+        _ancre_suspendue(S, sg, sg * (HW + 0.6), 11.3, -21.0, c("metal_fonce"))
 
     # Accessoires de pont (taille humaine, non mis à l'échelle)
     with S.at((5.0, Y_GAIL + 0.25, -17.0), yaw=90, group="Pont/Tonneaux"):
@@ -541,14 +586,21 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
         voile, ombre, bande = c("blanc"), shade(c("blanc"), 0.9), None
     bois_f = c("bois_fonce")
     HW = 7.5
-    Y_PONT, Y_GAIL, Y_DUN, Y_POUPE = 7.0, 9.5, 10.5, 13.0
+    Y_PONT, Y_GAIL, Y_DUN, Y_POUPE = 7.0, 9.5, 11.0, 14.0
     Z_GAIL, Z_DUN, Z_AR = -8.0, 6.0, 14.0
 
     with S.group("Coque"):
         _etage(S, -1.5, 1.0, 5.8, -13, Z_AR, 6, shade(coque, 0.7), poupe_ronde=True, name="Carene")
         _etage(S, 1.0, 2.5, 6.8, -14, Z_AR, 7, shade(coque, 0.82), poupe_ronde=True, name="Bouchain")
-        for (y0, y1, f) in ((2.5, 4.5, 0.92), (4.5, Y_PONT, 1.0)):
-            _etage(S, y0, y1, HW, -15, Z_AR, 7.5, vary(shade(coque, f), rng, 0.03), poupe_ronde=True, name="Borde")
+        for (y0, y1, lp, f) in ((2.5, 4.5, 6.5, 0.92), (4.5, Y_PONT, 7.5, 1.0)):
+            _etage(S, y0, y1, HW, -15, Z_AR, lp, vary(shade(coque, f), rng, 0.03), poupe_ronde=True, name="Borde")
+        # filet blanc au-dessus de la flottaison (tour complet)
+        kb = (HW + 0.15) / HW
+        S.cyl((0, 2.675, Z_AR), HW + 0.15, 0.35, lis2, name="Filet", **ND)
+        for sg in (-1, 1):
+            xa, xb = sorted((sg * HW, sg * (HW + 0.15)))
+            S.box((xa, 2.5, -15), (xb, 2.85, Z_AR), lis2, name="Filet", **ND)
+            _coin_plan(S, 0, -15, sg * (HW + 0.15), -6.5 * kb, 2.5, 2.85, lis2, name="Filet", **ND)
         # liseré rouge (préceinte) qui fait tout le tour
         k = (HW + 0.25) / HW
         S.cyl((0, 5.0, Z_AR), HW + 0.25, 0.8, lis1, name="Preceinte")
@@ -557,7 +609,7 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
             S.box((xa, 4.6, -15), (xb, 5.4, Z_AR), lis1, name="Preceinte")
             _coin_plan(S, 0, -15, sg * (HW + 0.25), -7.5 * k, 4.6, 5.4, lis1, name="Preceinte")
         # gaillard d'avant et château arrière rond (deux étages)
-        _etage(S, Y_PONT, Y_GAIL, HW, -15, Z_GAIL, 8.5, shade(coque, 1.05), name="Gaillard")
+        _etage(S, Y_PONT, Y_GAIL, HW, -15, Z_GAIL, 9.0, shade(coque, 1.05), name="Gaillard")
         S.box((-HW, Y_PONT, Z_DUN), (HW, Y_DUN, Z_AR), shade(coque, 1.05), name="Chateau")
         S.cyl((0, (Y_PONT + Y_DUN) / 2, Z_AR), HW, Y_DUN - Y_PONT, shade(coque, 1.05), name="Chateau")
         S.box((-6.0, Y_DUN, 10.0), (6.0, Y_POUPE, Z_AR), shade(coque, 1.1), name="Poupe")
@@ -569,9 +621,12 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
             xa, xb = sorted((sg * HW, sg * (HW + 0.2)))
             S.box((xa, Y_DUN - 0.5, Z_DUN), (xb, Y_DUN, Z_AR), lis2, name="Lisere", **ND)
             S.box((xa, Y_GAIL - 0.5, -15), (xb, Y_GAIL, Z_GAIL), lis2, name="Lisere", **ND)
-            _coin_plan(S, 0, -15, sg * (HW + 0.2), -8.5 * (HW + 0.2) / HW, Y_GAIL - 0.5, Y_GAIL, lis2, name="Lisere", **ND)
-        _poutre(S, (0, 0.5, -19.2), (0, Y_GAIL - 0.2, -23.4), 0.6, 0.8, lis1, name="Etrave", **ND)
-        S.cyl((0, 8.2, -23.6), 0.75, 0.9, lis1, axis="x", name="Volute", **ND)
+            _coin_plan(S, 0, -15, sg * (HW + 0.2), -9.0 * (HW + 0.2) / HW, Y_GAIL - 0.5, Y_GAIL, lis2, name="Lisere", **ND)
+        # étrave inclinée qui se relève en crosse à volute
+        _poutre(S, (0, 0.2, -19.4), (0, Y_GAIL, -24.3), 0.7, 0.9, lis1, name="Etrave", **ND)
+        _poutre(S, (0, Y_GAIL - 0.3, -24.2), (0, 11.4, -24.9), 0.7, 0.9, lis1, name="Etrave", **ND)
+        S.cyl((0, 11.2, -25.15), 0.8, 0.9, lis1, axis="x", name="Volute", **ND)
+        S.cyl((0, 11.2, -25.15), 0.38, 1.15, shade(lis1, 0.75), axis="x", name="Volute", **ND)
 
     with S.group("Sabords"):
         for sg in (-1, 1):
@@ -580,11 +635,21 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
                 S.box((x_out - 0.7 + sg * 0.15, 2.9, z - 0.7), (x_out + 0.7 + sg * 0.15, 4.2, z + 0.7), c("noir"),
                       name="Sabord", **ND)
                 S.cyl((x_out + sg * 0.6, 3.55, z), 0.33, 1.0, c("metal_fonce"), axis="x", name="Canon", **ND)
+                S.part("block", (0.2, 1.1, 1.5), (x_out + sg * 0.42, 4.6, z), rot_z(-sg * 35), lis2,
+                       name="Mantelet", **ND)
+        # fenêtres éclairées sur les flancs du château arrière
+        for sg in (-1, 1):
+            for z in (8.6, 12.2):
+                xa, xb = sorted((sg * (HW - 0.1), sg * (HW + 0.15)))
+                S.box((xa, 7.9, z - 1.0), (xb, 10.1, z + 1.0), bois_f, name="Cadre", **ND)
+                xa, xb = sorted((sg * (HW - 0.05), sg * (HW + 0.3)))
+                S.box((xa, 8.2, z - 0.65), (xb, 9.8, z + 0.65), c("fenetre_lumiere"), material="Neon",
+                      name="Fenetre", **NDS)
     with S.group("Poupe"):
         # fenêtres sur la poupe ronde (tournées radialement)
         for a in (-40, 0, 40):
             ra = math.radians(a)
-            for (y0, y1, r) in ((8.0, 9.9, HW), (10.9, 12.5, 6.0)):
+            for (y0, y1, r) in ((Y_PONT + 1.0, Y_DUN - 1.1, HW), (Y_DUN + 0.4, Y_POUPE - 0.5, 6.0)):
                 cx, cz = r * math.sin(ra), Z_AR + r * math.cos(ra)
                 S.boxc((cx, (y0 + y1) / 2, cz), (1.6, y1 - y0 + 0.4, 0.5), bois_f, yaw=a, name="Cadre", **ND)
                 cx2, cz2 = (r + 0.12) * math.sin(ra), Z_AR + (r + 0.12) * math.cos(ra)
@@ -602,7 +667,7 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
         planches(-6.9, 6.9, Y_PONT, Z_GAIL, Z_DUN)
         planches(-6.9, 6.9, Y_GAIL, -15, Z_GAIL, n=2)
         for sg in (-1, 1):
-            _coin_plan(S, 0, -15, sg * 6.9, -8.5 * 6.9 / HW, Y_GAIL, Y_GAIL + 0.25, c("bois_quai"), studs=True, name="Pont")
+            _coin_plan(S, 0, -15, sg * 6.9, -9.0 * 6.9 / HW, Y_GAIL, Y_GAIL + 0.25, c("bois_quai"), studs=True, name="Pont")
         planches(-6.9, 6.9, Y_DUN, Z_DUN, 10.0, n=2)
         S.cyl((0, Y_POUPE + 0.125, Z_AR), 5.5, 0.25, c("bois_quai"), studs="top", name="Pont")
         S.box((-5.5, Y_POUPE, 10.0), (5.5, Y_POUPE + 0.25, Z_AR), c("bois_clair"), studs="top", name="Pont")
@@ -622,9 +687,9 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
             for z0_, z1_ in zs:
                 S.box((xa, Y_PONT, z0_), (xb, Y_PONT + 1.7, z1_), shade(coque, 1.05), name="Pavois")
                 S.box((min(xa, xb) - 0.1, Y_PONT + 1.7, z0_), (max(xa, xb) + 0.1, Y_PONT + 2.0, z1_), ram, name="Lisse", **ND)
-            _rambarde(S, (sg * (HW - 0.3), Z_GAIL), (sg * (HW - 0.3), -15), Y_GAIL + 0.25, pot, ram)
-            _rambarde(S, (sg * (HW - 0.3), -15), (0, -22.8), Y_GAIL + 0.25, pot, ram, bouts=False)
-            _rambarde(S, (sg * (HW - 0.3), Z_DUN), (sg * (HW - 0.3), 10.0), Y_DUN + 0.25, pot, ram)
+            _rambarde(S, (sg * 6.75, Z_GAIL), (sg * 6.75, -15), Y_GAIL + 0.25, pot, ram)
+            _rambarde(S, (sg * 6.75, -15), (0, -23.3), Y_GAIL + 0.25, pot, ram, bouts=False)
+            _rambarde(S, (sg * 6.75, Z_DUN), (sg * 6.75, 10.0), Y_DUN + 0.25, pot, ram)
             _rambarde(S, (sg * 3.6, Z_DUN - 0.2), (sg * 1.2, Z_DUN - 0.2), Y_DUN + 0.25, pot, ram)
         # garde-corps en arc sur la poupe ronde
         pts = [(5.6 * math.sin(math.radians(a)), Z_AR + 5.6 * math.cos(math.radians(a))) for a in (-90, -45, 0, 45, 90)]
@@ -648,16 +713,16 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
                 S.box((xa, pied - 1.5, zm - 2.4), (xb, pied - 1.1, zm + 2.4), bois_f, name="PorteHauban", **ND)
     with S.group("Mature/Artimon"):
         zm = 11.0
-        S.cyl((0, (Y_DUN + 31.0) / 2, zm), 0.6, 31.0 - Y_DUN, bois_f, name="Mat")
-        S.ball((0, 31.3, zm), 0.5, c("or"), name="Pomme", **ND)
+        S.cyl((0, (Y_DUN + 32.0) / 2, zm), 0.6, 32.0 - Y_DUN, bois_f, name="Mat")
+        S.ball((0, 32.3, zm), 0.5, c("or"), name="Pomme", **ND)
         # voile latine : triangle sous une longue vergue oblique
-        S.wedge((-0.15, 13.5, zm - 4.5), (0.15, 29.0, zm + 8.5), ombre, down="-z", name="VoileLatine", **ND)
+        S.wedge((-0.15, 15.6, zm - 4.5), (0.15, 30.0, zm + 8.5), ombre, down="-z", name="VoileLatine", **ND)
         for sg in (-1, 1):
             xa, xb = sorted((sg * 0.1, sg * 0.6))
-            S.wedge((xa, 15.0, zm - 1.5), (xb, 25.5, zm + 7.5), voile, down="-z", name="VoileLatine", **ND)
-        _seg(S, (0, 12.7, zm - 6.0), (0, 30.2, zm + 9.0), 0.3, bois_f, name="Antenne", collide=False)
+            S.wedge((xa, 17.0, zm - 1.5), (xb, 26.8, zm + 7.5), voile, down="-z", name="VoileLatine", **ND)
+        _seg(S, (0, 14.4, zm - 6.0), (0, 31.2, zm + 9.0), 0.3, bois_f, name="Antenne", collide=False)
         for sg in (-1, 1):
-            _seg(S, (sg * 6.6, Y_DUN + 1.6, zm), (0, 29.0, zm), 0.1, c("corde_fonce"), name="Hauban", **NDS)
+            _seg(S, (sg * 5.6, Y_POUPE + 1.5, zm), (0, 30.0, zm), 0.1, c("corde_fonce"), name="Hauban", **NDS)
 
     with S.group("Beaupre"):
         tip = np.array([0.0, 13.2, -27.8])
@@ -669,15 +734,19 @@ def caravelle(b, variant: int = 0, longueur: float = 52, passerelle: float = 0.0
         cr = c("corde_fonce")
         _seg(S, tip, (0, 39.0, -9.0), 0.11, cr, name="Etai", **NDS)
         _seg(S, (0, 45.0, 2.0), (0, 39.5, -9.0), 0.11, cr, name="Etai", **NDS)
-        _seg(S, (0, 31.0, zm), (0, 40.0, 2.0), 0.11, cr, name="Etai", **NDS)
+        _seg(S, (0, 32.0, zm), (0, 40.0, 2.0), 0.11, cr, name="Etai", **NDS)
 
-    with S.at((0, 46.4, 2.0), yaw=-90, group="Pavillon"):
+    with S.at((0, 46.4, 2.0), yaw=90, group="Pavillon"):
         drapeau_pirate(b, variant=2 if v == 0 else 0, hauteur=5.0 * s, largeur=7.0 * s, mat=True)
-    _flamme(S, 0, 40.2, -8.6, 6.0, c("rouge") if v == 0 else c("jaune"))
+    _flamme(S, 0, 40.2, -9.4, 6.0, c("rouge") if v == 0 else c("jaune"))
 
     for sg in (-1, 1):
         S.box((sg * HW - (0.4 if sg > 0 else -0.4), 8.4, -14.4), (sg * (HW + 1.2), 8.9, -13.4), bois_f, name="Bossoir", **ND)
         _ancre_suspendue(S, sg, sg * (HW + 0.7), 7.8, -13.9, c("metal_fonce"), t=0.85)
+
+    for sg, zb in ((1, -5.5), (1, 8.5), (-1, -2.0)):
+        with S.at((sg * (HW + 0.1), (6.3 if zb < Z_DUN else 7.6), zb), yaw=-90 * sg, group="Bouees"):
+            bouee(b, variant=1, rayon=1.0 * s)
 
     with S.at((-3.6, Y_PONT + 0.25, 3.8), yaw=90, group="Pont/Tonneaux"):
         tonneaux(b, variant=2)
@@ -714,13 +783,13 @@ def barque(b, variant: int = 0, ecume: bool = True) -> dict:
             _coin_plan(S, 0, -2.6, sg * 1.75, -1.9, 0.4, 1.3, coque, name="Borde")
             xa, xb = sorted((sg * 1.75, sg * 1.87))
             S.box((xa, 0.85, -2.4), (xb, 1.15, 3.0), bande, name="Bande", **ND)
-        S.box((-1.75, 0.4, 3.0), (1.75, 1.4, 3.4), shade(coque, 0.9), name="Tableau")
-        S.box((-1.35, 0.4, -2.6), (1.35, 0.55, 3.0), c("bois_pale"), name="Fond", **ND)
+        S.box((-1.9, 0.3, 3.0), (1.9, 1.45, 3.4), shade(coque, 0.9), name="Tableau")
+        S.box((-1.3, 0.4, -2.5), (1.3, 0.55, 2.9), c("bois_pale"), name="Fond", **ND)
         for z in (-0.6, 1.6):
             S.box((-1.4, 0.9, z - 0.35), (1.4, 1.1, z + 0.35), c("bois_clair"), studs="top", name="Banc", **ND)
         for sg in (-1, 1):
             _seg(S, (sg * 0.8, 1.15, -0.2), (sg * 3.4, -0.1, 0.9), 0.14, c("bois_pale"), name="Rame")
-        S.box((-0.15, 1.3, -2.5), (0.15, 2.3, -2.2), c("bois_fonce"), name="Mat", **ND)
+        S.box((-0.15, 0.55, -2.5), (0.15, 2.3, -2.2), c("bois_fonce"), name="Mat", **ND)
         S.box((-0.35, 2.3, -2.7), (0.35, 3.1, -2.0), c("lanterne"), material="Neon", name="Fanal", **NDS)
         if ecume:
             _ecume(S, 1.25, -2.6, 3.0, 1.4, marge=0.4)
@@ -734,47 +803,69 @@ def barque(b, variant: int = 0, ecume: bool = True) -> dict:
 
 def phare(b, variant: int = 0, hauteur: float = 64) -> dict:
     """Phare à bandes rouges et blanches sur son îlot rocheux, galerie à balustrade, lanterne éclairée, dôme rouge et
-    girouette ; petite maison du gardien. Origine au centre de l'îlot (dessus en y = 0) ; palier plat côté -X
-    (x ≤ -10) où arrive la jetée de pierre."""
+    girouette ; maison du gardien, porche, mouettes. Origine au centre de l'îlot (dessus en y = 0, eau en y = -1,5) ;
+    palier plat côté -X (x de -10 à -6, z de -4,5 à 4,5) où arrive la jetée de pierre, prolongé jusqu'à x = -11 par
+    un rebord plus bas (y = -0,3) que la jetée recouvre sans face coplanaire.
+    Variantes : 0 rouge et blanc ; 1 bleu et blanc."""
     rng = b.rng
     k = hauteur / 64.0
     rouge, blanc = (c("rouge"), c("blanc")) if variant % 2 == 0 else (c("bleu"), c("blanc"))
     with b.group("Ilot"):
-        b.cyl((0, -1.5, 0), 10.0, 3.0, c("roche"), studs="top", name="Ilot")
-        b.cyl((0, 0.25, 0), 8.0, 0.5, c("pierre"), studs="top", name="Parvis")
-        b.box((-10.0, -3.0, -4.0), (-6.0, 0.0, 4.0), c("pierre"), studs="top", name="Palier")
-        b.cyl((0, -1.425, 0), 10.8, 0.15, c("ecume"), name="Ecume", **NDS)
-        for i in range(9):
-            a = math.radians(20 + i * 36 + rng.uniform(-8, 8))
-            if math.cos(a) < -0.75:
+        # socle rocheux (sous l'eau et à fleur d'eau), dalle de pierre, palier de la jetée
+        b.cyl((0, -1.85, 0), 9.6, 3.3, c("roche_fonce"), studs="top", name="Ilot")      # dessus en y = -0,2
+        b.cyl((0, 0.15, 0), 8.2, 0.7, c("pierre"), studs="top", name="Parvis")          # dessus en y = 0,5
+        b.box((-10.0, -3.0, -4.5), (-6.0, 0.0, 4.5), c("pierre"), studs="top", name="Palier")
+        b.box((-9.0, -0.2, -1.8), (-8.0, 0.25, 1.8), c("pierre_claire"), studs="top", name="Marche")
+        b.box((-11.0, -3.0, -4.5), (-10.0, -0.3, 4.5), c("pierre_fonce"), name="Rebord")
+        b.cyl((0, -1.425, 0), 10.9, 0.15, c("ecume"), name="Ecume", **NDS)
+        # couronne de gros rochers (sauf devant le palier), dessus studdés, touffes de mousse
+        n = 11
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5) / n + rng.uniform(-0.12, 0.12)
+            if math.cos(a) < -0.72:
                 continue
-            r = 9.4 + rng.uniform(-0.4, 0.6)
-            sz = (rng.uniform(2.6, 3.6), rng.uniform(2.2, 3.4), rng.uniform(2.6, 3.4))
-            col = vary(("roche", "roche_claire", "roche_fonce")[i % 3], rng, 0.05)
-            b.boxc((r * math.cos(a), -3.0 + sz[1] / 2 - 0.4, r * math.sin(a)), sz, col, yaw=math.degrees(a) + 20,
-                   studs="top", name="Rocher")
+            r = 9.0 + rng.uniform(-0.3, 0.5)
+            w, d = rng.uniform(3.0, 4.2), rng.uniform(2.6, 3.4)
+            top = rng.uniform(0.3, 1.8)
+            col = vary(("roche", "roche_claire", "roche_fonce", "roche")[i % 4], rng, 0.05)
+            with b.at((r * math.cos(a), 0, r * math.sin(a)), yaw=-math.degrees(a) + rng.uniform(-15, 15)):
+                b.box((-d / 2, -3.2, -w / 2), (d / 2, top, w / 2), col, studs="top", name="Rocher")
+                if i % 3 == 0:
+                    b.box((-d / 2 + 0.4, top, -w / 2 + 0.5), (d / 2 - 0.6, top + 0.4, w / 2 - 1.0),
+                          c("roche_mousse"), studs="top", name="Mousse", **ND)
+                elif i % 3 == 1:
+                    b.box((-d / 2 - 0.6, -1.5, -w / 2 + 0.3), (d / 2 + 0.6, -1.35, w / 2 - 0.3), c("ecume"),
+                          name="Ecume", **NDS)
     yb = 0.5
     H = 48.0 * k                       # fût jusqu'à la galerie
     n = 8
     with b.group("Tour"):
-        b.cyl((0, yb + 0.6, 0), 6.6, 1.2, c("pierre_fonce"), studs="top", name="Socle")
-        y = yb + 1.2
+        b.cyl((0, yb + 1.0, 0), 6.7, 2.0, c("pierre_fonce"), studs="top", name="Socle")
+        b.cyl((0, yb + 2.15, 0), 6.35, 0.3, c("pierre_claire"), name="Socle", **ND)
+        y = yb + 2.0
         for i in range(n):
             r = 6.0 - 1.9 * i / (n - 1)
-            hh = H / n
+            hh = (H - 0.8) / n
             b.cyl((0, y + hh / 2, 0), r, hh, rouge if i % 2 == 0 else blanc, name="Bande")
             y += hh
         y_gal = y
-        # porte (côté -X, vers la jetée) et fenêtres en spirale
-        b.box((-6.25, yb + 1.2, -1.3), (-5.6, yb + 5.4, 1.3), c("bois_fonce"), name="Porte", **ND)
-        b.box((-6.35, yb + 5.4, -1.6), (-5.6, yb + 5.9, 1.6), c("pierre_claire"), name="Linteau", **ND)
-        for j, (a, fy) in enumerate(((60, 0.22), (150, 0.38), (230, 0.55), (320, 0.72), (40, 0.88))):
-            yy = yb + 1.2 + H * fy
-            r = 6.0 - 1.9 * (yy - yb - 1.2) / H
+        # porte (côté -X, vers la jetée) : marches, porte, linteau, auvent, enseigne et fanal
+        b.box((-7.0, yb, -1.8), (-5.6, yb + 6.4, 1.8), c("pierre_claire"), name="Encadrement")
+        b.box((-7.1, yb, -1.2), (-6.95, yb + 5.4, 1.2), c("bois_fonce"), name="Porte", **ND)
+        b.box((-7.25, yb + 2.6, 0.5), (-7.1, yb + 3.2, 0.9), c("laiton"), name="Poignee", **NDS)
+        b.wedge((-8.4, yb + 6.4, -2.3), (-6.9, yb + 7.4, 2.3), c("toit_rouge"), down="-x", studs="top", name="Auvent", **ND)
+        pan = b.box((-6.15, yb + 8.2, -2.4), (-5.6, yb + 9.7, 2.4), c("bois"), name="Enseigne", **ND)
+        pan.label = {"face": "Left", "text": "PHARE", "color": c("blanc"), "bg": c("bois_fonce"), "font": "sans"}
+        b.box((-6.5, yb + 4.4, 2.3), (-5.5, yb + 4.7, 3.0), c("fer"), name="Console", **ND)
+        b.box((-6.4, yb + 3.3, 2.35), (-5.8, yb + 4.4, 2.95), c("lanterne"), material="Neon", name="Fanal", **NDS)
+        # fenêtres en spirale (encadrées de blanc)
+        for j, (a, fy) in enumerate(((60, 0.22), (150, 0.38), (230, 0.55), (320, 0.72), (40, 0.88), (200, 0.08))):
+            yy = yb + 2.0 + H * fy
+            r = 6.0 - 1.9 * (yy - yb - 2.0) / H
             ra = math.radians(a)
-            b.boxc(((r - 0.2) * math.cos(ra), yy, (r - 0.2) * math.sin(ra)), (1.0, 3.4, 2.2), c("blanc"),
+            b.boxc(((r - 0.2) * math.cos(ra), yy, (r - 0.2) * math.sin(ra)), (1.0, 3.6, 2.4), c("blanc"),
                    yaw=-a, name="Cadre", **ND)
-            b.boxc(((r - 0.05) * math.cos(ra), yy, (r - 0.05) * math.sin(ra)), (1.0, 2.6, 1.4), c("fenetre"),
+            b.boxc(((r - 0.05) * math.cos(ra), yy, (r - 0.05) * math.sin(ra)), (1.0, 2.8, 1.6), c("fenetre"),
                    yaw=-a, name="Fenetre", **ND)
     with b.group("Galerie"):
         b.cyl((0, y_gal + 0.5, 0), 4.7, 1.0, blanc, name="Corniche")
@@ -797,6 +888,12 @@ def phare(b, variant: int = 0, hauteur: float = 64) -> dict:
             ra = math.radians(a)
             b.boxc((5.8 * math.cos(ra), yr + 1.9, 5.8 * math.sin(ra)), (0.3, 0.3, L8), c("fer"), yaw=-a,
                    name="MainCourante", **ND)
+        # trappe d'accès à la galerie (sur le soubassement de la lanterne, côté +Z) et mouette sur la main courante
+        b.box((-0.7, yr + 0.15, 3.75), (0.7, yr + 1.45, 4.0), c("bois_fonce"), name="Trappe", **ND)
+        with b.at((5.8 * math.cos(math.radians(112.5)), yr + 2.05, 5.8 * math.sin(math.radians(112.5))), yaw=30,
+                  group="Mouette"):
+            from assets.mobilier import mouette
+            mouette(b, variant=0)
     with b.group("Lanterne"):
         y0 = yr
         b.cyl((0, y0 + 0.8, 0), 3.9, 1.6, rouge, name="Soubassement")
@@ -818,15 +915,25 @@ def phare(b, variant: int = 0, hauteur: float = 64) -> dict:
         b.wedge((-0.1, y1 + 1.8, -2.1), (0.1, y1 + 2.7, -1.4), c("or"), down="-z", name="Girouette", **NDS)
         y_top = y1 + 3.0
     with b.group("Maison"):
-        # maison du gardien adossée à la tour (côté +Z), porte vers +X
+        # maison du gardien adossée à la tour (côté +Z), porte vers +X, cheminée, jardinière
         b.box((-3.5, yb, 4.5), (3.5, yb + 5.0, 9.0), c("mur_blanc"), name="Mur")
         b.box((-3.9, yb + 5.0, 4.3), (3.9, yb + 5.4, 9.4), c("bois_fonce"), name="Corniche")
         b.wedge((-3.9, yb + 5.4, 4.3), (3.9, yb + 7.6, 6.85), c("toit_rouge"), down="-z", studs="top", name="Toit")
         b.wedge((-3.9, yb + 5.4, 6.85), (3.9, yb + 7.6, 9.4), c("toit_rouge"), down="+z", studs="top", name="Toit")
+        b.box((1.4, yb + 6.2, 7.4), (2.4, yb + 9.0, 8.4), c("pierre_claire"), name="Cheminee")
+        b.box((1.25, yb + 9.0, 7.25), (2.55, yb + 9.4, 8.55), c("pierre_fonce"), studs="top", name="Cheminee", **ND)
         b.box((3.5, yb, 5.6), (3.65, yb + 3.6, 7.6), c("volet_bleu"), name="Porte", **ND)
         b.box((-1.2, yb + 1.8, 9.0), (1.2, yb + 3.6, 9.15), c("fenetre"), name="Fenetre", **ND)
         b.box((-1.7, yb + 1.8, 9.0), (-1.2, yb + 3.6, 9.25), c("volet_bleu"), name="Volet", **ND)
         b.box((1.2, yb + 1.8, 9.0), (1.7, yb + 3.6, 9.25), c("volet_bleu"), name="Volet", **ND)
+        b.box((-1.5, yb + 1.3, 9.0), (1.5, yb + 1.8, 9.6), c("bois"), name="Jardiniere", **ND)
+        for x, fl in ((-0.9, "fleur_rouge"), (0.0, "fleur_jaune"), (0.9, "fleur_rouge")):
+            b.box((x - 0.3, yb + 1.8, 9.1), (x + 0.3, yb + 2.3, 9.5), c(fl), name="Fleurs", **NDS)
+        with b.at((1.9, yb + 9.4, 7.9), yaw=-120, group="Mouette"):
+            from assets.mobilier import mouette
+            mouette(b, variant=0)
+    with b.at((-8.6, 0.0, -3.7), yaw=90, group="Bouee"):
+        bouee(b, variant=0)
     return {"emprise": (22.0, 22.0), "hauteur": y_top}
 
 
@@ -850,11 +957,13 @@ def ponton(b, variant: int = 0, longueur: float = 64, largeur: float = 8) -> dic
         dz = L / n
         nT = 2                                         # planches de la plateforme en T (plus larges)
         with b.group("Plancher"):
+            # sous-plancher sombre : il apparaît dans les joints entre les planches
+            b.box((-hw - 0.2, -1.1, -L + 0.2), (hw + 0.2, -0.45, -0.2), c("bois_fonce"), name="Solive")
             for i in range(n):
-                z1, z0 = -i * dz, -(i + 1) * dz
+                z1, z0 = -i * dz - (0.0 if i == 0 else 0.15), -(i + 1) * dz + (0.15 if i < n - 1 else 0.0)
                 ww = hw + (4.0 if i >= n - nT else 0.0)
                 col = vary(("bois_quai", "bois_clair", "bois_flotte")[i % 3], rng, 0.04)
-                b.box((-ww, -0.6, z0), (ww, 0.0, z1), col, studs="top", name="Planche")
+                b.box((-ww, -0.45, z0), (ww, 0.0, z1), col, studs="top", name="Planche")
             for sg in (-1, 1):
                 xa, xb = sorted((sg * hw, sg * (hw + 0.4)))
                 b.box((xa, -1.2, -L + nT * dz), (xb, -0.3, 0), c("bois_fonce"), name="Longeron")
@@ -868,12 +977,17 @@ def ponton(b, variant: int = 0, longueur: float = 64, largeur: float = 8) -> dic
                     tops[sg].append((sg * (hw + 0.3), 1.2, z))
             zT = -L + 0.8
             for sg in (-1, 1):
-                for x in (hw + 3.5,):
-                    b.cyl((sg * x, -0.8, zT), 0.7, 4.4, c("bois_fonce"), name="Pieu")
+                b.cyl((sg * (hw + 3.5), -0.8, zT), 0.7, 4.4, c("bois_fonce"), name="Pieu")
+                b.cyl((sg * (hw + 3.5), -0.8, -L + nT * dz - 0.8), 0.7, 4.4, c("bois_fonce"), name="Pieu")
+                tops[sg] += [(sg * (hw + 3.5), 1.2, -L + nT * dz - 0.8), (sg * (hw + 3.5), 1.2, zT)]
         with b.group("Rambardes"):
             for sg in (-1, 1):
-                for a, bb in zip(tops[sg], tops[sg][1:]):
+                pts = tops[sg][:m + 1]
+                for a, bb in zip(pts, pts[1:]):
                     cordage(b, a, bb, creux=0.35, n=2, rayon=0.13)
+                # tour du T : du dernier pieu du ponton au coin du T, puis le long du bord extérieur du T
+                cordage(b, pts[-1], tops[sg][m + 1], creux=0.25, n=1, rayon=0.13)
+                cordage(b, tops[sg][m + 1], tops[sg][m + 2], creux=0.25, n=1, rayon=0.13)
         with b.group("Fanaux"):
             for j in range(2, m + 1, 3):
                 sg = 1 if (j // 3) % 2 == 0 else -1
@@ -881,11 +995,11 @@ def ponton(b, variant: int = 0, longueur: float = 64, largeur: float = 8) -> dic
                 b.box((x - 0.55, 1.4, z - 0.55), (x + 0.55, 2.8, z + 0.55), c("lanterne"), material="Neon", name="Fanal", **NDS)
                 b.box((x - 0.75, 2.8, z - 0.75), (x + 0.75, 3.1, z + 0.75), c("fer"), name="Fanal", **ND)
         with b.group("Echelle"):
-            x = hw + 4.0
-            for dzz in (-1.6, -2.8):
-                b.box((x, -3.0, -L + dzz - 0.12), (x + 0.25, 0.8, -L + dzz + 0.12), c("bois_fonce"), name="Montant", **ND)
-            for yy in (-2.3, -1.2):
-                b.box((x, yy, -L - 2.8), (x + 0.25, yy + 0.2, -L - 1.6), c("bois_fonce"), name="Barreau", **ND)
+            # échelle de bain contre la face du bout du T (z = -L), montants jusqu'au-dessus du plancher
+            for x in (hw + 1.0, hw + 2.3):
+                b.box((x - 0.13, -3.0, -L - 0.3), (x + 0.13, 0.9, -L), c("bois_fonce"), name="Montant", **ND)
+            for yy in (-2.4, -1.3):
+                b.box((hw + 1.13, yy, -L - 0.25), (hw + 2.17, yy + 0.2, -L - 0.05), c("bois_fonce"), name="Barreau", **ND)
         with b.at((-(hw + 1.5), 0, -L + 2.0), group="Bitte"):
             bitte(b, variant=0)
         return {"emprise": (w + 9.0, L), "hauteur": 3.1}
@@ -916,29 +1030,35 @@ def ponton(b, variant: int = 0, longueur: float = 64, largeur: float = 8) -> dic
                 b.box((x - 0.7, 1.0, z - 0.5), (x + 0.7, 1.35, z + 0.5), c("poisson"), name="Poissons", **ND)
         return {"emprise": (w + 1.0, L), "hauteur": 4.0}
 
-    # v == 2 : jetée de pierre
+    # v == 2 : jetée de pierre : dallage central, bordures en pierre sombre (arrêtées avant le bout, qui reste plat
+    # pour rejoindre le palier du phare), enrochement à la flottaison, liseré d'écume
     n = max(1, round(L / 8))
     dz = L / n
     with b.group("Jetee"):
         for i in range(n):
             z1, z0 = -i * dz, -(i + 1) * dz
+            col = vary(("pierre", "pierre_claire")[i % 2], rng, 0.03)
+            b.box((-hw + 1.0, -3.0, z0), (hw - 1.0, 0.0, z1), col, studs="top", name="Dalle")
+        for sg in (-1, 1):
+            xa, xb = sorted((sg * (hw - 1.0), sg * hw))
+            b.box((xa, -3.0, -L + 2.0), (xb, 0.4, 0), vary("pierre_fonce", rng, 0.03), studs="top", name="Bordure")
+            b.box((xa, -3.0, -L), (xb, 0.0, -L + 2.0), c("pierre_fonce"), studs="top", name="Bordure")
+            xa, xb = sorted((sg * hw, sg * (hw + 1.8)))
+            b.box((xa, -1.5, -L + 1.0), (xb, -1.35, -0.5), c("ecume"), name="Ecume", **NDS)
+    with b.group("Enrochement"):
+        for i in range(n):
             for sg in (-1, 1):
-                xa, xb = sorted((0.0, sg * hw))
-                col = vary(("pierre", "pierre_claire", "pierre_fonce")[(i + (sg > 0)) % 3], rng, 0.03)
-                zz0, zz1 = (z0, z1) if sg < 0 else ((z0 + dz / 2, z1) if i == 0 else (z0 + dz / 2, z1 + dz / 2))
-                if sg > 0 and i == n - 1:
-                    zz0 = z0
-                b.box((xa, -3.0, zz0), (xb, 0.0, zz1), col, studs="top", name="Bloc")
-        with b.group("Enrochement"):
-            for i in range(n):
-                for sg in (-1, 1):
-                    z = -(i + 0.5) * dz + rng.uniform(-1.5, 1.5)
-                    sz = (rng.uniform(2.6, 3.6), rng.uniform(1.6, 2.4), rng.uniform(3.0, 4.6))
-                    col = vary(("roche", "roche_claire", "roche_fonce")[(i + sg) % 3], rng, 0.05)
-                    b.boxc((sg * (hw + 0.9), -3.2 + sz[1] / 2 + 0.6, z), sz, col, yaw=rng.uniform(-18, 18),
-                           studs="top", name="Rocher")
-        for j, z in enumerate((-L * 0.3, -L * 0.62, -L + 4.0)):
-            sg = 1 if j % 2 == 0 else -1
-            with b.at((sg * (hw - 1.2), 0, z), group="Bitte"):
-                bitte(b, variant=0)
+                for j in range(2):
+                    z = -(i + 0.25 + 0.5 * j) * dz + rng.uniform(-1.0, 1.0)
+                    z = min(-1.5, max(-L + 1.5, z))
+                    big = j == 0
+                    sz = (rng.uniform(2.6, 3.4) if big else rng.uniform(1.8, 2.4), rng.uniform(2.4, 3.0) if big else
+                          rng.uniform(1.8, 2.3), rng.uniform(3.2, 4.4) if big else rng.uniform(2.2, 3.0))
+                    col = vary(("roche", "roche_claire", "roche_fonce")[(i + j + (sg > 0)) % 3], rng, 0.05)
+                    b.boxc((sg * (hw + 0.6 + (0.3 if big else 0.9)), -3.2 + sz[1] / 2, z), sz, col,
+                           yaw=rng.uniform(-20, 20), studs="top", name="Rocher")
+    for j, z in enumerate((-L * 0.33, -L + 5.0)):
+        sg = 1 if j % 2 == 0 else -1
+        with b.at((sg * (hw - 1.9), 0, z), group="Bitte"):
+            bitte(b, variant=0)
     return {"emprise": (w + 3.0, L), "hauteur": 2.4}

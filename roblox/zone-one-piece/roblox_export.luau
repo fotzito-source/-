@@ -183,7 +183,11 @@ for _, p in data.parts do
 		gui.Name = "Panneau"
 		gui.Face = (Enum.NormalId :: any)[lab.face or "Front"]
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = 40
+		-- TextScaled plafonne la police à 100 px : pour qu'une ligne remplisse la hauteur de la face (grands
+		-- panneaux « ZONE RARE » de 9 studs), on baisse la densité de pixels quand une ligne dépasse 2,4 studs.
+		local faceH = if lab.face == "Top" or lab.face == "Bottom" then p.size[3] else p.size[2]
+		local nLignes = if lab.vertical then math.max(1, utf8.len(lab.text) or 1) else 1
+		gui.PixelsPerStud = math.clamp(96 / (faceH / nLignes), 8, 40)
 		gui.LightInfluence = if lab.glow then 0 else 1
 		gui.MaxDistance = 400
 		local tl = Instance.new("TextLabel")
@@ -245,8 +249,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local surfaces = textureId == nil
 	if not surfaces and opts.mode == "materiau" then
 		local ms = game:GetService("MaterialService")
-		local mv = ms:FindFirstChild("StudsOnePiece") or Instance.new("MaterialVariant")
-		mv.Name = "StudsOnePiece"
+		local mv = ms:FindFirstChild("StudsZonePort") or Instance.new("MaterialVariant")
+		mv.Name = "StudsZonePort"
 		mv.BaseMaterial = Enum.Material.SmoothPlastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
@@ -266,7 +270,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				end
 				n += 1
 			elseif opts.mode == "materiau" then
-				part.MaterialVariant = "StudsOnePiece"
+				part.MaterialVariant = "StudsZonePort"
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -286,7 +290,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 			end
 		end
 	end
-	print(("Zone One Piece : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
+	print(("Zone du port : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
 		elseif opts.mode == "materiau" then "pièces en matériau stud" else "textures stud posées"))
 end
 ]]

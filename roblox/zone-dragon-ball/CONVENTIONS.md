@@ -11,12 +11,12 @@ les formes natives de Roblox (bloc, coin, cylindre, boule).
 - Origine de l'asset : centre de son emprise au sol, **y = 0 = niveau du sol** (sauf mention contraire dans la spec).
 - **L'avant de l'asset regarde -Z local.** La mise en page tourne l'asset (yaw ±90) pour que son avant regarde le couloir :
   `largeur` = dimension le long du couloir (X local), `profondeur` = dimension vers l'extérieur (Z local).
-- Couloir de course : **`x ∈ [-32, 32]`** (64 studs), de `z = 0` (porte de temple) à `z = -470` (sortie sous l'arche,
-  vers la zone suivante). Trottoirs jusqu'à `|x| = 42`, premières façades à `|x| = 44`, falaises de `|x| = 124` à 200.
+- Couloir de course : **`x ∈ [-45, 45]`** (90 studs, élargi), de `z = 0` (porte de temple) à `z = -470` (sortie sous
+  l'arche, vers la zone suivante). Trottoirs jusqu'à `|x| = 55`, premières façades à `|x| = 56`, falaises de `|x| = 135` à 216.
   Le joueur arrive par +Z et court vers -Z, puis revient : **les deux sens de lecture comptent**.
 - Séquence : approche (+40 → 0), porte de temple (z = 0), campagne terrestre et village de dômes (0 → -146),
-  terres de combat et mesas (-146 → -290, pont de roche en z = -222), planète extraterrestre (-290 → -358),
-  arène des œufs (carré 68 × 68 centré en z = -392, dessus à y = 1), arche finale (façade z = -436, sortie z = -470).
+  terres de combat et mesas (-146 → -282, pont de roche en z = -214), planète extraterrestre (-282 → -344),
+  arène des œufs (96 × 80 centrée en z = -389, dessus à y = 1), arche finale (façade z = -436, sortie z = -470).
 
 ## API du kit (`kit.py`)
 
@@ -95,10 +95,11 @@ Roblox supprime les contenus sous licence non autorisés : **rien de la licence*
 - Budget de pièces : respecter celui donné pour l'asset (Roblox mobile, ≤ 13 500 pièces pour toute la zone).
   Un grand aplat = un seul bloc.
 - `collide=False` pour les petits détails décoratifs (fanions, lampes, feuillage fin, hublots, câbles, enseignes).
-- **Couloir** : rien de collidable dans `|x| < 32` entre `y = 0,05` et `y = 12` (hors sol), et **rien du tout au-dessus du
-  couloir (`|x| < 33`) sous `y = 30`** (la caméra Roblox sauterait). Ce qui enjambe le couloir (porte, pont de roche, arche,
-  fanions) passe à **34 studs ou plus** au-dessus de `|x| < 33`. `zone.py --stats` vérifie les deux règles
-  (`couloir_libre`, `trop_bas_au_dessus`).
+- **Couloir** : rien de collidable dans `|x| < 45` entre `y = 0,05` et `y = 12` (hors sol), et **rien du tout au-dessus du
+  couloir (`|x| < 46`) sous `y = 30`** (la caméra Roblox sauterait). Ce qui enjambe le couloir (porte, pont de roche, arche,
+  fanions) garde ses appuis à `|x| ≥ 46` (au moins 92 studs libres ; 96 pour la sortie sous l'arche) et passe à **34 studs
+  ou plus** au-dessus de `|x| < 46`. `zone.py --stats` vérifie les deux règles (`couloir_libre`, `trop_bas_au_dessus`) ;
+  `zone.py --chevauchements` liste les assets posés qui se recoupent.
 - L'arène des œufs est un **sol** en relief (dessus à 1 stud, rampes de 5 studs dans le couloir) : elle appartient au groupe `Sol`.
 - L'eau (canaux, lac) est une dalle turquoise translucide dont le dessus est à y = -0,4, posée par `zone.py`.
 

@@ -3,13 +3,15 @@
 Lampadaires (rue et campus), bancs, poubelles, distributeurs, feux tricolores, abribus, arbres de rue,
 jardinières, bornes lumineuses, totems et panneaux de direction (textes génériques uniquement),
 clôtures (grillage, verre, garde-corps), matériel d'entraînement (plots, pneus, haies d'athlétisme,
-sac de frappe, caisses), bannières, guirlandes de fanions et terrasse de café.
+sac de frappe, caisses), bannières, guirlandes de fanions, terrasse de café, voitures garées et lignes
+électriques de rue japonaise.
 
 Règles communes :
 - l'avant de chaque objet regarde -Z local (le couloir une fois posé avec `face_couloir`) ;
 - 40 pièces au plus par objet ; détails fins sans collision (`collide=False`) ;
-- tout ce qui dépasse vers le couloir (crosses, bras de feux, bannières) reste à moins de 4,5 studs
-  du pied : posé en |x| ≥ 38, rien ne franchit |x| = 33.
+- tout ce qui dépasse vers le couloir (crosses, bras de feux, bannières) reste à moins de 4,6 studs
+  du pied : posé en |x| ≥ 50,5 (trottoirs de |x| = 45 à 55), rien ne franchit |x| = 46, la limite
+  sous laquelle rien ne doit surplomber le couloir avant 30 studs de haut.
 - textes : uniquement des mots génériques (CAMPUS, ACADÉMIE, ENTRAÎNEMENT, STADE, CAFÉ…), jamais de nom
   de la licence, de l'école ou des personnages (voir CONVENTIONS.md).
 
@@ -68,7 +70,7 @@ def _label(p, texte: str, face: str = "Front", couleur=(255, 255, 255), fond=Non
 
 def lampadaire_ville(b, variant: int = 0, hauteur: float = 13.0) -> dict:
     """Lampadaire de rue moderne : socle, mât, crosse vers l'avant (-Z local, côté couloir), tête à LED.
-    La tête s'avance de 3,4 studs : posé en |x| = 38, elle s'arrête en |x| = 34,6.
+    La tête s'avance de 3,4 studs : posé en |x| = 50,5, elle s'arrête en |x| = 47,1.
     variant 0 acier, 1 blanc, 2 bleu nuit (bague violette)."""
     mat = (c("acier"), c("blanc"), c("marine"))[variant % 3]
     h = hauteur
@@ -188,7 +190,7 @@ def distributeur(b, variant: int = 0, nombre: int = 2) -> dict:
 def feu_tricolore(b, variant: int = 0, hauteur: float = 12.0, bras: float = 4.5) -> dict:
     """Feu tricolore : mât, potence vers l'avant (-Z local, côté couloir) de `bras` studs, boîtier horizontal
     à trois feux sur ses deux faces (le long de la rue), feu piéton sur le mât.
-    Posé en |x| = 38,5 avec bras = 4,5 : le boîtier s'arrête en |x| = 33,5."""
+    Posé en |x| = 51 avec bras = 4,5 : le boîtier s'arrête en |x| = 46,4."""
     mat = (c("acier"), c("blanc"))[variant % 2]
     h = hauteur
     allume = (0, 2)[variant % 2]          # 0 vert-bleu, 2 rouge
@@ -461,7 +463,8 @@ BANNIERES = [("violet", "blanc"), ("lavande", "violet"), ("orange_couchant", "bl
 
 
 def banniere(b, variant: int = 0, hauteur: float = 11.0) -> dict:
-    """Mât à bannière verticale : le tissu part du mât vers l'avant (-Z local, côté couloir) sur 2,6 studs.
+    """Mât à bannière verticale : le tissu part du mât vers l'avant (-Z local, côté couloir) sur 2,9 studs
+    (poser le mât en |x| ≥ 50).
     Motifs abstraits (bandes, chevron), jamais d'emblème."""
     fond, bande = (c(n) for n in BANNIERES[variant % len(BANNIERES)])
     h = hauteur
@@ -512,6 +515,84 @@ def guirlande_fanions(b, p0, p1, n: int = 10, creux: float = 1.5, variant: int =
 
 
 # ---------------------------------------------------------------------------
+# Ville : voitures garées, lignes électriques
+# ---------------------------------------------------------------------------
+
+CARROSSERIES = ["voiture_blanche", "voiture_rouge", "voiture_bleue", "voiture_argent", "voiture_jaune", "voiture_menthe"]
+
+
+def voiture(b, variant: int = 0, couleur: str | None = None) -> dict:
+    """Voiture garée, capot vers -Z local (≈ 4,8 × 9-10 × 4,5-5,8 studs, 22 à 26 pièces).
+    variant 0 citadine haute et carrée (kei car), 1 berline basse, 2 monospace, 3 taxi (berline jaune ou
+    orange à lanterne de toit SANS texte). `couleur` : nom de la palette (sinon choisie selon la variante).
+    Hors du couloir seulement (rues latérales, parkings)."""
+    v = variant % 4
+    col = c(couleur) if couleur else c(("voiture_menthe", "voiture_blanche", "voiture_argent", "voiture_jaune")[v]
+                                         if variant < 4 else CARROSSERIES[variant % len(CARROSSERIES)])
+    vitre = c("vitre_nuit")
+    # (demi-longueur, haut caisse, z avant habitacle, z arrière habitacle, haut toit, longueur capot incliné)
+    L, yc, za, zb, yt, capot = {0: (4.0, 2.6, -2.2, 3.4, 4.8, 1.0),
+                                1: (4.8, 2.4, -1.6, 2.5, 4.2, 1.6),
+                                2: (4.8, 2.6, -2.8, 4.5, 5.6, 1.2),
+                                3: (4.8, 2.4, -1.6, 2.5, 4.2, 1.6)}[v]
+    with b.group("Voiture"):
+        b.box((-2.4, 0.6, -L - 0.15), (2.4, 1.3, L + 0.15), c("noir"), name="Jupe")          # pare-chocs tout autour
+        b.box((-2.3, 0.8, -L), (2.3, yc, L), col, studs="top", name="Caisse")
+        # pare-brise incliné, habitacle vitré, montants, toit
+        b.wedge((-2.1, yc, za - capot), (2.1, yt - 0.4, za), vitre, down="-z", collide=False, name="PareBrise")
+        b.box((-2.1, yc, za), (2.1, yt - 0.4, zb), vitre, name="Habitacle")
+        for x0, x1 in ((-2.2, -2.0), (2.0, 2.2)):
+            for zp in ((za + zb) / 2 - 0.2, zb - 0.4):
+                b.box((x0, yc, zp), (x1, yt - 0.4, zp + 0.4), col, collide=False, name="Montant")
+        b.box((-2.2, yt - 0.4, za - 0.2), (2.2, yt, zb + 0.1), col, studs="top", name="Toit")
+        if v in (1, 3):   # coffre : petite marche à l'arrière
+            b.box((-2.25, yc, zb), (2.25, yc + 0.3, L), shade(col, 0.95), studs="top", collide=False, name="Coffre")
+        if v == 3:
+            b.box((-0.9, yt, -0.6), (0.9, yt + 0.8, 0.6), c("orange"), collide=False, name="Lanterne")
+            b.box((-0.7, yt + 0.8, -0.4), (0.7, yt + 0.9, 0.4), c("blanc"), collide=False, shadow=False, name="LanterneHaut")
+        # roues et enjoliveurs (cylindres d'axe X)
+        for x in (-1.95, 1.95):
+            for z in (-L + 1.4, L - 1.4):
+                b.cyl((x, 0.95, z), 0.95, 0.9, c("pneu"), axis="x", name="Roue")
+                b.cyl((x, 0.95, z), 0.45, 1.1, c("acier"), axis="x", collide=False, name="Enjoliveur")
+        # phares, feux arrière, plaques sans texte
+        for sx in (-1, 1):
+            b.box((sx * 1.6 - 0.45, 1.7, -L - 0.1), (sx * 1.6 + 0.45, 2.2, -L), c("phare"), material="Neon",
+                  collide=False, shadow=False, name="Phare")
+            b.box((sx * 1.7 - 0.4, 1.6, L), (sx * 1.7 + 0.4, 2.2, L + 0.1), c("feu_arriere"), collide=False, name="FeuArriere")
+        for z0, z1 in ((-L - 0.3, -L - 0.15), (L + 0.15, L + 0.3)):
+            b.box((-0.7, 0.75, z0), (0.7, 1.2, z1), c("blanc"), collide=False, shadow=False, name="Plaque")
+    return {"emprise": (4.8, 2 * L + 0.6), "hauteur": yt + (0.9 if v == 3 else 0)}
+
+
+def ligne_electrique(b, longueur: float = 60.0, portee: float = 30.0, variant: int = 0) -> dict:
+    """Ligne électrique de rue japonaise le long de -Z local (de z = 0 à z = -longueur) : poteaux de béton
+    gris tous les `portee` studs, deux traverses le long de X (±1,6), isolateurs, un transformateur sur un
+    poteau sur deux, trois fils légèrement tendus entre chaque paire de poteaux.
+    Environ 7 pièces par poteau + 6 par portée. À poser en |x| ≥ 52 avec yaw = 0 : rien ne franchit |x| = 50."""
+    n = max(1, int(round(longueur / portee)))
+    zs = [-i * longueur / n for i in range(n + 1)]
+    mat = (c("beton"), c("beton_clair"))[variant % 2]
+    h = 15.0
+    with b.group("LigneElectrique"):
+        for i, z in enumerate(zs):
+            b.box((-0.7, 0, z - 0.7), (0.7, 0.4, z + 0.7), c("beton_fonce"), name="Socle")
+            b.cyl((0, h / 2, z), 0.4, h, mat, name="Poteau")
+            b.box((-1.6, h - 1.2, z - 0.2), (1.6, h - 0.8, z + 0.2), c("acier_fonce"), collide=False, name="Traverse")
+            b.box((-1.2, h - 3.0, z - 0.2), (1.2, h - 2.6, z + 0.2), c("acier_fonce"), collide=False, name="Traverse")
+            b.box((-0.25, h, z - 0.25), (0.25, h + 0.3, z + 0.25), c("acier_fonce"), collide=False, name="Chapeau")
+            if i % 2 == 1:
+                b.cyl((0.9, h - 5.0, z), 0.7, 2.2, c("beton_clair"), collide=False, name="Transformateur")
+                b.box((0.35, h - 4.3, z - 0.15), (0.55, h - 3.9, z + 0.15), c("acier_fonce"), collide=False, name="Attache")
+        for za, zb in zip(zs, zs[1:]):
+            for x, y in ((-1.4, h - 0.8), (1.4, h - 0.8), (0.0, h - 2.6)):
+                m = (za + zb) / 2
+                _segment(b, (x, y, za), (x, y - 0.7, m), 0.06, c("noir"), name="Fil")
+                _segment(b, (x, y - 0.7, m), (x, y, zb), 0.06, c("noir"), name="Fil")
+    return {"emprise": (3.2, longueur + 1.4), "hauteur": h + 0.3, "poteaux": n + 1}
+
+
+# ---------------------------------------------------------------------------
 # Planche de contrôle
 # ---------------------------------------------------------------------------
 
@@ -549,7 +630,10 @@ def planche(b, variant: int = 0, partie: int | None = None) -> dict:
         (banniere, {"variant": variant}, 3),
         (banniere, {"variant": variant + 1}, 3),
     ]
-    if partie is not None:
+    if partie == 2:   # ville : voitures et ligne électrique
+        items = [(voiture, {"variant": k}, 6) for k in range(4)] + [(voiture, {"variant": 4 + variant}, 6)]
+        items.append((ligne_electrique, {"longueur": 24, "portee": 12}, 4))
+    elif partie is not None:
         items = items[:15] if partie == 0 else items[15:]
     x = 0.0
     n = {}
@@ -560,9 +644,9 @@ def planche(b, variant: int = 0, partie: int | None = None) -> dict:
         n[f"{fn.__name__}{kw.get('variant', '')}"] = len(b.parts) - n0
         x += w + 2
     # deux mâts et une guirlande de fanions au bout de la planche
-    for xm in ((x + 1, x + 21) if partie != 0 else ()):
+    for xm in ((x + 1, x + 21) if partie in (None, 1) else ()):
         b.box((xm - 0.3, 0, -0.3), (xm + 0.3, 9, 0.3), c("acier"), name="MatFanions")
-    if partie != 0:
+    if partie in (None, 1):
         n0 = len(b.parts)
         guirlande_fanions(b, (x + 1, 8.6, 0), (x + 21, 8.6, 0), n=9, creux=1.2, variant=variant)
         n["guirlande_fanions"] = len(b.parts) - n0

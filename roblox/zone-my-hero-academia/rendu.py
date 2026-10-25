@@ -32,14 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((200, 230, 120), (0, 0, -215), 48),
-    "entree": ((0, 9, 52), (0, 22, -160), 70),
-    "village": ((6, 8, -36), (0, 20, -260), 70),
-    "glycines": ((4, 7, -160), (0, 22, -330), 70),
-    "place": ((18, 11, -282), (0, 48, -400), 72),
-    "retour": ((-4, 9, -352), (0, 14, 0), 70),
-    "cote": ((-270, 150, -60), (0, 10, -240), 45),
-    "montagne": ((0, 84, -304), (0, 60, -404), 64),
+    "aerienne": ((-215, 300, 150), (10, 0, -285), 46),  # depuis le côté ensoleillé (-X, +Z)
+    "entree": ((0, 9, 40), (0, 26, -150), 72),         # rue de la ville sous le viaduc, portail au bout
+    "ville": ((10, 8, -40), (0, 24, -150), 70),         # boutiques, rue latérale, grand portail de sécurité
+    "campus": ((6, 8, -150), (0, 34, -420), 70),        # avenue du campus, dortoirs, tours au fond
+    "terrains": ((12, 9, -296), (70, 22, -380), 72),    # dôme de verre à droite, ville factice à gauche
+    "place": ((20, 12, -416), (0, 30, -540), 72),       # arène du stade, place des œufs, tours derrière
+    "retour": ((-4, 9, -500), (0, 18, 0), 70),          # demi-tour vers la base
+    "cote": ((-380, 300, -150), (0, 0, -320), 42),       # au-dessus de la ville lointaine
+    "tours": ((20, 104, -446), (0, 78, -560), 70),       # repère final vu du haut du stade, au-dessus du portique
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -55,7 +56,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,village,glycines,place,retour,cote,montagne,plan")
+    ap.add_argument("--vues", default="aerienne,entree,ville,campus,terrains,place,retour,cote,tours,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -80,7 +81,7 @@ def main() -> None:
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
-        # soleil bas derrière la montagne, ciel violet : les lanternes (Neon) ressortent
+        # soleil bas derrière les tours, ciel orangé et violet (références 1 et 2) : les néons ressortent
         bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
                        ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
         bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
@@ -100,11 +101,16 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -205), (0, 0, -205.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -277), (0, 0, -277.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 540
+                cam.data.ortho_scale = 640
                 cam.data.clip_end = 2000
+                # pas de brume sur le plan : le sol est à 900 de la caméra, tout serait voilé
+                ms = bpy.context.scene.world.mist_settings
+                debut = ms.start
+                ms.start = 740
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
+                ms.start = debut
             else:
                 pos, tgt, fov = VUES[name]
                 cam = bs.add_camera(name, pos, tgt, fov=fov)

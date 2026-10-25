@@ -12,8 +12,10 @@ cylindre, boule). Lire aussi `CONCEPTION.md`, qui donne l'intention, la séquenc
 - **L'avant de l'asset regarde -Z local.** La mise en page tourne l'asset pour que son avant regarde le couloir.
   Exceptions : `grande_porte`, `porte_interieure`, `passerelle_rouge` et `colline_tour` sont posées sans rotation
   (yaw = 0). Leur face principale regarde +Z, vers les joueurs qui arrivent.
-- **Couloir de course : `x ∈ [-32, 32]`**, du sol de l'esplanade (z = +64) à la sortie (z = -522). Trottoirs
-  jusqu'à `|x| = 42` (façades du faubourg, murs d'allée de la cité dont la face est en `|x| = 42`).
+- **Couloir de course (élargi) : `x ∈ [-45, 45]`**, du sol de l'esplanade (z = +64) à la sortie (z = -522).
+  Trottoirs jusqu'à `|x| = 55` (façades du faubourg, murs d'allée de la cité dont la face est en `|x| = 55`).
+  Ce qui enjambe le couloir laisse au moins 92 studs entre ses appuis (appuis en `|x| ≥ 46`) : grande porte
+  (ouverture 100), porte intérieure (92), passerelle (portée 130), tunnel de sortie (96).
 - Séquence : esplanade (+64 → +8), grande porte (mur centré sur z = 0, épaisseur 16), faubourg (-8 → -171),
   porte intérieure (z = -176, épaisseur 10), cité blanche (-181 → -388, passerelle en z = -286), cour des œufs
   (-388 → -476, place de rayon 34 centrée en z = -430), colline et tunnel (-476 → -522). Remparts latéraux en
@@ -22,11 +24,14 @@ cylindre, boule). Lire aussi `CONCEPTION.md`, qui donne l'intention, la séquenc
 
 ## Règles du couloir (vérifiées par `python zone.py --stats`)
 
-- **Au sol** : rien de solide (`collide=True`) dans `|x| < 32` entre y = 0,05 et y = 12, sauf le sol lui-même.
-- **Au-dessus** : **rien du tout** (solide ou non) au-dessus de `|x| < 33` sous **y = 30**. Sinon la caméra
+- **Au sol** : rien de solide (`collide=True`) dans `|x| < 45` entre y = 0,05 et y = 12, sauf le sol lui-même.
+- **Au-dessus** : **rien du tout** (solide ou non) au-dessus de `|x| < 46` sous **y = 30**. Sinon la caméra
   Roblox saute quand le joueur passe dessous. Ce qui enjambe le couloir (linteaux, corps de garde, passerelle,
-  voûte du tunnel, lampions) passe **au-dessus de 30**, et au-dessus de **36** pour les monuments.
-- Les assets posés sur les trottoirs gardent toute leur emprise en `|x| ≥ 33`.
+  voûte du tunnel, lampions) passe **au-dessus de 34** (solives de la porte intérieure à 35,1, de la grande
+  porte à 55, tablier de la passerelle à 36,6, voûte du tunnel à 38, capuchons des lampions à 34).
+- Les assets posés sur les trottoirs gardent toute leur emprise en `|x| ≥ 46`.
+- Les poses ne s'interpénètrent pas : `python zone.py --chevauchements` (boîtes orientées des pièces, feuillages
+  entre eux et jointures de murs exceptés).
 
 ## API du kit (`kit.py`)
 

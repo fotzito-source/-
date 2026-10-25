@@ -165,9 +165,49 @@ def panneau_pied(b, texte: str = "MARCHÉ", variant: int = 0) -> dict:
     return {"emprise": (w + 0.8, 1.8), "hauteur": 6.2}
 
 
+def poteau_indicateur(b, textes=("MARCHÉ", "AUBERGE"), variant: int = 0) -> dict:
+    """Poteau indicateur de carrefour : mât de bois, deux ou trois planches en flèche orientées différemment,
+    petit chapeau de tuiles. Texte des deux côtés de chaque flèche (faces Front et Back)."""
+    bois, clair = c("colombage"), (c("toile_creme"), c("bois_clair"))[variant % 2]
+    encre = c("colombage")
+    with b.group("Indicateur"):
+        b.box((-0.9, 0, -0.9), (0.9, 0.6, 0.9), c("pierre_maison"), studs="top", name="Socle")
+        b.box((-0.3, 0.6, -0.3), (0.3, 7.4, 0.3), bois, name="Mat")
+        b.wedge((-0.7, 7.4, -0.7), (0.7, 8.2, 0), c("tuile"), down="-z", collide=False, name="Chapeau")
+        b.wedge((-0.7, 7.4, 0), (0.7, 8.2, 0.7), c("tuile"), down="+z", collide=False, name="Chapeau")
+        for k, texte in enumerate(textes[:3]):
+            long_ = min(max(1.0 + 0.75 * len(texte), 3.5), 7.0)
+            sens = 1 if k % 2 == 0 else -1
+            y = 6.2 - k * 1.5
+            with b.at((0, 0, 0), yaw=(0, 25, -20)[k]):
+                xa, xb = sorted((sens * 0.3, sens * (0.3 + long_)))
+                p = b.box((xa, y - 0.55, -0.12), (xb, y + 0.55, 0.0), clair, collide=False, name="Fleche")
+                _label(p, "Front", texte, encre)
+                p2 = b.box((xa, y - 0.55, 0.0), (xb, y + 0.55, 0.12), clair, collide=False, name="Fleche")
+                _label(p2, "Back", texte, encre)
+                pointe = sens * (0.3 + long_)
+                b.wedge((min(pointe, pointe + sens * 0.7), y, -0.12), (max(pointe, pointe + sens * 0.7), y + 0.55, 0.12),
+                        clair, down="+x" if sens > 0 else "-x", collide=False, shadow=False, name="Pointe")
+                b.wedge_under((min(pointe, pointe + sens * 0.7), y - 0.55, -0.12), (max(pointe, pointe + sens * 0.7), y, 0.12),
+                              clair, down="+x" if sens > 0 else "-x", collide=False, shadow=False, name="Pointe")
+    return {"emprise": (2 * 7.7, 1.8), "hauteur": 8.2}
+
+
 # ---------------------------------------------------------------------------
 # Clôtures, bancs, bacs
 # ---------------------------------------------------------------------------
+
+def borne(b, variant: int = 0) -> dict:
+    """Borne de pierre (chasse-roue) au bord du trottoir ou du quai ; variante 1 : anneau d'amarrage en fer."""
+    pierre = c("pierre_maison") if variant % 2 == 0 else c("quai")
+    with b.group("Borne"):
+        b.box((-0.6, 0, -0.6), (0.6, 1.8, 0.6), pierre, name="Borne")
+        b.box((-0.45, 1.8, -0.45), (0.45, 2.2, 0.45), shade(pierre, 1.08), studs="top", name="Tete")
+        if variant % 2:
+            b.cyl((-0.68, 1.1, 0), 0.35, 0.12, c("fer"), axis="x", collide=False, shadow=False, name="Anneau")
+    return {"emprise": (1.2, 1.2), "hauteur": 2.2}
+
+
 
 def cloture_bois(b, longueur: float = 12, variant: int = 0, hauteur: float = 3.0) -> dict:
     """Clôture le long de X. variant 0 : poteaux et deux lisses (campagne) ; 1 : palissade blanche ;
@@ -302,6 +342,45 @@ def charrette(b, variant: int = 0) -> dict:
             for i, z in enumerate((-1.8, 0.0, 1.8)):
                 b.boxc((0.4 * (-1) ** i, 3.25, z), (2.6, 1.3, 1.6), c("toile_creme"), yaw=8 * (-1) ** i, name="Sac")
     return {"emprise": (5.2, 10.2), "hauteur": 5.4}
+
+
+def brouette(b, variant: int = 0) -> dict:
+    """Brouette de bois à une roue (roue vers -Z, brancards vers +Z) ; chargement de foin, de pommes ou de bûches."""
+    bois, clair = c("bois"), c("bois_clair")
+    charge = (("foin", "foin_fonce"), ("pomme", "feuille_claire"), ("tronc_clair", "tronc"))[variant % 3]
+    with b.group("Brouette"):
+        b.cyl((0, 0.9, -1.9), 0.9, 0.35, c("bois_moyen"), axis="x", name="Roue")
+        b.cyl((0, 0.9, -1.9), 0.25, 0.6, c("fer"), axis="x", collide=False, name="Moyeu")
+        b.wedge((-1.1, 1.0, -1.6), (1.1, 2.2, -0.6), clair, down="-z", name="Caisse")
+        b.box((-1.1, 1.0, -0.6), (1.1, 2.2, 1.0), clair, name="Caisse")
+        b.box((-0.85, 2.2, -0.9), (0.85, 2.6, 0.8), c(charge[0]), studs="top", collide=False, name="Charge")
+        b.box((-0.5, 2.6, -0.4), (0.4, 2.9, 0.4), c(charge[1]), collide=False, name="Charge")
+        for sx in (-1, 1):
+            b.box((sx * 0.85 - 0.12, 1.3, 1.0), (sx * 0.85 + 0.12, 1.55, 2.8), bois, collide=False, name="Brancard")
+            b.box((sx * 0.75 - 0.12, 0, 0.6), (sx * 0.75 + 0.12, 1.0, 0.85), bois, name="Pied")
+    return {"emprise": (2.2, 4.8), "hauteur": 2.9}
+
+
+def canon_affut(b, variant: int = 0) -> dict:
+    """Canon de campagne sur affût de bois à deux roues (bouche vers -Z) ; variante 1 : bâche sur le tube.
+    Artillerie générique, sans insigne."""
+    fonte, bois = c("fonte"), c("bois_moyen")
+    with b.group("Canon"):
+        for sx in (-1, 1):
+            b.cyl((sx * 1.6, 1.5, -0.6), 1.5, 0.35, bois, axis="x", name="Roue")
+            b.cyl((sx * 1.6, 1.5, -0.6), 1.55, 0.2, c("fer"), axis="x", collide=False, name="Bandage")
+            b.cyl((sx * 1.85, 1.5, -0.6), 0.35, 0.3, c("fer"), collide=False, axis="x", name="Moyeu")
+            b.box((sx * 0.9 - 0.25, 0.9, -1.4), (sx * 0.9 + 0.25, 2.0, 2.4), c("bois"), name="Flasque")
+        b.box((-1.45, 1.35, -0.75), (1.45, 1.65, -0.45), c("fer"), collide=False, name="Essieu")
+        b.box((-0.4, 0, 2.4), (0.4, 1.1, 4.4), c("bois"), name="Crosse")
+        b.cyl((0, 2.4, -0.6), 0.75, 3.6, fonte, axis="z", name="Tube")
+        b.cyl((0, 2.4, -2.6), 0.88, 0.5, fonte, axis="z", collide=False, name="Bouche")
+        b.cyl((0, 2.4, 1.3), 0.95, 0.6, fonte, axis="z", collide=False, name="Culasse")
+        if variant % 2:
+            b.box((-0.85, 2.3, -1.4), (0.85, 3.35, 1.4), c("toile_creme"), collide=False, name="Bache")
+        else:
+            b.ball((0, 2.4, 1.9), 0.5, fonte, collide=False, name="Bouton")
+    return {"emprise": (3.8, 7.0), "hauteur": 3.4}
 
 
 ETALS = (

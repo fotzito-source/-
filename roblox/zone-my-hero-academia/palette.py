@@ -158,6 +158,25 @@ P = {
     "siege_blanc": "#E9EAF1",
     "ecran_fond": "#1C2140",        # écrans géants (aplats lumineux par-dessus)
 
+    # --- Mur d'enceinte du campus (référence 1 : panneaux gris clair tachés, piles de brique) ---
+    "panneau_mur": "#D9DBE0",
+    "panneau_mur_clair": "#E6E8EC",
+    "panneau_mur_tache": "#C5C8CF",
+    "chaperon": "#A9AEB8",          # couvertine du mur
+
+    # --- Viaduc et train de banlieue (générique : blanc à bandes, sans logo) ----------------
+    "viaduc": "#CED2DA",
+    "viaduc_fonce": "#A9AEB9",
+    "rail": "#7C8391",
+    "train_blanc": "#F3F5F8",
+    "train_bande": "#3F78D8",
+    "train_bande2": "#7468E3",
+
+    # --- Stade : verrière et tribunes -------------------------------------------------------
+    "verre_canopee": "#CFE8F7",     # verrière (Glass, transparence 0,3 à 0,45)
+    "beton_tribune": "#D5D8DF",
+    "ecran_lumiere": "#7FD8FF",     # écran géant allumé (Neon, aplats sans texte)
+
     # --- Voitures ----------------------------------------------------------------------
     "voiture_blanche": "#F1F2F4",
     "voiture_rouge": "#D8443A",
@@ -175,6 +194,11 @@ def c(name: str) -> tuple:
     return hexrgb(P[name])
 
 
+def tirer(noms, rng) -> tuple:
+    """Une couleur au hasard parmi une liste de noms (murs « pixel » en 2-4 teintes proches)."""
+    return c(noms[int(rng.integers(len(noms)))])
+
+
 def vary(name_or_rgb, rng, amount: float = 0.06) -> tuple:
     """Légère variation de luminosité, pour casser les aplats."""
     base = c(name_or_rgb) if isinstance(name_or_rgb, str) else name_or_rgb
@@ -182,4 +206,4 @@ def vary(name_or_rgb, rng, amount: float = 0.06) -> tuple:
     return shade(base, f)
 
 
-__all__ = ["P", "c", "vary", "mix", "shade"]
+__all__ = ["P", "c", "vary", "tirer", "mix", "shade"]

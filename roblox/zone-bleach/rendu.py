@@ -32,11 +32,12 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((230, 270, 150), (0, 0, -262), 48),
-    "entree": ((0, 8, 62), (0, 32, -60), 76),          # la grande porte blanche, le faubourg derrière
-    "faubourg": ((6, 8, -18), (0, 18, -200), 70),      # route de sable, maisons de bois, porte intérieure
+    "aerienne": ((360, 330, 190), (0, 0, -235), 48),  # toute la zone dans le cadre
+    "entree": ((0, 12, 64), (0, 40, -20), 84),         # la grande porte blanche (vue d'arrivée), vantaux enduits
+    "faubourg": ((30, 9, -24), (-14, 14, -150), 64),   # en biais depuis le trottoir : façades de bois, cerisiers
+    "revers": ((0, 8, -120), (0, 30, 0), 70),          # le grand mur blanc vu de l'intérieur, au-dessus du faubourg
     "cite": ((4, 8, -192), (0, 22, -380), 70),         # allée entre les murs blancs, passerelle, colline
-    "tours": ((10, 9, -250), (0, 36, -330), 72),       # passerelle laquée et tours blanches
+    "tours": ((10, 9, -238), (0, 38, -330), 72),       # passerelle laquée et tours blanches (entière dans le cadre)
     "place": ((18, 12, -378), (0, 52, -520), 72),      # cour des œufs, colline, tour et monolithe
     "retour": ((-4, 9, -444), (0, 16, 0), 70),         # demi-tour vers la base
     "cote": ((-320, 180, -100), (0, 10, -290), 45),
@@ -56,7 +57,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,faubourg,cite,tours,place,retour,cote,colline,plan")
+    ap.add_argument("--vues", default="aerienne,entree,faubourg,revers,cite,tours,place,retour,cote,colline,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -105,7 +106,11 @@ def main() -> None:
                 cam.data.type = "ORTHO"
                 cam.data.ortho_scale = 610
                 cam.data.clip_end = 2000
+                ms = bpy.context.scene.world.mist_settings
+                debut = ms.start
+                ms.start = 5000.0           # pas de brume sur le plan vu de très haut (image délavée sinon)
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
+                ms.start = debut
             else:
                 pos, tgt, fov = VUES[name]
                 cam = bs.add_camera(name, pos, tgt, fov=fov)

@@ -9,6 +9,8 @@
 - `pagode`         : pagode à étages qui rétrécissent, flèche dorée en disques.
 
 Repère : origine au centre de l'emprise au sol (y = 0), avant vers -Z local.
+Couloir élargi (|x| < 45) : la porte est paramétrée par `ouverture` (92 par défaut) ; sous y = 30, rien n'est posé
+à |x| < ouverture/2 (socles compris), et tout ce qui passe au-dessus du couloir est à y ≥ 34.
 Toits chinois : avant-toit sombre, jupe peu pentue puis pignon plus raide (courbe creuse), coins relevés
 faits de petits coins (wedges) montants, faîtage doré et ornements d'extrémité génériques (crosses).
 Propriété intellectuelle : textes autorisés seulement (武, 道場, 修行, 武道, 気, 天), aucune sphère orange,
@@ -69,7 +71,7 @@ def _toit(b, x0, x1, z0, z1, y, *, a=3.0, ax=None, h1=1.0, h2=2.0, ep=0.7, tuile
           claire=None, dessous="laque_rouge_fonce", faitage="or", ornement=None, pignon="laque_rouge",
           hanches=(True, True), releve=1.8, l_releve=4.5, cornes=(True, True), deb_g=0.6,
           ornements=(True, True), epi=False, aretiers=True, rng=None, medaillon="or", rive=True,
-          h_orn=1.5, rd=0.7, pignon_bouts=False, pointes=True) -> dict:
+          h_orn=1.5, rd=0.7, pignon_bouts=False, pointes=True, chevrons=None) -> dict:
     """Toit chinois sur l'avant-toit (x0..x1, z0..z1) dont le dessous est à y.
 
     - plaque d'avant-toit sombre (épaisseur `ep`) et sous-face peinte (`dessous`) ;
@@ -77,7 +79,9 @@ def _toit(b, x0, x1, z0, z1, y, *, a=3.0, ax=None, h1=1.0, h2=2.0, ep=0.7, tuile
       `hanches` = (bout x0, bout x1) : False → le bout est coupé net (il bute contre un pilier ou un mur) ;
     - si h2 > 0 : pignon central plus raide (courbe creuse), triangles de pignon (`pignon`), faîtage
       (`faitage`) et crosses d'extrémité (`ornements`) ; sinon le cœur plat reçoit des studs ;
-    - coins relevés : deux petits coins montants qui se croisent à chaque angle (`cornes` par bout).
+    - coins relevés : deux petits coins montants qui se croisent à chaque angle (`cornes` par bout) ;
+    - `chevrons` (couleur) : bande de chevrons peints sous l'égout, en retrait du bord, avec un filet doré :
+      vue d'en bas, elle détache la ligne de l'avant-toit.
     Renvoie les cotes utiles (haut de jupe, faîtage, sommet)."""
     T, F = _col(tuile), _col(fonce) or shade(_col(tuile), 0.78)
     Cl = _col(claire) or shade(T, 1.22)
@@ -90,6 +94,21 @@ def _toit(b, x0, x1, z0, z1, y, *, a=3.0, ax=None, h1=1.0, h2=2.0, ep=0.7, tuile
         b.box((x0, y, z0), (x1, y + ep, z1), F, name="Avant_toit")
         if dessous is not None:
             b.box((x0 + 0.4, y - 0.25, z0 + 0.4), (x1 - 0.4, y, z1 - 0.4), _col(dessous), name="Sous_face")
+    if chevrons is not None and ep > 0:
+        # chevrons peints : bande verte sous l'égout (devant, derrière et bouts à croupe), filet doré au bord
+        hc, rc = 0.6, 1.4
+        for zc, sz in ((z0, 1), (z1, -1)):
+            za_, zb_ = sorted((zc + sz * 0.5, zc + sz * rc))
+            b.box((x0 + 0.5, y - hc, za_), (x1 - 0.5, y, zb_), _col(chevrons), collide=False, shadow=False,
+                  name="Chevrons")
+            za_, zb_ = sorted((zc + sz * 0.4, zc + sz * 0.8))
+            b.box((x0 + 0.4, y - hc - 0.2, za_), (x1 - 0.4, y - hc + 0.15, zb_), c("or"), collide=False,
+                  shadow=False, name="Filet_chevrons")
+        for xc, sx, hip in ((x0, 1, hanches[0]), (x1, -1, hanches[1])):
+            if hip:
+                xa_, xb_ = sorted((xc + sx * 0.5, xc + sx * rc))
+                b.box((xa_, y - hc, z0 + rc), (xb_, y, z1 - rc), _col(chevrons), collide=False, shadow=False,
+                      name="Chevrons")
     ys = y + ep
     xi0 = x0 + ax if hx0 else x0
     xi1 = x1 - ax if hx1 else x1
@@ -107,7 +126,7 @@ def _toit(b, x0, x1, z0, z1, y, *, a=3.0, ax=None, h1=1.0, h2=2.0, ep=0.7, tuile
         # rang de tuiles de rive : liseré clair au bord de l'avant-toit, qui dessine l'égout vu d'en bas
         for zc, sz in ((z0, -1), (z1, 1)):
             za_, zb_ = sorted((zc + sz * 0.15, zc - sz * 0.6))
-            b.box((x0, ys - 0.35, za_), (x1, ys + 0.2, zb_), Cl, collide=False, name="Rive")
+            b.box((x0 - 0.1, ys - 0.35, za_), (x1 + 0.1, ys + 0.2, zb_), Cl, collide=False, name="Rive")
         for xc, sx, hip in ((x0, -1, hx0), (x1, 1, hx1)):
             if hip:
                 xa_, xb_ = sorted((xc + sx * 0.15, xc - sx * 0.6))
@@ -140,8 +159,8 @@ def _toit(b, x0, x1, z0, z1, y, *, a=3.0, ax=None, h1=1.0, h2=2.0, ep=0.7, tuile
                 if not hip and not pignon_bouts:
                     continue
                 xa_, xb_ = sorted((xe + s * 0.15, xe - s * 0.3))
-                b.wedge((xa_, ya, zi0 + d), (xb_, ya + hr, zm), P, down="-z", name="Pignon")
-                b.wedge((xa_, ya, zm), (xb_, ya + hr, zi1 - d), P, down="+z", name="Pignon")
+                b.wedge((xa_, ya + 0.1, zi0 + d), (xb_, ya + hr, zm), P, down="-z", name="Pignon")
+                b.wedge((xa_, ya + 0.1, zm), (xb_, ya + hr, zi1 - d), P, down="+z", name="Pignon")
                 if medaillon and hr > 1.4:
                     r_ = min(0.75, hr * 0.28)
                     xm_a, xm_b = sorted((xe + s * 0.15, xe + s * 0.35))
@@ -215,7 +234,8 @@ def _dougong(b, x, y, zf, s, *, h=1.8, larg=1.0, saillie=2.0):
     for k, (col, w, d) in enumerate(((VERT_PEINT, larg * 0.6, saillie * 0.45), (c("laque_rouge"), larg * 1.35, saillie * 0.72),
                                       (c("or"), larg * 0.8, saillie))):
         za, zb = sorted((zf - s * 0.2, zf + s * d))
-        b.box((x - w, y + k * e, za), (x + w, y + (k + 1) * e, zb), col, collide=False, name="Dougong")
+        b.box((x - w, y + k * e + (0.05 if k == 0 else 0.0), za), (x + w, y + (k + 1) * e, zb), col, collide=False,
+              name="Dougong")
 
 
 def _lanterne(b, x, y_haut, z, *, r=1.0, h=2.0, corps="laque_rouge"):
@@ -267,10 +287,11 @@ def _fenetre_treillis(b, x, y0, w, h, zf, s, *, cadre="laque_rouge", fond=None, 
     za3, zb3 = sorted((zf - s * 0.1, zf + s * 0.45))
     for i in range(n):
         xx = x - w / 2 + (i + 1) * w / (n + 1)
-        b.box((xx - 0.12, y0, za3), (xx + 0.12, y0 + h, zb3), _col(barreaux), collide=False, shadow=False, name="Barreau")
+        b.box((xx - 0.12, y0 + 0.1, za3), (xx + 0.12, y0 + h - 0.1, zb3), _col(barreaux), collide=False, shadow=False,
+              name="Barreau")
     if traverse:
-        b.box((x - w / 2, y0 + h / 2 - 0.12, za3), (x + w / 2, y0 + h / 2 + 0.12, zb3), _col(barreaux), collide=False,
-              shadow=False, name="Barreau")
+        b.box((x - w / 2 + 0.1, y0 + h / 2 - 0.12, za3), (x + w / 2 - 0.1, y0 + h / 2 + 0.12, zb3), _col(barreaux),
+              collide=False, shadow=False, name="Barreau")
 
 
 def _plaque(b, x, y0, w, h, zf, s, texte, *, fond="encre", encre="or", cadre="or", vertical=False, marge=0.5):
@@ -279,7 +300,7 @@ def _plaque(b, x, y0, w, h, zf, s, texte, *, fond="encre", encre="or", cadre="or
     za, zb = sorted((zf - s * 0.1, zf + s * 0.5))
     b.box((x - w / 2 - marge, y0 - marge, za), (x + w / 2 + marge, y0 + h + marge, zb), _col(cadre), collide=False,
           name="Cadre_plaque")
-    za2, zb2 = sorted((zf - s * 0.1, zf + s * 0.7))
+    za2, zb2 = sorted((zf, zf + s * 0.7))
     p = b.box((x - w / 2, y0, za2), (x + w / 2, y0 + h, zb2), _col(fond), collide=False, name="Plaque")
     p.label = {"face": "Front" if s < 0 else "Back", "text": _texte(texte), "color": _col(encre), "font": "brush",
                "vertical": vertical}
@@ -299,13 +320,15 @@ STYLES_PORTE = [
 ]
 
 
-def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
+def porte_temple(b, variant=0, ouverture=92, hauteur=50, mur=124) -> dict:
     """Grande porte de temple (paifang à trois travées) qui enjambe le couloir en z = 0.
 
-    Deux énormes piliers ronds rouges (faces intérieures à |x| = ouverture/2) sur socles de pierre et tambours,
-    linteaux rouges et dorés, consoles dougong, plaque 武道 sur les deux faces, toit central surélevé et deux
-    toits latéraux à coins relevés ; travées latérales murées à toit plus bas (|x| 44..56), puis murs blancs à
-    chaperon de tuiles orange jusqu'à |x| = mur. Au-dessus du couloir, tout est à y ≥ 34."""
+    Deux énormes piliers ronds rouges sur socles de pierre et tambours : tout ce qui touche le sol reste à
+    |x| ≥ ouverture/2 (socles compris), le fût commence un stud plus loin. Linteaux rouges et dorés, consoles
+    dougong, plaque 武道 sur les deux faces, toit central surélevé et deux toits latéraux à coins relevés ;
+    travées latérales murées à toit plus bas (12 studs après les piliers), puis murs blancs à chaperon de tuiles
+    jusqu'à |x| = mur. Au-dessus du couloir, tout est à y ≥ 34. Les cotes en x dérivent toutes de `ouverture`
+    (92 pour le couloir de 90 studs ; 76 pour l'ancien couloir de 64)."""
     rng = b.rng
     st = STYLES_PORTE[variant % len(STYLES_PORTE)]
     H = float(hauteur)
@@ -314,20 +337,29 @@ def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
     Rf = c(st["faitage"])
     pil = c(st["pilier"])
     rouge, rouge_f, orr = c("laque_rouge"), c("laque_rouge_fonce"), c("or")
-    xo = ouverture / 2                 # 38 : faces intérieures des piliers
+    xo = ouverture / 2                 # 46 : rien sous y = 30 en deçà (socles compris)
     rp = 3.0
-    xp = xo + rp                       # 41 : axe des piliers
-    xe = xp + rp                       # 44 : faces extérieures
+    xp = xo + 1.0 + rp                 # 50 : axe des piliers
+    xe = xp + rp                       # 53 : faces extérieures des fûts
+    xc = round(0.5 * xo + 1.5, 1)      # 24,5 : demi-largeur du panneau central (toit central = xc + 4)
+    wp = min(19.0, round(15.0 * xo / 38, 1))   # largeur de la plaque 武道
+    hp = min(7.6, round(wp * 0.42, 1))
     toit_kw = dict(tuile=tuile, faitage=st["faitage"], ornement=st["faitage"], rng=rng)
 
-    # cotes verticales (au-dessus du couloir : tout au-dessus de 34)
+    # cotes verticales (au-dessus du couloir : tout au-dessus de 34). La hauteur libre au-dessus des consoles
+    # se partage entre les toits latéraux et le toit central : plus `hauteur` est grand, plus les toits sont raides.
     y_l1 = 34.2                        # linteau bas
-    y_fr = y_l1 + 1.8                  # frise
-    y_l2 = y_fr + 1.2                  # linteau haut
-    y_pl = y_l2 + 1.8                  # plate-bande dorée
-    y_dg = y_pl + 0.5                  # consoles
-    y_tl = y_dg + 1.5                  # avant-toit des toits latéraux (≈ 41)
-    y_tc = H - 4.8                     # avant-toit du toit central (≈ 45.2), au-dessus des faîtages latéraux
+    y_fr = y_l1 + 1.6                  # frise
+    y_l2 = y_fr + 0.9                  # linteau haut
+    y_pl = y_l2 + 1.4                  # plate-bande dorée
+    y_dg = y_pl + 0.4                  # consoles
+    y_tl = y_dg + 1.2                  # avant-toit des toits latéraux (≈ 39.7)
+    ep_l, h1_l = 1.1, 1.1              # toits latéraux : avant-toit, jupe
+    ep_c, h1_c, orn_c = 1.1, 1.0, 0.9  # toit central
+    libre = H - y_tl - (ep_l + h1_l + 0.5 + 0.1) - (ep_c + h1_c + 0.5 + orn_c)
+    h2_l = max(1.2, libre * 0.58)      # pignon des toits latéraux
+    h2_c = max(1.0, libre - h2_l)      # pignon du toit central (plus étroit, donc aussi raide)
+    y_tc = y_tl + ep_l + h1_l + h2_l + 0.5 + 0.1   # avant-toit central, juste au-dessus des faîtages latéraux
 
     with b.group("Piliers"):
         for s in (-1, 1):
@@ -366,7 +398,7 @@ def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
         n = int((2 * L - 4) // 4)
         for i in range(n + 1):
             xx = -L + 2 + i * (2 * L - 4) / n
-            if abs(xx) < 9.5:
+            if abs(xx) < wp / 2 + 2.0:
                 continue
             b.cyl((xx, (y_fr + y_l2) / 2, 0), 0.5, 3.8, orr, axis="z", collide=False, shadow=False, name="Rosace")
         b.box((-L, y_l2, -2.4), (L, y_pl, 2.4), rouge, name="Linteau")
@@ -378,51 +410,52 @@ def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
                 b.box((xa_, y0_ + 0.2, -2.0), (xb_, y1_ - 0.2, 2.0), orr, collide=False, name="Bout")
         # panneau de fond des consoles (on ne voit pas le ciel entre elles)
         b.box((-xe - 2, y_dg, -1.2), (xe + 2, y_tl, 1.2), rouge_f, name="Fond_consoles")
+        xd0, xd1 = xc + 2.3, xe + 0.3
+        nd = max(1, round((xd1 - xd0) / 5.0))
         for s in (-1, 1):
-            for k in range(6):
-                x = s * (22.8 + k * 4.3)
+            for k in range(nd + 1):
+                x = s * (xd0 + k * (xd1 - xd0) / nd)
                 for sz in (-1, 1):
                     _dougong(b, x, y_dg, sz * 2.6, sz, h=y_tl - y_dg, larg=0.9, saillie=2.6)
 
     with b.group("Plaque"):
-        xc = 20.5
         b.box((-xc, y_l2, -1.8), (xc, y_tc, 1.8), rouge, name="Panneau_central")
         b.box((-xc - 0.2, y_tc - 1.9, -2.0), (xc + 0.2, y_tc - 1.5, 2.0), orr, collide=False, name="Filet")
         for sz in (-1, 1):
-            _plaque(b, 0, y_l1 + 1.0, 15.0, 6.6, sz * 2.2, sz, "武道", fond="encre", encre="or", cadre="or")
-            for x in (-18.0, -13.5, 13.5, 18.0):
+            _plaque(b, 0, y_l1 + 0.8, wp, hp, sz * 2.2, sz, "武道", fond="encre", encre="or", cadre="or")
+            for x in (-(xc - 2.5), -(xc - 7.0), xc - 7.0, xc - 2.5):
                 _dougong(b, x, y_tc - 1.6, sz * 1.8, sz, h=1.6, larg=0.85, saillie=2.4)
 
     with b.group("Toits"):
-        # toit central surélevé (son sommet atteint H) : plus profond que les toits latéraux
-        ep_c, h1_c, orn_c = 1.0, 0.8, 1.4
-        _toit(b, -24.5, 24.5, -6.8, 6.8, y_tc, a=2.8, ax=3.2, h1=h1_c, h2=H - y_tc - ep_c - h1_c - 0.5 - orn_c,
-              ep=ep_c, releve=2.1, l_releve=5.2, h_orn=orn_c, **toit_kw)
+        # toit central surélevé (son sommet atteint H) : plus étroit en z, donc plus raide
+        _toit(b, -(xc + 4), xc + 4, -6.2, 6.2, y_tc, a=2.6, ax=3.2, h1=h1_c, h2=h2_c, ep=ep_c, releve=2.4,
+              l_releve=6.0, h_orn=orn_c, rd=0.6, chevrons=VERT_PEINT, **toit_kw)
         # toits latéraux : le bout intérieur glisse sous l'avant-toit central (faîtage plus bas que lui)
         for s in (-1, 1):
-            xa_, xb_ = sorted((s * 20.0, s * 52))
-            _toit(b, xa_, xb_, -6.6, 6.6, y_tl, a=2.9, ax=3.2, h1=0.9, h2=H - 4.8 - y_tl - 1.0 - 0.9 - 0.75,
-                  ep=1.0, releve=2.1, l_releve=5.2, rd=0.6, h_orn=1.8,
-                  hanches=(s < 0, s > 0), cornes=(s < 0, s > 0), ornements=(s < 0, s > 0), **toit_kw)
+            xa_, xb_ = sorted((s * (xc - 0.5), s * (xe + 8)))
+            _toit(b, xa_, xb_, -6.6, 6.6, y_tl, a=2.9, ax=3.2, h1=h1_l, h2=h2_l, ep=ep_l, releve=3.0, l_releve=6.5,
+                  rd=0.6, h_orn=1.8, hanches=(s < 0, s > 0), cornes=(s < 0, s > 0), ornements=(s < 0, s > 0),
+                  chevrons=VERT_PEINT, **toit_kw)
 
     # travées latérales murées sous un toit plus bas
-    xs = 55.0                          # axe des piliers secondaires
+    xs = xe + 11.0                     # axe des piliers secondaires
     y_ls = 19.0
     with b.group("Travees"):
         for s in (-1, 1):
             x = s * xs
             b.box((x - 2.4, 0, -2.4), (x + 2.4, 1.6, 2.4), c("pierre_fonce"), studs="top", name="Socle")
-            b.box((x - 1.6, 1.6, -1.6), (x + 1.6, y_ls, 1.6), pil, name="Pilier")
-            b.box((x - 1.75, 3.0, -1.75), (x + 1.75, 3.8, 1.75), c(st["bague"]), collide=False, name="Bague")
-            xa_, xb_ = sorted((s * (xe - 1.0), s * (xs - 1.6)))
+            b.box((x - 1.6, 1.6, -1.7), (x + 1.6, y_ls, 1.7), pil, name="Pilier")
+            b.box((x - 1.75, 3.0, -1.85), (x + 1.75, 3.8, 1.85), c(st["bague"]), collide=False, name="Bague")
+            xa_, xb_ = sorted((s * (xe - 1.0), s * (xs - 2.4)))
             b.box((xa_, 0, -2.0), (xb_, 1.6, 2.0), c("pierre"), studs="top", name="Soubassement")
+            xa_, xb_ = sorted((s * (xe - 1.0), s * (xs - 1.6)))
             b.box((xa_, 1.6, -1.3), (xb_, y_ls, 1.3), vary("enduit", rng, 0.02), name="Mur")
             _fenetre_lune(b, s * (xe + xs - 1.6) / 2, 10.0, 3.0, 1.3)
             xa_, xb_ = sorted((s * (xe - 1.0), s * (xs + 1.8)))
             b.box((xa_, y_ls, -1.8), (xb_, y_ls + 2.2, 1.8), rouge, name="Linteau")
-            b.box((xa_, y_ls + 0.8, -1.9), (xb_, y_ls + 1.3, 1.9), orr, collide=False, name="Filet")
+            b.box((xa_ - 0.1, y_ls + 0.8, -1.9), (xb_ + 0.1, y_ls + 1.3, 1.9), orr, collide=False, name="Filet")
             b.box((xa_, y_ls + 2.2, -2.1), (xb_, y_ls + 2.6, 2.1), orr, name="Plate_bande")
-            for xx in (s * 47.5, s * 51.5):
+            for xx in (s * (xe + 3.5), s * (xe + 7.5)):
                 for sz in (-1, 1):
                     _dougong(b, xx, y_ls + 2.6, sz * 2.1, sz, h=1.5, larg=0.8, saillie=2.2)
             b.box((xa_, y_ls + 2.6, -1.0), (xb_, y_ls + 4.1, 1.0), rouge_f, name="Fond_consoles")
@@ -436,12 +469,12 @@ def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
                 b.box((xa2 - 0.1, r["ya"] + 2.0, -2.3), (xb2 + 0.1, r["ya"] + 2.5, 2.3), orr, collide=False, name="Filet")
                 xa3, xb3 = sorted((s * (xe + 0.5), s * (xs + 2.5)))
                 _toit(b, xa3, xb3, -4.4, 4.4, r["ya"] + 3.2, a=2.2, ax=2.2, h1=0.7, h2=1.6, ep=0.5, releve=1.0,
-                      l_releve=2.6, **toit_kw)
+                      l_releve=2.6, aretiers=False, rive=False, **toit_kw)
 
-    # murs d'enceinte blancs à chaperon de tuiles, fenêtres lune / treillis, contreforts
+    # murs d'enceinte blancs à chaperon de tuiles, fenêtres lune / treillis tous les ~16 studs, contreforts
     with b.group("Murs"):
         x_debut = xs + 1.0
-        n_seg = max(1, round((mur - x_debut) / 17))
+        n_seg = max(1, round((mur - x_debut) / 16))
         pas = (mur - x_debut) / n_seg
         hm = 9.4
         for s in (-1, 1):
@@ -449,7 +482,9 @@ def porte_temple(b, variant=0, ouverture=76, hauteur=50, mur=124) -> dict:
                 xa_, xb_ = sorted((s * (x_debut + k * pas), s * (x_debut + (k + 1) * pas)))
                 b.box((xa_, 0, -2.0), (xb_, 1.0, 2.0), vary("pierre_fonce", rng, 0.04), studs="top", name="Soubassement")
                 b.box((xa_, 1.0, -1.5), (xb_, hm, 1.5), vary("enduit", rng, 0.02), name="Mur")
-                b.box((xa_, hm - 1.0, -1.6), (xb_, hm - 0.4, 1.6), rouge, collide=False, name="Bandeau")
+                fa = 0.1 if (k == n_seg - 1 and s < 0) else 0.0
+                fb = 0.1 if (k == n_seg - 1 and s > 0) else 0.0
+                b.box((xa_ + fa, hm - 1.0, -1.6), (xb_ - fb, hm - 0.4, 1.6), rouge, collide=False, name="Bandeau")
                 ea = 0.05 if (k > 0 or s > 0) and not (k == n_seg - 1 and s < 0) else 0.0
                 eb = 0.05 if (k > 0 or s < 0) and not (k == n_seg - 1 and s > 0) else 0.0
                 b.box((xa_ - ea, hm, -2.6), (xb_ + eb, hm + 0.6, 2.6), shade(T, 0.78), name="Chaperon")
@@ -528,77 +563,89 @@ def _balustrade(b, a, bb, y, *, pas=3.4, h=1.6, poteau="pierre_claire", lisse="p
 def statue_gardien(b, variant=0) -> dict:
     """Lion gardien chinois de pierre (shishi), assis sur un haut socle, tourné vers -Z.
 
-    variant 0 : patte avant posée sur une boule de pierre ; 1 : patte sur un lionceau ;
+    Marbre crème chaud (pas de gris froid), crinière sable doré en cadre autour de la face avec des boucles,
+    dos en pente, collier rouge à grelot doré, yeux dorés, coussin rouge sur le socle.
+    variant 0 : patte avant droite sur une boule de pierre ; 1 : patte gauche sur un lionceau ;
     2 : gueule ouverte et crinière plus grosse ; 3 : boule de pierre et gueule ouverte."""
     v = variant % 4
-    p, pc, pf = c("pierre"), c("pierre_claire"), c("pierre_fonce")
-    lion = mix(pc, c("sable"), 0.35)                  # pierre chaude, lisible sur le socle gris
-    lion_f = shade(lion, 0.86)
-    crin = mix(pf, c("ocre_fonce"), 0.25)             # crinière plus sombre : elle encadre la face
-    boucle = shade(crin, 1.12)
+    pf = c("pierre_fonce")
+    socle = mix(c("pierre_claire"), c("sable"), 0.25)    # pierre claire chaude
+    socle_f = mix(pf, c("sable_fonce"), 0.3)
+    lion = mix(c("blanc"), c("sable"), 0.35)            # marbre crème
+    lion_f = shade(lion, 0.88)
+    crin = mix(c("sable_fonce"), c("ocre"), 0.45)       # crinière sable doré : elle encadre la face
+    boucle = shade(crin, 1.15)
     with b.group("Socle"):
-        b.box((-3.4, 0, -4.4), (3.4, 0.8, 4.4), pf, studs="top", name="Base")
-        b.box((-3.0, 0.8, -4.0), (3.0, 3.6, 4.0), p, name="De")
-        b.box((-2.3, 1.4, -4.15), (2.3, 3.0, 3.6), pf, collide=False, name="Panneau")
-        b.box((-3.3, 3.6, -4.3), (3.3, 4.2, 4.3), pc, studs="top", name="Corniche")
-        b.box((-2.7, 4.2, -3.7), (2.7, 4.6, 3.5), c("laque_rouge"), studs="top", name="Coussin")
-        b.box((-2.8, 4.25, -3.8), (2.8, 4.45, 3.6), c("or"), collide=False, name="Galon")
-    y0 = 4.6
+        b.box((-3.4, 0, -4.4), (3.4, 0.8, 4.4), socle_f, studs="top", name="Base")
+        b.box((-3.0, 0.8, -4.0), (3.0, 3.4, 4.0), socle, name="De")
+        b.box((-2.3, 1.3, -4.15), (2.3, 2.9, 3.6), c("laque_rouge_fonce"), collide=False, name="Panneau")
+        b.box((-3.3, 3.4, -4.3), (3.3, 3.9, 4.3), socle_f, studs="top", name="Corniche")
+        b.box((-2.8, 3.9, -3.9), (2.8, 4.2, 3.7), c("laque_rouge"), studs="top", name="Coussin")
+        b.box((-2.9, 3.95, -4.0), (2.9, 4.1, 3.8), c("or"), collide=False, name="Galon")
+    y0 = 4.2
     big = v in (2, 3)
-    with b.group("Lion"):
-        b.box((-2.2, y0, 0.0), (2.2, y0 + 2.6, 3.3), lion, name="Arriere_train")
+    with b.at((0, 0, 0.25), group="Lion"):       # lion recentré sur le socle (museau devant, queue derrière)
+        # corps : arrière-train assis, dos en pente, poitrail droit
+        b.box((-2.1, y0, -1.3), (2.1, y0 + 2.6, 3.2), lion, name="Arriere_train")
+        b.wedge((-2.0, y0 + 2.6, -0.2), (2.0, y0 + 5.4, 2.8), crin, down="+z", name="Criniere_dos")
         for sx in (-1, 1):
-            xa_, xb_ = sorted((sx * 1.2, sx * 2.45))
-            b.box((xa_, y0, -1.1), (xb_, y0 + 1.0, 0.6), lion_f, name="Patte_arriere")
-        b.box((-1.8, y0 + 1.8, -2.2), (1.8, y0 + 4.6, 1.6), lion, name="Poitrail")
+            xa_, xb_ = sorted((sx * 1.3, sx * 2.45))
+            b.box((xa_, y0, -1.2), (xb_, y0 + 1.0, 0.6), lion_f, name="Patte_arriere")
+        b.box((-1.75, y0 + 1.4, -2.4), (1.75, y0 + 4.6, 0.6), lion, name="Poitrail")
         # pattes avant ; la patte +x (v 0, 3) se pose sur une boule, la patte -x (v 1) sur un lionceau
         for sx in (-1, 1):
-            xa_, xb_ = sorted((sx * 0.45, sx * 1.85))
+            xa_, xb_ = sorted((sx * 0.4, sx * 1.75))
             leve = (sx > 0 and v in (0, 3)) or (sx < 0 and v == 1)
             yb = y0 + (2.1 if leve else 0.0)
-            b.box((xa_, yb + 0.6, -2.7), (xb_, y0 + 3.6, -1.3), lion, name="Patte_avant")
-            pa, pb = sorted((sx * 0.35, sx * 2.0))
-            b.box((pa, yb, -3.7), (pb, yb + 0.8, -2.2), lion_f, name="Patte")
+            b.box((xa_, yb + 0.6, -2.8), (xb_, y0 + 3.6, -1.4), lion, name="Patte_avant")
+            pa, pb = sorted((sx * 0.3, sx * 1.95))
+            b.box((pa, yb, -3.8), (pb, yb + 0.8, -2.3), lion_f, name="Patte")
         if v in (0, 3):
-            b.ball((1.2, y0 + 1.05, -3.0), 1.1, c("rocher_clair"), name="Boule_pierre")
+            b.ball((1.15, y0 + 1.05, -3.05), 1.05, c("rocher_clair"), name="Boule_pierre")
         if v == 1:
-            b.box((-2.5, y0, -4.1), (-0.3, y0 + 1.1, -2.3), lion, name="Lionceau")
-            b.box((-2.2, y0 + 0.5, -4.35), (-0.9, y0 + 1.8, -3.3), lion_f, name="Lionceau_tete")
-            b.box((-2.35, y0 + 1.1, -3.6), (-0.75, y0 + 2.05, -3.1), crin, collide=False, name="Lionceau_criniere")
-        # crinière qui encadre la face, tête, boucles
-        mx = 2.95 if big else 2.7
+            b.box((-2.6, y0, -4.2), (-0.35, y0 + 1.0, -2.3), lion, name="Lionceau")
+            b.box((-2.3, y0 + 0.4, -4.45), (-0.8, y0 + 1.7, -3.3), lion_f, name="Lionceau_tete")
+            b.box((-2.45, y0 + 1.1, -3.5), (-0.65, y0 + 2.0, -3.0), crin, collide=False, name="Lionceau_criniere")
+        # crinière en cadre autour de la face, boucles, oreilles
+        mx = 3.0 if big else 2.75
         mt = y0 + (7.9 if big else 7.6)
-        b.box((-mx, y0 + 3.4, -2.5), (mx, mt, 1.2), crin, name="Criniere")
-        b.box((-2.2, y0 + 2.6, 1.2), (2.2, y0 + 6.4, 2.1), crin, name="Criniere_dos")
-        b.box((-1.9, y0 + 4.3, -3.5), (1.9, y0 + 7.2, -2.3), lion, name="Tete")
-        for x in (-1.15, 0.0, 1.15):
-            b.box((x - 0.48, y0 + 7.15, -3.3), (x + 0.48, y0 + 7.85, -2.3), boucle, collide=False, name="Boucle")
+        b.box((-mx, y0 + 3.5, -2.7), (mx, mt, 0.2), crin, name="Criniere")
+        for x in (-1.3, 0.0, 1.3):
+            b.box((x - 0.55, mt, -2.5), (x + 0.55, mt + 0.6, -0.2), boucle, collide=False, name="Boucle")
         for sx in (-1, 1):
-            for yy in (y0 + 4.0, y0 + 5.5):
-                xa_, xb_ = sorted((sx * 2.0, sx * (mx - 0.1)))
-                b.box((xa_, yy, -2.8), (xb_, yy + 0.95, -2.45), boucle, collide=False, name="Boucle")
-        b.box((-1.3, y0 + 4.3, -4.1), (1.3, y0 + 5.6, -3.4), lion, name="Museau")
-        b.box((-0.85, y0 + 5.2, -4.25), (0.85, y0 + 5.85, -3.9), crin, collide=False, name="Nez")
+            for yy in (y0 + 4.0, y0 + 5.7):
+                xa_, xb_ = sorted((sx * (mx - 0.2), sx * (mx + 0.35)))
+                b.box((xa_, yy, -2.4), (xb_, yy + 1.1, -0.4), boucle, collide=False, name="Boucle")
+            xa_, xb_ = sorted((sx * 1.5, sx * 2.4))
+            b.box((xa_, mt - 0.9, -3.1), (xb_, mt - 0.1, -2.6), lion_f, collide=False, name="Oreille")
+        # face, front, museau
+        b.box((-2.0, y0 + 4.3, -3.7), (2.0, y0 + 7.1, -2.6), lion, name="Tete")
+        b.box((-1.95, y0 + 6.5, -3.95), (1.95, y0 + 7.05, -3.6), crin, collide=False, name="Sourcils")
+        b.box((-1.35, y0 + 4.2, -4.5), (1.35, y0 + 5.6, -3.6), lion, name="Museau")
+        b.box((-0.8, y0 + 5.2, -4.65), (0.8, y0 + 5.85, -4.35), crin, collide=False, name="Nez")
         if big:
-            b.box((-1.05, y0 + 4.25, -4.15), (1.05, y0 + 5.05, -3.6), c("laque_rouge_fonce"), collide=False, name="Gueule")
+            b.box((-1.05, y0 + 4.25, -4.62), (1.05, y0 + 5.0, -4.45), c("laque_rouge_fonce"), collide=False,
+                  name="Gueule")
             for sx in (-1, 1):
                 xa_, xb_ = sorted((sx * 0.45, sx * 0.85))
-                b.box((xa_, y0 + 4.7, -4.25), (xb_, y0 + 5.05, -3.95), c("blanc"), collide=False, shadow=False, name="Croc")
+                b.box((xa_, y0 + 4.65, -4.72), (xb_, y0 + 4.92, -4.55), c("blanc"), collide=False, shadow=False,
+                      name="Croc")
         else:
-            b.box((-0.95, y0 + 4.5, -4.15), (0.95, y0 + 4.8, -3.95), c("laque_rouge_fonce"), collide=False, name="Bouche")
+            b.box((-1.0, y0 + 4.5, -4.62), (1.0, y0 + 4.78, -4.45), c("laque_rouge_fonce"), collide=False,
+                  name="Bouche")
         for sx in (-1, 1):
-            xa_, xb_ = sorted((sx * 0.4, sx * 1.4))
-            b.box((xa_, y0 + 5.9, -3.65), (xb_, y0 + 6.6, -3.4), c("or"), collide=False, shadow=False, name="Oeil")
-            xa_, xb_ = sorted((sx * 0.65, sx * 1.05))
-            b.box((xa_, y0 + 6.0, -3.72), (xb_, y0 + 6.45, -3.55), c("encre"), collide=False, shadow=False, name="Pupille")
-        b.box((-1.85, y0 + 6.6, -3.75), (1.85, y0 + 7.15, -3.3), crin, collide=False, name="Sourcils")
+            xa_, xb_ = sorted((sx * 0.45, sx * 1.4))
+            b.box((xa_, y0 + 5.85, -3.85), (xb_, y0 + 6.45, -3.6), c("or"), collide=False, shadow=False, name="Oeil")
+            xa_, xb_ = sorted((sx * 0.7, sx * 1.1))
+            b.box((xa_, y0 + 5.95, -3.95), (xb_, y0 + 6.35, -3.8), c("encre"), collide=False, shadow=False,
+                  name="Pupille")
         # collier rouge et grelot doré
-        b.box((-1.95, y0 + 3.75, -2.35), (1.95, y0 + 4.25, 1.4), c("laque_rouge"), collide=False, name="Collier")
-        b.cyl((0, y0 + 3.45, -2.5), 0.5, 0.6, c("or"), axis="z", collide=False, shadow=False, name="Grelot")
+        b.box((-1.9, y0 + 3.7, -2.55), (1.9, y0 + 4.2, 0.7), c("laque_rouge"), collide=False, name="Collier")
+        b.cyl((0, y0 + 3.4, -2.7), 0.5, 0.6, c("or"), axis="z", collide=False, shadow=False, name="Grelot")
         # queue en panache
-        b.box((-0.6, y0 + 1.8, 3.2), (0.6, y0 + 5.0, 4.0), crin, name="Queue")
-        b.box((-0.95, y0 + 4.6, 2.5), (0.95, y0 + 5.9, 4.15), boucle, collide=False, name="Panache")
-    return {"emprise": (6.8, 8.8), "hauteur": round(mt - 0.0, 2) if mt > y0 + 7.85 else round(y0 + 7.85, 2)}
+        b.box((-0.6, y0 + 1.6, 3.2), (0.6, y0 + 4.4, 3.9), crin, name="Queue")
+        b.box((-1.0, y0 + 4.0, 2.6), (1.0, y0 + 5.4, 4.2), boucle, collide=False, name="Panache")
+    return {"emprise": (6.8, 8.95), "hauteur": round(mt + 0.6, 2)}
 
 
 # ---------------------------------------------------------------------------
@@ -613,9 +660,10 @@ STYLES_TEMPLE = [
 ]
 
 
-def _tour(b, x, z, w, d, y0, h, toit_kw, *, rng=None, fenetres_x=0):
+def _tour(b, x, z, w, d, y0, h, toit_kw, *, rng=None, fenetres_x=0, banniere=None):
     """Tour d'angle (pavillon) : murs blancs à poteaux rouges, fenêtres rondes, toit en pavillon à deux jupes
-    et épi doré. fenetres_x = côté (±1) qui reçoit aussi des fenêtres sur la face x (0 : aucune)."""
+    et épi doré. fenetres_x = côté (±1) dont la face x reçoit aussi un décor (0 : aucun) : une grande bannière
+    rouge à texte doré si `banniere` est donné, sinon deux fenêtres rondes."""
     rouge = c("laque_rouge")
     x0, x1, z0, z1 = x - w / 2, x + w / 2, z - d / 2, z + d / 2
     b.box((x0, y0, z0), (x1, y0 + h, z1), vary("enduit", rng, 0.02) if rng is not None else c("enduit"), name="Mur")
@@ -634,13 +682,31 @@ def _tour(b, x, z, w, d, y0, h, toit_kw, *, rng=None, fenetres_x=0):
     if fenetres_x:
         xf = x1 if fenetres_x > 0 else x0
         with b.at((xf, 0, z), yaw=-90 * fenetres_x):
-            for yy in (y0 + h * 0.45, y0 + h * 0.72):
-                _fenetre_ronde(b, 0, yy, 1.1, 0.0, -1, cadre="laque_rouge", barreaux="or")
+            if banniere:
+                _banniere_murale(b, 0, y0 + h - 1.8, min(d - 2.4, 3.4), h - 6.0, banniere)
+            else:
+                for yy in (y0 + h * 0.45, y0 + h * 0.72):
+                    _fenetre_ronde(b, 0, yy, 1.1, 0.0, -1, cadre="laque_rouge", barreaux="or")
     r = _toit(b, x0 - 1.1, x1 + 1.1, z0 - 1.6, z1 + 1.6, y0 + h, a=2.0, ax=1.6, h1=1.3, h2=0, ep=0.7, releve=1.6,
               l_releve=2.8, aretiers=True, pointes=False, **toit_kw)
     r2 = _toit(b, x0 + 0.5, x1 - 0.5, z0 + 0.3, z1 - 0.3, r["ya"], a=1.5, ax=1.3, h1=1.3, h2=0, ep=0, cornes=(False, False),
                aretiers=False, rive=False, **toit_kw)
     return _epi(b, x, r2["ya"], z, _col(toit_kw.get("ornement") or "or"))
+
+
+def _banniere_murale(b, x, y_haut, w, h, texte, *, fond="banniere_rouge", encre="or"):
+    """Bannière verticale accrochée à une tringle dorée sur la face z = 0 (saillie vers -Z), texte doré,
+    barre lestée et pointes en bas."""
+    b.box((x - w / 2 - 0.45, y_haut, -0.65), (x + w / 2 + 0.45, y_haut + 0.35, -0.1), c("or"), collide=False,
+          name="Tringle")
+    p = b.box((x - w / 2, y_haut - h, -0.35), (x + w / 2, y_haut, -0.12), _col(fond), collide=False, name="Banniere")
+    p.label = {"face": "Front", "text": _texte(texte), "color": _col(encre), "font": "brush", "vertical": True}
+    b.box((x - w / 2 - 0.15, y_haut - h - 0.35, -0.45), (x + w / 2 + 0.15, y_haut - h, -0.12), c("or"),
+          collide=False, name="Lest")
+    for sx in (-1, 1):
+        xa_, xb_ = sorted((x + sx * 0.1, x + sx * w / 2))
+        b.wedge_under((xa_, y_haut - h - 1.3, -0.35), (xb_, y_haut - h - 0.35, -0.12), _col(fond),
+                      down="+x" if sx < 0 else "-x", collide=False, shadow=False, name="Pointe")
 
 
 def temple_tournoi(b, variant=0, largeur=60, profondeur=34) -> dict:
@@ -683,7 +749,7 @@ def temple_tournoi(b, variant=0, largeur=60, profondeur=34) -> dict:
             _balustrade(b, (sx * (xpod - 0.5), 0, zp0 + 4.5), (sx * (xpod - 0.5), 0, zp1 - 0.5), yp, pas=4.2)
 
     # salle principale
-    xh, zh0, zh1 = 17.0, zf + 13.0, D - 4.6    # murs de la salle (avant à zh0)
+    xh, zh0, zh1 = W - 13.0, zf + 13.0, D - 4.6   # murs de la salle (avant à zh0) ; 17 pour largeur = 60
     zc = zh0 - 5.0                             # colonnade
     y_col = 15.0
     with b.group("Salle"):
@@ -708,35 +774,41 @@ def temple_tournoi(b, variant=0, largeur=60, profondeur=34) -> dict:
             with b.at((sx * xh, 0, (zh0 + zh1) / 2), yaw=-90 * sx):
                 _fenetre_treillis(b, 0, yp + 3.6, 5.0, 5.2, 0.0, -1, cadre="laque_rouge", barreaux="or", n=4)
         # colonnade rouge (6 colonnes rondes) et poutres
-        for x in (-18, -10.8, -3.6, 3.6, 10.8, 18):
+        xcol = [-(xh + 1) + i * 2 * (xh + 1) / 5 for i in range(6)]
+        for x in xcol:
             b.cyl((x, yp + 0.35, zc), 1.45, 0.7, c("pierre_claire"), name="Base")
             b.cyl((x, (yp + 0.7 + y_col) / 2, zc), 1.0, y_col - yp - 0.7, rouge, name="Colonne")
             b.cyl((x, y_col - 1.2, zc), 1.1, 0.5, orr, collide=False, name="Bague")
-        b.box((-19.5, y_col, zc - 1.0), (19.5, y_col + 1.6, zc + 1.0), rouge, name="Linteau")
-        b.box((-19.6, y_col + 0.5, zc - 1.1), (19.6, y_col + 1.0, zc + 1.1), VERT_PEINT, collide=False, name="Frise")
-        for x in (-16.2, -12.6, -9.0, -5.4, 5.4, 9.0, 12.6, 16.2):
+        xl = xh + 2.5
+        b.box((-xl, y_col, zc - 1.0), (xl, y_col + 1.6, zc + 1.0), rouge, name="Linteau")
+        b.box((-xl - 0.1, y_col + 0.5, zc - 1.1), (xl + 0.1, y_col + 1.0, zc + 1.1), VERT_PEINT, collide=False, name="Frise")
+        for k in range(-4, 5):
+            if k == 0:
+                continue
+            x = k * (xh - 1.0) / 4.4
             b.cyl((x, y_col + 0.75, zc - 1.05), 0.42, 0.3, orr, axis="z", collide=False, shadow=False, name="Rosace")
         for sx in (-1, 1):
-            xa_, xb_ = sorted((sx * 17.4, sx * 18.6))
+            xa_, xb_ = sorted((sx * (xh + 0.4), sx * (xh + 1.6)))
             b.box((xa_, y_col, zc), (xb_, y_col + 1.4, zh0 + 0.2), rouge, name="Poutre")
-        b.box((-19.8, y_col + 1.6, zc - 1.2), (19.8, y_col + 2.1, zc + 1.2), orr, name="Plate_bande")
+        b.box((-xl - 0.3, y_col + 1.6, zc - 1.2), (xl + 0.3, y_col + 2.1, zc + 1.2), orr, name="Plate_bande")
         y_dg = y_col + 2.1
-        b.box((-19.5, y_dg, zc - 0.6), (19.5, y_dg + 1.5, zc + 0.6), rouge_f, name="Fond_consoles")
-        for k in range(14):
-            _dougong(b, -19.5 + k * 3.0, y_dg, zc - 0.6, -1, h=1.5, larg=0.75, saillie=2.0)
+        b.box((-xl, y_dg, zc - 0.6), (xl, y_dg + 1.5, zc + 0.6), rouge_f, name="Fond_consoles")
+        nk = int(round(2 * xl / 3.0))
+        for k in range(nk + 1):
+            _dougong(b, -xl + k * 2 * xl / nk, y_dg, zc - 0.6, -1, h=1.5, larg=0.75, saillie=2.0)
         # lanternes rouges sous l'avant-toit, entre les colonnes
-        for x in (-14.4, -7.2, 7.2, 14.4):
-            _lanterne(b, x, y_col, zc - 0.2, r=0.9, h=1.8)
+        for i in (0, 1, 3, 4):
+            _lanterne(b, (xcol[i] + xcol[i + 1]) / 2, y_col, zc - 0.2, r=0.9, h=1.8)
 
     y_t1 = y_col + 3.6 if v != 2 else y_col + 3.0           # avant-toit bas
     with b.group("Toit_bas"):
-        r1 = _toit(b, -21.5, 21.5, zc - 3.4, zh1 + 2.4, y_t1, a=5.0, ax=4.4, h1=2.4 if v != 2 else 2.0, h2=0, ep=0.9,
-                   releve=2.0, l_releve=4.6, **toit_kw)
+        r1 = _toit(b, -(xh + 4.5), xh + 4.5, zc - 3.4, zh1 + 2.4, y_t1, a=5.0, ax=4.4, h1=2.4 if v != 2 else 2.0, h2=0,
+                   ep=0.9, releve=2.4, l_releve=5.0, chevrons=VERT_PEINT, **toit_kw)
     # étage : tambour blanc à poteaux rouges, consoles, plaque 武
     if v == 2:
-        xu, zu0, zu1, hu = 11.0, zh0 - 1.5, zh1 - 3.0, 8.6
+        xu, zu0, zu1, hu = xh - 6.0, zh0 - 1.5, zh1 - 3.0, 8.6
     else:
-        xu, zu0, zu1, hu = 13.5, zh0 - 2.0, zh1 - 2.6, 6.0
+        xu, zu0, zu1, hu = xh - 3.5, zh0 - 2.0, zh1 - 2.6, 6.0
     yu = r1["ya"]
     with b.group("Etage"):
         b.box((-xu, yu, zu0), (xu, yu + hu, zu1), vary("enduit", rng, 0.015), name="Tambour")
@@ -763,12 +835,13 @@ def temple_tournoi(b, variant=0, largeur=60, profondeur=34) -> dict:
         ep2, h12, orn2 = 0.9, 1.5, 2.0
         zt0, zt1 = zu0 - 3.6, zu1 + 3.4
         h22 = H_MAX - y_t2 - ep2 - h12 - 0.5 - max(orn2, EPI_H)
-        r2 = _toit(b, -xu - 4.5, xu + 4.5, zt0, zt1, y_t2, a=3.4, ax=3.6, h1=h12, h2=h22, ep=ep2, releve=2.1,
-                   l_releve=4.6, h_orn=orn2, epi=True, **toit_kw)
+        r2 = _toit(b, -xu - 4.5, xu + 4.5, zt0, zt1, y_t2, a=3.4, ax=3.6, h1=h12, h2=h22, ep=ep2, releve=2.4,
+                   l_releve=5.0, h_orn=orn2, epi=True, chevrons=VERT_PEINT, **toit_kw)
     # tours d'angle (pavillons) de part et d'autre de la façade
     with b.group("Tours"):
         for sx in (-1, 1):
-            _tour(b, sx * (W - 4.2), zh0 - 1.2, 5.2, 6.0, yp, 16.0, toit_kw, rng=rng, fenetres_x=sx)
+            _tour(b, sx * (W - 4.2), zh0 - 1.2, 5.2, 6.0, yp, 16.0, toit_kw, rng=rng, fenetres_x=sx,
+                  banniere="武道" if sx > 0 else "修行")
     with b.group("Braseros"):
         for sx in (-1, 1):
             _brasero(b, sx * 15.5, zf + 2.0)
@@ -799,19 +872,29 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
     bancs = ("banniere_rouge", "banniere_blanche", "banniere_bleue")
     with b.group("Gradins"):
         b.box((-L, 0, -D), (L, 0.3, D), c("pierre_fonce"), studs="top", name="Dalle")
-        b.box((-xg, 0.3, -D), (xg, 1.2, -D + 0.6), rouge, name="Parapet")
-        b.box((-xg - 0.1, 1.2, -D - 0.1), (xg + 0.1, 1.5, -D + 0.7), c("or"), studs="top", name="Chaperon")
+        b.box((-xg, 0.3, -D + 0.1), (xg, 1.2, -D + 0.7), rouge, name="Parapet")
+        b.box((-xg - 0.1, 1.2, -D), (xg + 0.1, 1.5, -D + 0.8), c("or"), studs="top", name="Chaperon")
         for i in range(rangs):
             za_ = z0 + 2 * i
             top = hr * (i + 1)
             b.box((-xg, 0.3, za_), (xg, top, za_ + 2.0), c("pierre_claire") if i % 2 == 0 else c("pierre"),
                   studs="top", name="Gradin")
-            b.box((-xg + 0.3, top, za_ + 0.9), (xg - 0.3, top + 0.45, za_ + 1.8), c(bancs[i % 3]), studs="top",
+            b.box((-xg + 0.3, top, za_ + 0.5), (xg - 0.3, top + 0.6, za_ + 1.9), c(bancs[i % 3]), studs="top",
                   name="Banc")
         zb_ = z0 + 2 * rangs                 # fond des gradins
         y_dos = 10.4
-        b.box((-L, 0.3, zb_), (L, y_dos, D), vary("enduit", b.rng, 0.02), name="Mur_fond")
-        b.box((-L - 0.1, y_dos - 1.4, zb_ - 0.1), (L + 0.1, y_dos - 0.8, D + 0.1), rouge, collide=False, name="Bandeau")
+        zm_ = D - 0.7                        # dos du mur (les bannières y pendent sans sortir de l'emprise)
+        b.box((-L + 0.15, 0.3, zb_), (L - 0.15, y_dos, zm_), vary("enduit", b.rng, 0.02), name="Mur_fond")
+        b.box((-L, y_dos - 1.4, zb_ - 0.1), (L, y_dos - 0.8, zm_ + 0.1), rouge, collide=False, name="Bandeau")
+        # dos du mur (vu depuis les airs) : pilastres rouges et deux bannières
+        npi = 4
+        for k in range(npi + 1):
+            x = -L + 0.5 + k * (2 * L - 1.0) / npi
+            b.box((x - 0.45, 0.3, zm_ - 0.3), (x + 0.45, y_dos - 1.4, zm_ + 0.3), rouge, collide=False, name="Pilastre")
+        for k, txt in ((1.5, "気"), (2.5, "武")):          # entre les pilastres 1-2 et 2-3
+            x = -L + 0.5 + k * (2 * L - 1.0) / npi
+            with b.at((x, 0, zm_), yaw=180):
+                _banniere_murale(b, 0, y_dos - 2.0, 2.6, 5.0, txt)
     with b.group("Escaliers"):
         for sx in (-1, 1):
             xa_, xb_ = sorted((sx * xg, sx * L))
@@ -825,10 +908,10 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
             b.box((xr - 0.2, 0.3, z0 - 1.2), (xr + 0.2, 1.8, z0 - 0.8), rouge, collide=False, name="Pilastre")
     with b.group("Auvent"):
         y_ar, y_av = y_dos + 0.6, y_dos - 1.8           # bord arrière posé sur le mur, bord avant plus bas
-        z_ar, z_av = D - 0.1, z0 + 0.2
+        z_ar, z_av = zm_ - 0.05, z0 + 0.2
         pente = (y_ar - y_av) / (z_ar - z_av)
         zp = z0 + 0.9                                   # poteaux sur le premier gradin
-        for x in (-xg + 0.6, -xg / 3, xg / 3, xg - 0.6):
+        for x in (-xg + 0.8, -xg / 3, xg / 3, xg - 0.8):
             b.box((x - 0.3, hr, zp - 0.3), (x + 0.3, y_av + (zp - z_av) * pente - 0.3, zp + 0.3), rouge, name="Poteau")
         nb = int(round(2 * L / 2.0))
         lb = 2 * L / nb
@@ -838,7 +921,7 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
                    ca if k % 2 == 0 else cb, collide=False, name="Toile")
             b.wedge_under((x - lb / 2 + 0.05, y_av - 1.0, z_av - 0.25), (x + lb / 2 - 0.05, y_av - 0.1, z_av - 0.1),
                           ca if k % 2 == 1 else cb, down="-x", collide=False, shadow=False, name="Lambrequin")
-        b.box((-L - 0.1, y_ar - 0.3, D - 0.8), (L + 0.1, y_ar + 0.35, D), c("or"), collide=False, name="Faitiere")
+        b.box((-L, y_ar - 0.3, zm_ - 0.8), (L, y_ar + 0.35, zm_ + 0.1), c("or"), collide=False, name="Faitiere")
     with b.group("Mats"):
         for sx in (-1, 1):
             x, z = sx * (L - 0.6), -D + 0.35
@@ -875,13 +958,14 @@ def dojo(b, variant=0, largeur=24, profondeur=18) -> dict:
     brun_f = shade(brun, 0.75)
     y_pl = 2.0                       # dessus du plancher
     zv = -D + 3.0                    # bord de la véranda
-    zw0, zw1 = zv + 3.2, D - 1.2     # murs
+    zw0, zw1 = zv + 3.2, D - 2.4     # murs (le toit déborde derrière sans sortir de l'emprise)
     xw = W - 2.6
     with b.group("Socle"):
         b.box((-W + 0.6, 0, zv - 0.5), (W - 0.6, 1.4, D - 0.4), c("pierre"), studs="top", name="Socle")
         b.box((-W + 1.0, 1.4, zv), (W - 1.0, y_pl, D - 0.8), c("bois_clair"), studs="top", name="Plancher")
         for j, (za_, top) in enumerate(((-D, 0.67), (-D + 0.85, 1.33), (-D + 1.7, y_pl))):
-            b.box((-3.4, 0, za_), (3.4, top, zv), c("pierre_claire") if j < 2 else c("bois_clair"), studs="top",
+            xm_ = 3.4 if j < 2 else 3.25
+            b.box((-xm_, 0, za_), (xm_, top, zv), c("pierre_claire") if j < 2 else c("bois_clair"), studs="top",
                   name="Marche")
     with b.group("Salle"):
         H = 10.0
@@ -895,13 +979,14 @@ def dojo(b, variant=0, largeur=24, profondeur=18) -> dict:
         # portes coulissantes à treillis
         b.box((-2.8, y_pl + 0.6, zw0 - 0.3), (2.8, 7.4, zw0 + 0.1), c("enduit_creme"), collide=False, name="Porte")
         for x in (-1.9, -0.05, 1.9):
-            b.box((x - 0.14, y_pl + 0.6, zw0 - 0.45), (x + 0.14, 7.4, zw0 - 0.25), brun_f, collide=False, name="Montant")
+            b.box((x - 0.14, y_pl + 0.7, zw0 - 0.45), (x + 0.14, 7.4, zw0 - 0.25), brun_f, collide=False, name="Montant")
         for y in (4.4, 6.0):
             b.box((-2.8, y - 0.12, zw0 - 0.45), (2.8, y + 0.12, zw0 - 0.25), brun_f, collide=False, name="Traverse")
-        b.box((-3.0, 7.4, zw0 - 0.4), (3.0, 7.75, zw0 + 0.1), brun_f, collide=False, name="Linteau")
-        _plaque(b, 0, 7.95, 5.6, 1.7, zw0 - 0.1, -1, "道場", fond="bois_fonce", encre="or", cadre="or", marge=0.3)
+        b.box((-3.0, 7.4, zw0 - 0.5), (3.0, 7.75, zw0 + 0.1), brun_f, collide=False, name="Linteau")
         for sx in (-1, 1):
             _fenetre_treillis(b, sx * 6.4, 4.0, 3.6, 3.4, zw0, -1, cadre=brun, fond="enduit_creme", barreaux=brun_f, n=3)
+            # fenêtres du mur arrière (vues depuis les airs)
+            _fenetre_treillis(b, sx * 5.0, 4.0, 3.6, 3.4, zw1, 1, cadre=brun, fond="enduit_creme", barreaux=brun_f, n=3)
             with b.at((sx * xw, 0, (zw0 + zw1) / 2), yaw=-90 * sx):
                 _fenetre_treillis(b, 0, 4.0, 4.0, 3.4, 0.0, -1, cadre=brun, fond="enduit_creme", barreaux=brun_f, n=3)
     with b.group("Veranda"):
@@ -909,6 +994,8 @@ def dojo(b, variant=0, largeur=24, profondeur=18) -> dict:
             b.box((x - 0.5, 1.4, zv + 0.1), (x + 0.5, y_pl, zv + 1.1), c("pierre_claire"), name="Base")
             b.box((x - 0.4, y_pl, zv + 0.2), (x + 0.4, H, zv + 1.0), brun, name="Poteau")
         b.box((-W + 1.2, H - 0.8, zv + 0.1), (W - 1.2, H, zv + 1.1), brun, name="Poutre")
+        # grande enseigne 道場 accrochée devant la poutre de la véranda : lisible depuis le couloir
+        _plaque(b, 0, H - 2.9, 7.0, 2.4, zv + 0.1, -1, "道場", fond="bois_fonce", encre="or", cadre="or", marge=0.35)
         for sx in (-1, 1):
             xa_, xb_ = sorted((sx * 3.6, sx * (W - 2.0)))
             b.box((xa_, y_pl + 1.6, zv + 0.45), (xb_, y_pl + 1.9, zv + 0.75), c("laque_rouge"), collide=False, name="Garde_corps")
@@ -916,7 +1003,7 @@ def dojo(b, variant=0, largeur=24, profondeur=18) -> dict:
             _lanterne(b, sx * 7.2, H - 0.8, zv + 0.6, r=0.75, h=1.5)
     with b.group("Toit"):
         h_max = 16.0
-        _toit(b, -W + 0.5, W - 0.5, zv - 0.6, D - 0.1, H, a=2.6, h1=0.9, h2=h_max - H - 0.6 - 0.9 - 0.5 - 1.0,
+        _toit(b, -W + 1.2, W - 1.2, zv - 0.6, D - 1.3, H, a=2.6, h1=0.9, h2=h_max - H - 0.6 - 0.9 - 0.5 - 1.0,
               ep=0.6, hanches=(False, False), cornes=(True, True), releve=1.5, l_releve=3.4, h_orn=1.0,
               dessous=st["rive"] or "laque_rouge_fonce", fonce=st["rive"], tuile=st["tuile"], faitage=st["faitage"],
               ornement=st["ornement"], rng=rng, pignon_bouts=True)
@@ -959,7 +1046,7 @@ def pagode(b, variant=0, etages=3) -> dict:
     y = 1.8
     w = 3.4
     for k in range(etages):
-        h = 4.6 - 0.5 * k
+        h = 5.2 - 0.5 * k
         with b.group(f"Etage{k + 1}"):
             b.box((-w, y, -w), (w, y + h, w), vary("enduit", rng, 0.02), name="Mur")
             for sx in (-1, 1):
@@ -979,13 +1066,15 @@ def pagode(b, variant=0, etages=3) -> dict:
             debord = 2.0 - 0.15 * k
             if k < etages - 1:
                 r = _toit(b, -w - debord, w + debord, -w - debord, w + debord, y + h, a=debord + 0.2, ax=debord + 0.2,
-                          h1=1.1, h2=0, ep=0.5, releve=1.3, l_releve=2.6, aretiers=False, rive=False, **toit_kw)
+                          h1=1.6, h2=0, ep=0.5, releve=1.4, l_releve=2.6, aretiers=False, rive=False,
+                          pointes=False, **toit_kw)
                 y = r["ya"]
                 w = w - 0.6
             else:
                 r = _toit(b, -w - debord, w + debord, -w - debord, w + debord, y + h, a=debord + 0.4, ax=debord + 0.4,
-                          h1=1.4, h2=0, ep=0.5, releve=1.4, l_releve=2.8, aretiers=False, rive=False, **toit_kw)
-                r2 = _toit(b, -w + 0.6, w - 0.6, -w + 0.6, w - 0.6, r["ya"], a=1.2, ax=1.2, h1=1.0, h2=0, ep=0,
+                          h1=1.9, h2=0, ep=0.5, releve=1.5, l_releve=2.8, aretiers=False, rive=False,
+                          pointes=False, **toit_kw)
+                r2 = _toit(b, -w + 0.6, w - 0.6, -w + 0.6, w - 0.6, r["ya"], a=1.2, ax=1.2, h1=1.4, h2=0, ep=0,
                            cornes=(False, False), aretiers=False, rive=False, **toit_kw)
                 y = r2["ya"]
     with b.group("Fleche"):
@@ -1001,4 +1090,4 @@ def pagode(b, variant=0, etages=3) -> dict:
                 b.cyl((0, yy - 0.05, 0), 0.25, 0.1 + 0.0, orf, collide=False, name="Tige")
         b.cyl((0, yy + 0.6, 0), 0.18, 1.2, orr, collide=False, name="Pointe")
         top = yy + 1.2
-    return {"emprise": (10, 11.8), "hauteur": round(top, 2)}
+    return {"emprise": (11.8, 11.8), "hauteur": round(top, 2)}

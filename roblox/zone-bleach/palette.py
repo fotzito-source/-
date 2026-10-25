@@ -16,7 +16,9 @@ from kit import hexrgb, mix, shade
 P = {
     # --- Sol -------------------------------------------------------------------------------------
     "dallage": "#E4DED2",          # grandes dalles claires de la cité (presque blanches, chaudes)
-    "dallage_ombre": "#D6CFC0",
+    "dallage_ombre": "#CBC3B2",    # contraste net avec « dallage » (sol de la cité lisible à pleine vitesse)
+    "dalle_cite": "#D9CBB0",       # chemin central de la cité : grandes dalles de pierre chaude
+    "dalle_cite_fonce": "#C6B69A",
     "pierre_claire": "#D3CCBD",
     "pierre": "#BDB4A3",           # pierre pâle chaude (socles, bordures)
     "pierre_fonce": "#A0968A",
@@ -24,13 +26,13 @@ P = {
     "joint": "#9C9283",            # joints entre dalles
     "gravier": "#E9E5DC",          # gravier blanc ratissé des cours
     "gravier_ombre": "#DAD5CA",
-    "sable": "#DCC596",            # route de sable du faubourg
+    "sable": "#D9BE88",            # route de sable du faubourg (sable doré, plus ocre)
     "sable_clair": "#E6D3AA",
     "sable_fonce": "#C9AE7C",
     "terre": "#9E7E59",            # terre battue, ruelles, champs
     "terre_fonce": "#7C6146",
-    "dalle_chemin": "#CFC8BA",     # grandes dalles du chemin central du faubourg
-    "dalle_chemin_fonce": "#B9B1A2",
+    "dalle_chemin": "#D3C7AE",     # grandes dalles du chemin central du faubourg (pierre chaude)
+    "dalle_chemin_fonce": "#BDAE93",
     "herbe": "#8DB565",            # herbe tendre (petites surfaces seulement)
     "herbe_fonce": "#73A052",
     "herbe_claire": "#A5C77A",
@@ -104,9 +106,9 @@ P = {
     "roche_claire": "#D0C5AF",
     "roche_fonce": "#9A8D77",
     "roche_ombre": "#7D715F",
-    "monolithe": "#8D9098",        # grand monolithe gris-bleu
-    "monolithe_clair": "#A9ACB3",
-    "monolithe_fonce": "#6F727B",
+    "monolithe": "#9A958B",        # grand monolithe : pierre naturelle grise et chaude
+    "monolithe_clair": "#B8B2A5",
+    "monolithe_fonce": "#77726A",
     "monolithe_nuit": "#585B64",
     "lichen": "#A7B07A",
 

@@ -32,15 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((230, 250, 150), (0, 0, -240), 48),      # toute la zone en 3/4
-    "entree": ((0, 9, 56), (0, 24, -160), 70),             # porte de temple, vue joueur
-    "village": ((6, 8, -24), (0, 18, -240), 70),           # rue des maisons-dômes
-    "friche": ((4, 8, -150), (0, 26, -320), 70),           # terres de combat, mesas, pont de roche
-    "alien": ((10, 9, -282), (0, 24, -450), 70),           # planète extraterrestre, canaux, vaisseau
-    "place": ((18, 11, -346), (0, 34, -470), 72),          # arène des œufs, temple, tribunes, arche au fond
-    "retour": ((-4, 9, -428), (0, 14, 0), 70),             # demi-tour avec l'œuf
-    "cote": ((-300, 170, -90), (0, 10, -260), 45),
-    "arche": ((0, 58, -360), (0, 48, -452), 66),           # arche finale et nuages dorés
+    "aerienne": ((236, 236, 136), (0, 0, -232), 46),      # toute la zone en 3/4
+    "entree": ((0, 7, 40), (0, 38, -100), 78),             # porte de temple, vue joueur (au bord du sol)
+    "village": ((8, 9, -26), (0, 17, -240), 72),           # rue des maisons-dômes (couloir de 90)
+    "friche": ((10, 9, -136), (-4, 24, -300), 76),         # terres de combat, mesas, pont de roche
+    "alien": ((30, 10, -268), (-40, 20, -400), 74),        # planète extraterrestre, canaux, vaisseau
+    "place": ((22, 11, -334), (0, 34, -470), 72),          # arène des œufs, temple, tribunes, arche au fond
+    "retour": ((-6, 9, -426), (0, 14, 0), 70),             # demi-tour avec l'œuf
+    "cote": ((-340, 190, -90), (0, 10, -260), 45),
+    "arche": ((0, 58, -348), (0, 48, -452), 66),           # arche finale et nuages dorés
     "plan": None,  # vue de dessus orthographique
 }
 
