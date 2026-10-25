@@ -36,11 +36,11 @@ VUES = {
     "entree": ((0, 12, 74), (0, 34, -160), 62),         # devant le viaduc et son train, la rue commerçante en enfilade
     "rue": ((10, 8, -20), (0, 24, -200), 70),            # rue commerçante, passerelle 1 au fond
     "tours": ((-10, 8, -158), (0, 36, -330), 70),        # quartier des tours et des écrans
-    "approche": ((-36, 10, -306), (26, 18, -392), 72),    # après la passerelle 2 : tour cylindrique, carrefour, arche
+    "approche": ((-42, 10, -318), (36, 32, -386), 66),   # après la passerelle 2 : tour cylindrique, carrefour, arche
     "place": ((-20, 98, -310), (4, 0, -424), 66),        # vue plongeante sur le carrefour « scramble »
     "retour": ((-6, 9, -468), (0, 18, 0), 70),           # retour vers la base, depuis l'incident
     "cote": ((-340, 330, 60), (0, 0, -250), 46),
-    "final": ((0, 11, -414), (0, 46, -496), 74),         # l'immeuble effondré en arche, la sortie, les dômes
+    "final": ((0, 9, -400), (0, 34, -496), 74),          # l'immeuble effondré en arche, la gare, la tour endommagée
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -111,9 +111,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -228), (0, 0, -228.01), fov=30)
+                cam = bs.add_camera("plan", (0, 900, -220), (0, 0, -220.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 600
+                cam.data.ortho_scale = 650          # toute la largeur du sol (526) et toute la longueur (552)
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:

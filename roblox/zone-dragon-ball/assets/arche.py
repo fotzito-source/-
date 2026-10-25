@@ -956,14 +956,16 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
 # 3. Bancs de nuages dorés
 # ---------------------------------------------------------------------------
 
-def nuages_dores(b, variant: int = 0, largeur: float = 50, profondeur: float = 26, hauteur: float = 24) -> dict:
+def nuages_dores(b, variant: int = 0, largeur: float = 100, profondeur: float = 30, hauteur: float = 36) -> dict:
     """Banc de nuages dorés posé sur sa base (y = 0), dans l'emprise largeur (X) × profondeur (Z), sous `hauteur`.
 
-    Coussin de galettes rondes à plat (le banc repose sur ce qui le porte : sol ou gradin de falaise), rangée
-    basse de boules d'ombre et orangées devant, rangée avant de boules or, rangée arrière plus haute or clair qui
-    suit le profil, couronnes crème au sommet. Un seul bloc collidable (la base, cachée dans les boules).
-    L'avant (-Z) regarde le couloir. ≤ 70 pièces.
-    v0 banc long et bas ; v1 banc en tour (cumulus au milieu) ; v2 banc à deux lobes."""
+    Dessous plat : deux couches de grandes galettes rondes à plat (cylindres verticaux, rayons 6 à 15, la seconde
+    un peu plus courte). Dessus : trois rangées de grosses bouffées rondes de tailles variées qui se chevauchent
+    et cachent les galettes : devant et bas (or), au milieu (or clair), derrière et haut (crème chaud), plus des
+    sommets crème selon la variante. Vu du couloir (l'avant -Z regarde le couloir), le banc passe donc de l'ombre
+    dorée du dessous à l'or puis à la crème du sommet. Chaque couche de galettes est d'une seule couleur et a son
+    propre dessus ; la base collidable, cachée dans la première couche, est de sa couleur. ≤ 60 pièces.
+    v0 banc long à dessus bosselé ; v1 banc en tour (gros cumulus au milieu) ; v2 banc à deux lobes."""
     v = variant % 3
     rng = b.rng
     n0 = len(b.parts)
@@ -972,64 +974,53 @@ def nuages_dores(b, variant: int = 0, largeur: float = 50, profondeur: float = 2
     kw = dict(collide=False, name="Nuage")
 
     def profil(u):
+        """Hauteur relative du dessus (≤ 1) à l'abscisse relative u ∈ [-1, 1]."""
         u = max(-1.0, min(1.0, u))
         if v == 0:
-            return H * (0.82 - 0.22 * u * u)
-        if v == 1:
-            return H * (1.0 - 0.5 * u * u)
-        lobes = max(math.exp(-((u - 0.45) / 0.32) ** 2), 0.88 * math.exp(-((u + 0.42) / 0.3) ** 2))
-        return H * (0.55 + 0.45 * lobes)
+            h = 0.84 + 0.12 * math.cos(3.3 * u + 0.7) - 0.1 * u * u
+        elif v == 1:
+            h = 0.58 + 0.42 * math.exp(-(u / 0.42) ** 2)
+        else:
+            h = 0.6 + 0.4 * max(math.exp(-((u - 0.45) / 0.3) ** 2), 0.9 * math.exp(-((u + 0.42) / 0.28) ** 2))
+        return h * (1.0 - 0.3 * max(0.0, abs(u) - 0.7) / 0.3)
 
-    def boule(x, y, z, r, ton, a=0.025):
-        r = min(r, hp - 0.05, hl - 0.05)
-        x = min(max(x, -hl + r), hl - r)
-        z = min(max(z, -hp + r), hp - r)
-        y = min(y, H - r)
-        b.ball((x, y, z), r, vary(ton, rng, a), **kw)
-        return x, y, z, r
-
-    def rangee(z_off, haut, r_max, r_fac, ton, pas=1.25, r_min=2.0):
-        """Boules le long de X ; le dessus de chaque boule suit haut(u). Renvoie [(x, y, z, r)]."""
-        out = []
-        r_max = max(r_min, min(r_max, hp - abs(z_off) - 0.05))
-        x = -hl + min(r_max, max(r_min, r_fac * haut(-1.0)))
-        while True:
-            h = haut(x / hl)
-            r = min(r_max, max(r_min, r_fac * h))
-            if x > hl - r * 0.6:
-                break
-            zz = z_off + float(rng.uniform(-0.15, 0.15)) * hp
-            f = float(rng.choice((0.72, 0.85, 1.0, 1.0)))
-            out.append(boule(x, h - r * (0.9 + 0.25 * float(rng.random())), zz, r * f, ton))
-            x += r * pas * float(rng.uniform(0.7, 1.05))
-        return out
-
+    R0 = max(5.0, min(15.0, hp - 0.4))
+    ep = max(2.5, min(4.0, 0.1 * H))
     with b.group("Nuages"):
-        # coussin : galettes rondes à plat, dessus décalés (jamais deux dessus confondus)
-        rd = min(hp * 0.96, hl * 0.42)
-        nd = max(1, int(round((L - 2 * rd) / (1.6 * rd))) + 1)
-        xs = np.linspace(-hl + rd, hl - rd, nd) if nd > 1 else [0.0]
-        for i, x in enumerate(xs):
-            b.cyl((float(x), 0.5 + 0.1 * i, 0.0), rd, 1.0 + 0.2 * i, vary("nuage_ombre", rng, 0.02), axis="y", **kw)
-        # base (seule pièce collidable), cachée dans les boules
-        b.box((-hl * 0.6, 0.0, -hp * 0.35), (hl * 0.6, min(0.25 * H, 4.0), hp * 0.35), c("nuage_or"), name="Base",
-              shadow=False)
-        # rangée arrière (haute, or clair au soleil), rangée avant (or), rangée basse (ombres dorées)
-        arriere = rangee(0.3 * hp, profil, hp * 0.7, 0.36, "nuage_or_clair")
-        avant = rangee(-0.32 * hp, lambda u: 0.72 * profil(u) + float(rng.uniform(-0.04, 0.04)) * H, hp * 0.66, 0.4,
-                       "nuage_or")
-        rb = min(hp * 0.48, 0.2 * H)
-        nb = max(2, int(math.ceil((L - 2 * rb) / (1.5 * rb))) + 1)
-        for i, x in enumerate(np.linspace(-hl + rb, hl - rb, nb)):
-            boule(float(x) + float(rng.uniform(-0.3, 0.3)) * rb, 0.45 * rb, -hp + rb + float(rng.uniform(0, 0.15)) * hp,
-                  rb * float(rng.uniform(0.85, 1.0)), ("nuage_ombre", OMBRE_DOREE)[i % 2])
-        # couronnes crème sur les plus hautes boules (vers l'avant et le haut)
-        for k, (x, y, z, r) in enumerate(sorted(arriere + avant, key=lambda t: -(t[1] + t[3]))[:4]):
-            rc = 0.55 * r
-            boule(x + float(rng.uniform(-0.3, 0.3)) * r, y + 0.45 * r, z - 0.3 * r, rc, CREME_CHAUD, 0.015)
-        # bouffées or entre les rangées, au milieu de la hauteur (bouche les trous)
-        for (x, y, z, r) in avant[1::2]:
-            boule(x + 0.5 * r, y - 0.35 * r, z + 0.4 * r, 0.75 * r, "nuage_or")
+        # 1. dessous plat : deux couches de galettes (ombre dorée, puis or), dessus décalés de 0,1
+        for k, (col, rec) in enumerate(((OMBRE_DOREE, 0.0), (c("nuage_or"), 0.06 * L))):
+            demi = hl - rec
+            r = R0 * (1.0 - 0.06 * k)
+            n = max(1, int(math.ceil((2 * demi - 2 * r) / (1.3 * r))) + 1)
+            xs = np.linspace(-demi + r, demi - r, n) if n > 1 else [0.0]
+            for j, x in enumerate(xs):
+                zz = (0.1 if j % 2 else -0.1) * max(0.0, hp - r - 0.3)
+                b.cyl((float(x), k * ep + (ep + 0.1 * k) / 2, zz), r * float(rng.uniform(0.92, 1.0)), ep + 0.1 * k,
+                      col, axis="y", shadow=k > 0, **kw)
+        y_corps = 2 * ep
+        b.box((-hl * 0.5, 0.2, -hp * 0.3), (hl * 0.5, ep - 0.2, hp * 0.3), OMBRE_DOREE, name="Base", shadow=False)
+        # 2. trois rangées de bouffées (avant basse or, milieu or clair, arrière haute crème)
+        H_dispo = H - y_corps
+        rangs = ((-1, 0.62, c("nuage_or"), 0.0), (0, 0.85, c("nuage_or_clair"), 0.5), (1, 1.0, CREME_CHAUD, 0.25))
+        for (cote, k_h, col, dec) in rangs:
+            r_typ = float(np.clip(0.42 * H_dispo * k_h, 6.0, min(13.0, hp * 0.75)))
+            n = max(3, int(round(L / (1.55 * r_typ))))
+            pas = L / n
+            for j in range(n):
+                x = -hl + pas * (j + 0.5) + (dec - 0.25) * pas + float(rng.uniform(-0.15, 0.15)) * pas
+                f = profil(x / hl)
+                top = y_corps + H_dispo * f * k_h
+                r = float(np.clip((top - y_corps) * 0.55 + 2.0, 5.0, min(13.0, hp * 0.8)))
+                r *= float(rng.uniform(0.8, 1.08))
+                yc = max(top - r, y_corps - 0.35 * r)
+                xx = float(np.clip(x, -hl + r, hl - r))
+                zz = cote * max(0.0, hp - r - 0.2) * (0.85 if cote else 0.0)
+                b.ball((xx, yc, zz), r, vary(col, rng, 0.012), **kw)
+        # 3. sommets crème (v1 : cumulus central ; v2 : un par lobe)
+        for u in {0: [], 1: [0.0], 2: [0.45, -0.42]}[v]:
+            top = y_corps + H_dispo * profil(u)
+            r = float(min(10.0, hp * 0.65))
+            b.ball((u * hl, top - r, 0.1 * hp), r, vary("nuage_creme", rng, 0.01), **kw)
     return _infos(b, n0)
 
 

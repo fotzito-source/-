@@ -157,9 +157,10 @@ def _bulle(b, ctr, r: float, az: float, el: float, rw: float, couleur="vitre_ver
 
 
 def _rivets_bande(b, ctr, r: float, y: float, h: float, n: int, couleur, *, ep: float = 0.15,
-                  az_libre: float = 34.0, a0: float = 0.0):
+                  az_libre: float = 34.0, a0: float = 0.0, k: float = 1.0):
     """Rangée de petits rivets carrés sur la bande posée par `_bande(b, ctr, r, y, h, ..., ep)` (coordonnées
-    locales), sauf devant le porche (|azimut| < az_libre) : rythme « technique » lisible de loin."""
+    locales), sauf devant le porche (|azimut| < az_libre) : rythme « technique » lisible de loin.
+    `k` agrandit les rivets (grands dômes)."""
     cx, cy, cz = ctr
     rb = _rayon_sphere(r, y - h / 2 - cy, y + h / 2 - cy) + ep
     for i in range(n):
@@ -168,8 +169,8 @@ def _rivets_bande(b, ctr, r: float, y: float, h: float, n: int, couleur, *, ep: 
         if abs(az) < az_libre:
             continue
         with b.at((cx, 0, cz), yaw=-az):
-            b.box((-0.28, y - 0.22, -(rb + 0.2)), (0.28, y + 0.22, -(rb - 0.1)), _col(couleur), collide=False,
-                  shadow=False, name="Rivet")
+            b.box((-0.28 * k, y - 0.22 * k, -(rb + 0.2)), (0.28 * k, y + 0.22 * k, -(rb - 0.1)), _col(couleur),
+                  collide=False, shadow=False, name="Rivet")
 
 
 def _anneau_poly(b, cx: float, cz: float, R: float, y: float, n: int, couleur, *, h=0.25, ep=0.25, a0=0.0,
@@ -232,35 +233,37 @@ def _porche(b, x: float, z_masse: float, z_av: float, rt: float, yc: float, S: d
                       name="Lumiere")
 
 
-def _equipement_toit(b, x: float, y: float, z: float, S: dict, style: int):
+def _equipement_toit(b, x: float, y: float, z: float, S: dict, style: int, k: float = 1.0):
     """Équipement au sommet d'un dôme (y = sommet) : trappe ronde puis parabole (0), anneau-balise (1)
-    ou lanterneau en bulle (2)."""
+    ou lanterneau en bulle (2). `k` agrandit le tout (grands dômes : lisible depuis la rue)."""
     blanc = S["blanc"]
     with b.group("Toit"):
-        b.cyl((x, y - 0.1, z), 1.5, 0.8, c("gris_tech"), name="Trappe")
-        b.cyl((x, y + 0.42, z), 1.1, 0.25, c(S["bande"]), collide=False, name="Couvercle")
+        b.cyl((x, y - 0.1 * k, z), 1.5 * k, 0.8 * k, c("gris_tech"), name="Trappe")
+        b.cyl((x, y + 0.42 * k, z), 1.1 * k, 0.25 * k, c(S["bande"]), collide=False, name="Couvercle")
         if style == 0:
-            b.cyl((x, y + 0.55 + 1.3, z), 0.18, 2.6, c("gris_tech_fonce"), collide=False, name="Mat")
+            b.cyl((x, y + (0.55 + 1.3) * k, z), 0.18 * k, 2.6 * k, c("gris_tech_fonce"), collide=False, name="Mat")
             a = math.radians(38)
             axe = np.array([0.0, math.sin(a), -math.cos(a)])
-            ctr = np.array([x, y + 3.25, z]) + axe * 0.15
-            _disque(b, ctr, axe, 1.8, 0.3, blanc, collide=False, name="Parabole")
-            _disque(b, ctr + axe * 0.1, axe, 0.8, 0.3, c(S["bande"]), collide=False, shadow=False, name="Creux")
-            p = ctr + axe * 1.3
-            b.part("cyl", (1.2, 0.16, 0.16), tuple(ctr + axe * 0.75), _repere(axe), c("gris_tech_fonce"),
-                   collide=False, shadow=False, name="Bras")
-            b.box(tuple(p - 0.22), tuple(p + 0.22), c("neon_blanc"), material="Neon", collide=False, shadow=False,
-                  name="Tete")
+            ctr = np.array([x, y + 3.25 * k, z]) + axe * 0.15 * k
+            _disque(b, ctr, axe, 1.8 * k, 0.3 * k, blanc, collide=False, name="Parabole")
+            _disque(b, ctr + axe * 0.1 * k, axe, 0.8 * k, 0.3 * k, c(S["bande"]), collide=False, shadow=False,
+                    name="Creux")
+            p = ctr + axe * 1.3 * k
+            b.part("cyl", (1.2 * k, 0.16 * k, 0.16 * k), tuple(ctr + axe * 0.75 * k), _repere(axe),
+                   c("gris_tech_fonce"), collide=False, shadow=False, name="Bras")
+            b.box(tuple(p - 0.22 * k), tuple(p + 0.22 * k), c("neon_blanc"), material="Neon", collide=False,
+                  shadow=False, name="Tete")
         elif style == 1:
-            b.cyl((x, y + 0.55 + 1.6, z), 0.18, 3.2, c("gris_tech_fonce"), collide=False, name="Mat")
-            b.cyl((x, y + 3.2, z), 1.2, 0.3, blanc, axis="z", collide=False, name="Anneau")
-            b.cyl((x, y + 3.2, z), 0.8, 0.42, c("neon_cyan"), axis="z", material="Neon", collide=False, shadow=False,
-                  name="Lumiere")
-            b.cyl((x, y + 4.55, z), 0.3, 0.4, c(S["bande"]), collide=False, name="Pointe")
-            b.box((x - 0.15, y + 4.75, z - 0.15), (x + 0.15, y + 5.1, z + 0.15), c("rouge"), material="Neon",
-                  collide=False, shadow=False, name="Balise")
+            b.cyl((x, y + (0.55 + 1.6) * k, z), 0.18 * k, 3.2 * k, c("gris_tech_fonce"), collide=False, name="Mat")
+            b.cyl((x, y + 3.2 * k, z), 1.2 * k, 0.3 * k, blanc, axis="z", collide=False, name="Anneau")
+            b.cyl((x, y + 3.2 * k, z), 0.8 * k, 0.42 * k, c("neon_cyan"), axis="z", material="Neon", collide=False,
+                  shadow=False, name="Lumiere")
+            b.cyl((x, y + 4.55 * k, z), 0.3 * k, 0.4 * k, c(S["bande"]), collide=False, name="Pointe")
+            b.box((x - 0.15 * k, y + 4.75 * k, z - 0.15 * k), (x + 0.15 * k, y + 5.1 * k, z + 0.15 * k), c("rouge"),
+                  material="Neon", collide=False, shadow=False, name="Balise")
         else:
-            b.ball((x, y + 0.5, z), 1.0, c("vitre"), material="Glass", reflectance=0.1, collide=False, name="Lanterneau")
+            b.ball((x, y + 0.5 * k, z), 1.0 * k, c("vitre"), material="Glass", reflectance=0.1, collide=False,
+                   name="Lanterneau")
 
 
 def _jardiniere(b, x: float, z: float, S: dict, r: float = 0.9):
@@ -345,80 +348,112 @@ def _elevation_hublots(r: float, rw: float, y_min: float) -> float:
 # 1) Maison-dôme du village terrestre
 # ---------------------------------------------------------------------------
 
-def maison_dome(b, variant: int = 0, rayon: float = 9) -> dict:
+def maison_dome(b, variant: int = 0, rayon: float = 9, tambour: float = 0.0) -> dict:
     """Maison-dôme blanche (voir l'en-tête du module).
 
-    Étagement d'un dôme : socle clair clouté (0 → 1) à liseré, bande principale à 0,3 r, filet d'une seconde
-    couleur juste au-dessus, couronne de hublots au-dessus du filet, anneau de faîte à 0,88 r, trappe et
-    équipement au sommet. Le centre du dôme est à z = +1,5 pour que le tunnel d'entrée atteigne l'avant de
-    l'emprise (z = -(r + 3)). Jardinet devant : massifs fleuris, lampadaire, pot, boîte aux lettres."""
+    Étagement d'un dôme : socle clair clouté (0 → 1) à liseré, tambour blanc (`tambour` studs, optionnel) à
+    couronne de hublots ronds, bande principale (à 0,3 r sans tambour, à la jonction tambour / dôme sinon), filet
+    d'une seconde couleur juste au-dessus, hublots du dôme au-dessus du filet, anneau de faîte à 0,88 r, trappe et
+    équipement au sommet (agrandis avec le dôme). Le centre du dôme est à z = +1,5 pour que le tunnel d'entrée
+    atteigne l'avant de l'emprise (z = -(r + 3)). Jardinet devant : massifs fleuris, lampadaire, pot, boîte aux
+    lettres (à l'échelle des joueurs). v5 : dôme sur tambour coiffé d'une tourelle-dôme (deux dômes empilés,
+    balcon annulaire)."""
     rng = b.rng
     i0 = len(b.parts)
-    v = variant % 5
+    v = variant % 6
     r = float(rayon)
+    t = max(0.0, float(tambour))
     S = _style_maison(variant, rng)
     blanc = S["blanc"]
+    k = max(1.0, r / 10.0)                    # échelle des équipements de toit, rivets et filets
     cz = 1.5
-    rt = round(0.42 * r, 2)                   # rayon du tunnel d'entrée
+    rt = round(min(0.42 * r, 0.25 * r + 2.2), 2)   # rayon du tunnel d'entrée
     yc = round(0.25 * rt, 2)
     z_av = -(r + 2.4)
     zg = -(r + 1.5)                           # ligne du jardinet
     xm = rt + 3.1                             # centre des massifs fleuris
-    lum = rng.random(10) < 0.3                # hublots éclairés au hasard
+    lum = rng.random(16) < 0.3                # hublots éclairés au hasard
     rw = max(0.85, round(0.13 * r, 2))
-    hb = round(min(1.4, max(1.2, 0.14 * r)), 2)   # hauteur de la bande principale
+    hb = round(max(1.2, 0.13 * r), 2)         # hauteur de la bande principale
     larg = 2 * r + (12 if v == 2 else 4)
+    n_riv = 12 if r < 12 else int(round(1.3 * r))
+
+    def hublots_tambour(cx_, az_list, y0, y1, R=r):
+        """Couronne de hublots ronds sur le tambour (entre y0 et y1)."""
+        if y1 - y0 < 2.2:
+            return
+        rr = min(rw, round((y1 - y0) / 2 - 0.45, 2))
+        for i, az in enumerate(az_list):
+            _hublot_cyl(b, cx_, cz, R, az, (y0 + y1) / 2, rr, S["cadre"], neon=bool(lum[(i + 7) % 16]),
+                        reflet=(i < 3))
 
     with b.group("MaisonDome"):
         if v == 3:
             # ---- maison haute : étage cylindrique (rayon r), balcon annulaire, puis dôme
-            he = 4.4
+            he = max(4.4, t)
             ctr = (0.0, he, cz)
             _socle(b, 0, cz, r + 0.6, 0.8, S)
             b.cyl((0, he / 2, cz), r, he, blanc, name="Etage")
             b.ball(ctr, r, blanc, name="Dome")
             for i, az in enumerate((-52, -88, -124, -160, 160, 124, 88, 52)):
-                _hublot_cyl(b, 0, cz, r, az, 2.4, 0.75, S["cadre"], neon=bool(lum[i]))
+                _hublot_cyl(b, 0, cz, r, az, 0.55 * he, min(0.75 * k, 0.24 * he), S["cadre"], neon=bool(lum[i]))
             with b.group("Balcon"):
-                rbal = r + 1.3
+                rbal = r + 1.3 * k
                 b.cyl((0, he + 0.1, cz), rbal, 0.6, c(S["bande"]), studs="top", name="Balcon")
                 b.cyl((0, he - 0.35, cz), rbal - 0.4, 0.3, c("gris_tech"), collide=False, name="Sous-face")
-                _anneau_poly(b, 0, cz, rbal - 0.25, he + 1.6, 12, blanc, poteaux=c("gris_tech"), h_pot=1.2, a0=15)
+                _anneau_poly(b, 0, cz, rbal - 0.25, he + 1.6, 12 if r < 12 else 16, blanc, poteaux=c("gris_tech"),
+                             h_pot=1.2, a0=15)
             el = 22
             for i, az in enumerate((-36, 36, -96, 96, 150, -150)):
-                _hublot(b, ctr, r, az, el, rw, S["cadre"], neon=bool(lum[(i + 3) % 10]))
-            _bande(b, ctr, r, he + 0.6 * r, 0.6, S["bande2"], ep=0.12)
-            _bande(b, ctr, r, he + 0.88 * r, 0.45, S["bande"], ep=0.1, name="Faite")
-            rt3 = round(0.3 * r, 2)
-            _porche(b, 0, cz - math.sqrt(r * r - rt3 * rt3) + 0.6, z_av, rt3, 0.8, S)
-            _equipement_toit(b, 0, he + r, cz, S, 1)
+                _hublot(b, ctr, r, az, el, rw, S["cadre"], neon=bool(lum[(i + 3) % 16]))
+            _bande(b, ctr, r, he + 0.6 * r, 0.6 * k, S["bande2"], ep=0.12)
+            _bande(b, ctr, r, he + 0.88 * r, 0.45 * k, S["bande"], ep=0.1, name="Faite")
+            rt3 = round(min(0.3 * r, 0.2 * r + 1.6), 2)
+            _porche(b, 0, cz - r + 0.6, z_av, rt3, 0.8, S)
+            _equipement_toit(b, 0, he + r, cz, S, 1, k)
             _lampe_jardin(b, -(r + 1.2), -(r + 0.4), S)
             _massif(b, xm - (rt - rt3), zg, S, k=1)
             _jardiniere(b, -(rt3 + 2.6), zg, S, r=0.8)
         else:
-            cx = {0: 0.0, 1: -1.25, 2: -5.2, 4: 0.0}[v]
-            ctr = (cx, 0.0, cz)
+            cx = {0: 0.0, 1: -1.25, 2: -5.2, 4: 0.0, 5: 0.0}[v]
+            ctr = (cx, t, cz)
             _socle(b, cx, cz, r + 0.6, 1.0, S)
+            if t > 0:
+                b.cyl((cx, t / 2, cz), r, t, blanc, name="Tambour")
+                yb = t                            # bande principale à la jonction tambour / dôme
+            else:
+                yb = 0.3 * r
             b.ball(ctr, r, blanc, name="Dome")
-            yb = 0.3 * r
             _bande(b, ctr, r, yb, hb, S["bande"])
-            _rivets_bande(b, ctr, r, yb, hb, 12 if r >= 8 else 10, S["blanc"])
-            _bande(b, ctr, r, yb + hb / 2 + 0.6, 0.35, S["bande2"], ep=0.12, name="Filet")
-            el = _elevation_hublots(r, rw, yb + hb / 2 + 0.6 + 0.175 + 0.35)
+            _rivets_bande(b, ctr, r, yb, hb, n_riv, S["blanc"], k=k)
+            y_filet = yb + hb / 2 + 0.6 * k
+            _bande(b, ctr, r, y_filet, 0.35 * k, S["bande2"], ep=0.12, name="Filet")
+            el = _elevation_hublots(r, rw, y_filet - t + 0.175 * k + 0.35)
             if v != 4:
-                _bande(b, ctr, r, 0.88 * r, 0.45, S["bande"], ep=0.1, prise=0.5, name="Faite")
+                _bande(b, ctr, r, t + 0.88 * r, 0.45 * k, S["bande"], ep=0.1, prise=0.5, name="Faite")
             hublots = {
                 0: [-52, 52, -110, 110, 180],
                 1: [-52, -110, 160, 30],
                 2: [-52, -110, 40, -165],
                 4: [-50, 50, -112, 112, 180],
+                5: [-40, 40, -100, 100, 160, -160],
             }[v]
             for i, az in enumerate(hublots):
                 _hublot(b, ctr, r, az, el, rw, S["cadre"], neon=bool(lum[i]))
-            _porche(b, cx, cz - math.sqrt(max(r * r - (yc + rt) ** 2, 1.0)) + 0.4, z_av, rt, yc, S)
+            if t > 0:
+                az_t = {0: (-62, 62, -125, 125, 180), 1: (-62, -125, 165), 2: (-62, -125, 180),
+                        4: (-62, 62, -125, 125, 180), 5: (-58, 58, -118, 118, 180)}[v]
+                hublots_tambour(cx, az_t, 1.0, t - hb / 2)
+            # porche : il entre dans le tambour (ou dans la sphère au-dessus du tambour)
+            y_haut_tunnel = yc + rt
+            if y_haut_tunnel <= t:
+                z_masse = cz - r + 0.4
+            else:
+                z_masse = cz - math.sqrt(max(r * r - (y_haut_tunnel - t) ** 2, 1.0)) + 0.4
+            _porche(b, cx, z_masse, z_av, rt, yc, S)
 
             if v == 0:
-                _equipement_toit(b, cx, r, cz, S, 0)
+                _equipement_toit(b, cx, t + r, cz, S, 0, k)
                 _massif(b, xm, zg, S, k=0)
                 _massif(b, -xm, zg, S, k=1)
                 _lampe_jardin(b, r + 1.2, -(r + 0.4), S)
@@ -436,78 +471,113 @@ def maison_dome(b, variant: int = 0, rayon: float = 9) -> dict:
                     b.cyl((ax, 1.6, azc), ra + 0.15, 0.6, c(S["bande"]), collide=False, name="Bande")
                     b.cyl((ax, 2.2, azc), ra + 0.12, 0.2, c(S["bande2"]), collide=False, name="Filet")
                     b.cyl((ax, ha + 0.25, azc), ra + 0.35, 0.5, c(S["bande"]), studs="top", name="Toiture")
-                    b.ball((ax + 0.35 * ra, ha + 0.5, azc - 0.2 * ra), 1.1, c("vitre"), material="Glass",
+                    b.ball((ax + 0.35 * ra, ha + 0.5, azc - 0.2 * ra), 1.1 * k, c("vitre"), material="Glass",
                            reflectance=0.1, collide=False, name="Lanterneau")
-                    for k, dz in enumerate((-0.2, 1.3)):
+                    for j, dz in enumerate((-0.2, 1.3)):
                         b.part("block", (2.6, 0.2, 1.3), (ax - 0.15 * ra, ha + 1.0, azc + dz), rot_x(-25),
                                c("vitre_fonce"), collide=False, name="Solaire")
                         b.box((ax - 0.15 * ra - 0.15, ha + 0.5, azc + dz - 0.15),
                               (ax - 0.15 * ra + 0.15, ha + 0.9, azc + dz + 0.15), c("gris_tech_fonce"),
                               collide=False, shadow=False, name="Pied")
                     for i, az in enumerate((-35, 25, 85, 145)):
-                        _hublot_cyl(b, ax, azc, ra, az, 0.55 * ha + 0.9, 0.65, S["cadre"], neon=bool(lum[5 + i]),
-                                    reflet=(i < 2))
-                _equipement_toit(b, cx, r, cz, S, 1)
+                        _hublot_cyl(b, ax, azc, ra, az, 0.55 * ha + 0.9, 0.65 * min(k, 1.5), S["cadre"],
+                                    neon=bool(lum[5 + i]), reflet=(i < 2))
+                _equipement_toit(b, cx, t + r, cz, S, 1, k)
                 _massif(b, max(cx - xm, -(r + 2) + 1.45), zg, S, k=1)
                 _lampe_jardin(b, -(r + 1.2), -(r - 3.0), S, h=4.2)
             elif v == 2:
-                # second dôme (0,65 r) relié par un tube court à collier coloré
+                # second dome (0,65 r, sans tambour) relié par un tube horizontal à collier coloré
                 rs = round(0.65 * r, 2)
                 sx = (r + 6) - rs - 0.75
                 sz = cz + 2.5
                 sctr = (sx, 0.0, sz)
+                y_tube = 2.6 * k + (0.3 * t if t > 0 else 0.0)
                 with b.group("Dome2"):
                     b.cyl((sx, 0.4, sz), rs + 0.6, 0.8, SOCLE, studs="top", name="Socle")
                     b.ball(sctr, rs, blanc, name="Dome")
-                    _bande(b, sctr, rs, 0.32 * rs, 0.9, S["bande"])
-                    _bande(b, sctr, rs, 0.32 * rs + 0.95, 0.3, S["bande2"], ep=0.12, name="Filet")
+                    _bande(b, sctr, rs, 0.32 * rs, 0.9 * k, S["bande"])
+                    _bande(b, sctr, rs, 0.32 * rs + 0.95 * k, 0.3 * k, S["bande2"], ep=0.12, name="Filet")
                     for i, (az, ee) in enumerate(((-15, 46), (70, 44), (150, 44))):
                         _hublot(b, sctr, rs, az, ee, max(0.7, rw * 0.75), S["cadre"], neon=bool(lum[5 + i]))
-                    b.cyl((sx, rs - 0.1, sz), 1.1, 0.6, c("gris_tech"), name="Trappe")
-                    b.ball((sx, rs + 0.2, sz), 0.8, c("vitre"), material="Glass", reflectance=0.1, collide=False,
-                           name="Lanterneau")
+                    b.cyl((sx, rs - 0.1, sz), 1.1 * k, 0.6 * k, c("gris_tech"), name="Trappe")
+                    b.ball((sx, rs + 0.2 * k, sz), 0.8 * k, c("vitre"), material="Glass", reflectance=0.1,
+                           collide=False, name="Lanterneau")
                     d = np.array([sx - cx, 0.0, sz - cz])
                     dist = float(np.linalg.norm(d))
                     d /= dist
-                    h_tube = 2.6
-                    a = np.array(ctr) + d * (r - 2.5) + np.array([0, h_tube, 0])
-                    e = np.array(sctr) - d * (rs - 2.0) + np.array([0, h_tube, 0])
-                    b.part("cyl", (float(np.linalg.norm(e - a)), 3.6, 3.6), tuple((a + e) / 2), _repere(d), blanc,
-                           name="Tube")
-                    g = np.array(ctr) + d * (dist - rs + r) / 2 + np.array([0, h_tube, 0])
-                    _disque(b, g, d, 2.1, 0.8, S["bande"], collide=False, name="Collier")
-                _equipement_toit(b, cx, r, cz, S, 0)
+                    # bouts du tube : dans le tambour (ou la sphère) du grand dôme, dans la sphère du petit
+                    if y_tube <= t:
+                        ra_ = r
+                    else:
+                        ra_ = math.sqrt(max(r * r - (y_tube - t) ** 2, 1.0))
+                    rs_ = math.sqrt(max(rs * rs - y_tube ** 2, 1.0))
+                    a = np.array([cx, y_tube, cz]) + d * (ra_ - 2.5)
+                    e = np.array([sx, y_tube, sz]) - d * (rs_ - 2.0)
+                    b.part("cyl", (float(np.linalg.norm(e - a)), 3.6 * k, 3.6 * k), tuple((a + e) / 2), _repere(d),
+                           blanc, name="Tube")
+                    g = np.array([cx, y_tube, cz]) + d * (ra_ + (dist - rs_ - ra_) / 2)
+                    _disque(b, g, d, 2.1 * k, 0.8, S["bande"], collide=False, name="Collier")
+                _equipement_toit(b, cx, t + r, cz, S, 0, k)
                 _massif(b, max(cx - xm, -(larg / 2) + 1.45), zg, S, k=0)
                 _lampe_jardin(b, sx + 0.3, -(r + 1.6), S, h=4.2)
                 _boite_lettres(b, sx - 2.6, -(r + 1.9), S)
-            else:
+            elif v == 4:
                 # v4 : terrasse de toit sur un tambour, garde-corps, parasol et plante en pot
-                yd0, rd = 0.75 * r, round(0.5 * r, 2)
-                yt = r + 0.5
+                yd0, rd = t + 0.75 * r, round(0.5 * r, 2)
+                yt = t + r + 0.5
                 rt_ = round(0.66 * r, 2)
                 with b.group("Terrasse"):
                     b.cyl((cx, (yd0 + yt) / 2, cz), rd, yt - yd0, blanc, name="Tambour")
                     b.cyl((cx, yt - 0.35, cz), rd + 0.15, 0.4, c(S["bande2"]), collide=False, name="Liseré")
                     for i, az in enumerate((-30, 30, 150, -150)):
-                        _hublot_cyl(b, cx, cz, rd, az, yd0 + 0.62 * (yt - yd0) - 0.5, 0.45, S["cadre"],
+                        _hublot_cyl(b, cx, cz, rd, az, yd0 + 0.62 * (yt - yd0) - 0.5, 0.45 * k, S["cadre"],
                                     neon=bool(lum[i + 3]))
                     b.cyl((cx, yt + 0.25, cz), rt_, 0.5, c(S["bande"]), studs="top", name="Terrasse")
-                    _anneau_poly(b, cx, cz, rt_ - 0.3, yt + 1.75, 10, blanc, poteaux=c("gris_tech"), h_pot=1.25, a0=18)
+                    _anneau_poly(b, cx, cz, rt_ - 0.3, yt + 1.75, 10 if r < 12 else 14, blanc, poteaux=c("gris_tech"),
+                                 h_pot=1.25, a0=18)
                     px, pz = cx + 0.25 * rt_, cz + 0.15 * rt_
-                    b.cyl((px, yt + 0.5 + 1.6, pz), 0.12, 3.2, c("metal"), collide=False, name="Manche")
-                    for k, (rr, col) in enumerate(((2.6, S["bande2"]), (1.9, "blanc"), (1.2, S["bande2"]), (0.5, "blanc"))):
-                        b.cyl((px, yt + 3.5 + 0.25 * k, pz), rr, 0.26, c(col), collide=False, name="Toile")
+                    b.cyl((px, yt + 0.5 + 1.6 * k, pz), 0.12 * k, 3.2 * k, c("metal"), collide=False, name="Manche")
+                    for j, (rr, col) in enumerate(((2.6, S["bande2"]), (1.9, "blanc"), (1.2, S["bande2"]), (0.5, "blanc"))):
+                        b.cyl((px, yt + 0.5 + 3.0 * k + 0.25 * j, pz), rr * k, 0.26, c(col), collide=False,
+                              name="Toile")
                     b.cyl((px, yt + 1.4, pz), 1.0, 0.2, blanc, studs="top", collide=False, name="Table")
                     b.cyl((px, yt + 0.95, pz), 0.15, 0.9, c("metal"), collide=False, name="Pied")
-                    for k, (dx, dz) in enumerate(((-1.7, 0.4), (1.2, 1.4))):
+                    for j, (dx, dz) in enumerate(((-1.7, 0.4), (1.2, 1.4))):
                         b.cyl((px + dx, yt + 0.85, pz + dz), 0.5, 0.7, c(S["bande2"]), studs="top", collide=False,
                               name="Tabouret")
-                    b.cyl((cx - 0.4 * rt_, yt + 1.0, cz - 0.2 * rt_), 0.7, 1.0, c("pave"), name="Pot")
-                    b.ball((cx - 0.4 * rt_, yt + 2.1, cz - 0.2 * rt_), 0.95, c("feuillage"), collide=False,
-                           name="Plante")
+                    b.cyl((cx - 0.4 * rt_, yt + 1.0, cz - 0.2 * rt_), 0.7 * k, 1.0 * k, c("pave"), name="Pot")
+                    b.ball((cx - 0.4 * rt_, yt + 0.5 + 1.6 * k, cz - 0.2 * rt_), 0.95 * k, c("feuillage"),
+                           collide=False, name="Plante")
                 _massif(b, xm, zg, S, k=0)
                 _massif(b, -xm, zg, S, k=1)
                 _lampe_jardin(b, r + 1.2, -(r + 0.4), S)
+            else:
+                # v5 : tourelle-dôme sur le grand dôme (deux dômes empilés), balcon annulaire à sa base
+                rs = round(0.45 * r, 2)
+                y0d = t + math.sqrt(r * r - rs * rs) - 0.4          # pied du tambour de la tourelle (dans le dôme)
+                y1d = t + 1.2 * r                                     # centre du petit dôme
+                with b.group("Tourelle"):
+                    b.cyl((cx, (y0d + y1d) / 2, cz), rs, y1d - y0d, blanc, name="Tambour")
+                    rbal = rs + 1.6 * k
+                    ybal = y0d + 1.1 * k
+                    b.cyl((cx, ybal, cz), rbal, 0.6, c(S["bande"]), studs="top", name="Balcon")
+                    _anneau_poly(b, cx, cz, rbal - 0.25, ybal + 1.5, 12, blanc, poteaux=c("gris_tech"), h_pot=1.2,
+                                 a0=15)
+                    ys = (ybal + 0.3, y1d - 0.35 * k)
+                    for i, az in enumerate((-40, 40, 140, -140)):
+                        _hublot_cyl(b, cx, cz, rs, az, (ys[0] + ys[1]) / 2, min(0.9 * k, (ys[1] - ys[0]) / 2 - 0.45),
+                                    S["cadre"], neon=bool(lum[(i + 9) % 16]), reflet=(i < 2))
+                    sctr = (cx, y1d, cz)
+                    b.ball(sctr, rs, blanc, name="Dome")
+                    _bande(b, sctr, rs, y1d, 0.7 * k, S["bande2"])
+                    _bande(b, sctr, rs, y1d + 0.75 * rs, 0.35 * k, S["bande"], ep=0.1, prise=0.5, name="Faite")
+                    for i, az in enumerate((0, 90, 180, -90)):
+                        _hublot(b, sctr, rs, az, 38, max(0.8, 0.16 * rs), S["cadre"], neon=bool(lum[(i + 12) % 16]))
+                _equipement_toit(b, cx, y1d + rs, cz, S, 1, k)
+                _massif(b, xm, zg, S, k=1)
+                _massif(b, -xm, zg, S, k=0)
+                _lampe_jardin(b, -(r + 1.2), -(r + 0.4), S)
+                _boite_lettres(b, r + 1.2, -(r - 1.0), S)
     return {"emprise": (larg, 2 * r + 6), "hauteur": _hauteur(b, i0)}
 
 
@@ -621,16 +691,27 @@ def _objet_geant(b, v: int, y0: float) -> float:
         return yc + R + rb
 
 
-def boutique_dome(b, variant: int = 0) -> dict:
-    """Boutique ronde (rayon 6,4) : vitrine, store rayé, toit plat bordé (coupole basse sauf pour la brioche),
-    comptoir avant, tabourets, tableau de menu en pictogrammes, objet géant sur le toit.
-    Emprise 16 × 16, hauteur ≤ 16."""
+def _mettre_a_echelle(b, i0: int, s: float) -> None:
+    """Agrandit uniformément (facteur s, autour de l'origine du repère courant) les pièces émises depuis i0."""
+    if abs(s - 1.0) < 1e-9:
+        return
+    o = b.to_world((0, 0, 0))
+    for p in b.parts[i0:]:
+        p.pos = tuple(round(float(v), 4) for v in o + s * (np.asarray(p.pos, float) - o))
+        p.size = tuple(round(float(v) * s, 4) for v in p.size)
+
+
+def boutique_dome(b, variant: int = 0, echelle: float = 1.0) -> dict:
+    """Boutique ronde (rayon 6,4 × echelle) : vitrine, store rayé, toit plat bordé (coupole basse sauf pour la
+    brioche), comptoir avant, tabourets, tableau de menu en pictogrammes, objet géant sur le toit.
+    `echelle` (1 à 1,6) agrandit le bâtiment et l'objet géant ; comptoir, tabourets et menu restent à l'échelle
+    des joueurs. Emprise 16 × 16 × echelle, hauteur ≤ 16 × echelle."""
     rng = b.rng
     i0 = len(b.parts)
     v = variant % 4
+    s = max(1.0, float(echelle))
     S = dict(STYLES_BOUTIQUE[v])
     blanc = vary("blanc_dome", rng, 0.015)
-    gris = c("gris_tech")
     R = 6.4
     H = 6.8                      # haut du mur
     with b.group("Boutique"):
@@ -684,16 +765,23 @@ def boutique_dome(b, variant: int = 0) -> dict:
             ycap = H + 0.4 - math.sqrt(rcap ** 2 - 4.0 ** 2)
             b.ball((0, ycap, 0), rcap, blanc, name="Coupole")
             _objet_geant(b, v, ycap + rcap - 0.3)
-        # comptoir avant et tabourets
+    _mettre_a_echelle(b, i0, s)
+    y0 = 0.6 * s                 # dessus du socle (agrandi)
+    Rs = R * s
+    with b.group("Boutique"):
+        # comptoir avant et tabourets (à l'échelle des joueurs, posés sur le socle)
         with b.group("Comptoir"):
-            b.box((-2.8, 0.6, -6.7), (2.8, 3.0, -5.5), blanc, name="Comptoir")
-            b.box((-2.9, 1.4, -6.8), (2.9, 1.8, -6.6), c(S["bord"]), collide=False, name="Bande")
-            b.box((-3.1, 3.0, -7.1), (3.1, 3.4, -5.4), c(S["bord"]), studs="top", name="Plateau")
+            z1 = -(Rs - 0.9)
+            b.box((-2.8, y0, z1 - 1.2), (2.8, y0 + 2.4, z1), blanc, name="Comptoir")
+            b.box((-2.9, y0 + 0.8, z1 - 1.3), (2.9, y0 + 1.2, z1 - 1.1), c(S["bord"]), collide=False, name="Bande")
+            b.box((-3.1, y0 + 2.4, z1 - 1.6), (3.1, y0 + 2.8, z1 + 0.1), c(S["bord"]), studs="top", name="Plateau")
+            zt = z1 - 1.85
+            yt = y0 if abs(zt) + 0.6 < 7.2 * s else 0.0     # tabourets sur le socle ou au sol devant lui
             for x in (-2.0, 0.0, 2.0):
-                b.cyl((x, 0.95, -7.35), 0.15, 1.9, c("gris_tech_fonce"), collide=False, name="Pied")
-                b.cyl((x, 2.05, -7.35), 0.55, 0.3, c(S["store"][0]), studs="top", name="Assise")
-        # tableau de menu sur pieds, en pictogrammes (carrés de couleur, aucun texte)
-        with b.at((4.9, 0, -6.6), yaw=-30, group="Menu"):
+                b.cyl((x, yt + 0.95, zt), 0.15, 1.9, c("gris_tech_fonce"), collide=False, name="Pied")
+                b.cyl((x, yt + 2.05, zt), 0.55, 0.3, c(S["store"][0]), studs="top", name="Assise")
+        # tableau de menu sur pieds, en pictogrammes (carrés de couleur, aucun texte), posé au sol
+        with b.at((4.9 * s, 0, -6.6 * s), yaw=-30, group="Menu"):
             for x in (-0.9, 0.9):
                 b.box((x - 0.12, 0, -0.12), (x + 0.12, 3.4, 0.12), c("gris_tech_fonce"), name="Pied")
             b.box((-1.3, 1.4, -0.2), (1.3, 3.6, 0.0), _col(TABLEAU), name="Tableau")
@@ -704,7 +792,7 @@ def boutique_dome(b, variant: int = 0) -> dict:
                 y = 2.9 - (k // 3) * 0.9
                 b.box((x - 0.25, y - 0.25, -0.32), (x + 0.25, y + 0.25, -0.2), _col(cols[k % 3]), collide=False,
                       shadow=False, name="Picto")
-    return {"emprise": (16, 16), "hauteur": _hauteur(b, i0)}
+    return {"emprise": (16 * s, 16 * s), "hauteur": _hauteur(b, i0)}
 
 
 # ---------------------------------------------------------------------------
@@ -850,6 +938,57 @@ def maison_alien(b, variant: int = 0, rayon: float = 7) -> dict:
                 continue
             b.ball((x, 0.4 + rr * 0.45, z), rr, vary("buisson_alien", rng, 0.05), collide=False, name="Buisson")
     return {"emprise": (2 * r + 4, 2 * r + 4), "hauteur": _hauteur(b, i0)}
+
+
+def hameau_alien(b, variant: int = 0, rayon: float = 10) -> dict:
+    """Hameau extraterrestre : grand dôme (rayon r, tambour, porche à l'avant -Z) relié par des tubes blancs à
+    colliers lavande à deux dômes satellites (0,55 r) posés de part et d'autre, un peu en arrière ; socles de
+    sable, hublots-bulles verts, lampes et arbustes boules. v0 deux satellites symétriques ; v1 un satellite à
+    gauche et un plus petit derrière à droite. Emprise ≈ (4,3 r + 6) × (2,2 r + 6), centrée."""
+    rng = b.rng
+    i0 = len(b.parts)
+    v = variant % 2
+    r = float(rayon)
+    rs = round(0.55 * r, 2)
+    blanc = vary("blanc_dome", rng, 0.015)
+    sable, sable_c = c("sable"), c("sable_clair")
+    hb = 1.2
+    gap = 2.2                                   # écart entre les tambours (le tube le franchit)
+    xs = r + rs + gap
+    sats = [(-xs, 0.35 * r, rs), (xs, 0.35 * r, rs)] if v == 0 else \
+        [(-xs, 0.3 * r, rs), (0.62 * r + 0.8 * rs, r + 0.75 * rs, round(0.45 * r, 2))]
+    with b.group("HameauAlien"):
+        b.cyl((0, 0.25, 0), r + 1.0, 0.5, sable, studs="top", name="Socle")
+        _dome_alien(b, 0, 0, r, hb, blanc, rng,
+                    hublots=[(-48, 30, 1.2), (48, 30, 1.2), (-112, 26, 1.0), (112, 26, 1.0), (180, 32, 1.1),
+                             (-80, 11, 0.9), (80, 11, 0.9), (150, 12, 0.9), (-150, 12, 0.9)],
+                    cheminees=[(-130, 50), (140, 54)])
+        for j, (sx, sz, rr) in enumerate(sats):
+            b.cyl((sx, 0.2, sz), rr + 0.8, 0.4, sable_c, studs="top", name="Socle")
+            _dome_alien(b, sx, sz, rr, 0.9, blanc, rng, hublots=[(-30, 30, 0.8), (90 if sx > 0 else -90, 28, 0.8),
+                                                                  (160, 30, 0.8)],
+                        porche=False, pile=(j == 0), aiguilles=0 if j == 0 else 2)
+            # tube de liaison horizontal (axe dans le plan), colliers lavande aux deux bouts
+            d = np.array([sx, 0.0, sz])
+            dist = float(np.linalg.norm(d))
+            d /= dist
+            y_t = hb + 1.4
+            ra_ = math.sqrt(max(r * r - (y_t - hb) ** 2, 1.0)) if y_t > hb else r
+            rb_ = math.sqrt(max(rr * rr - (y_t - 0.9) ** 2, 1.0)) if y_t > 0.9 else rr
+            a = np.array([0.0, y_t, 0.0]) + d * (ra_ - 1.2)
+            e = np.array([sx, y_t, sz]) - d * (rb_ - 1.2)
+            b.part("cyl", (float(np.linalg.norm(e - a)), 2.6, 2.6), tuple((a + e) / 2), _repere(d), blanc, name="Tube")
+            for q in (np.array([0.0, y_t, 0.0]) + d * (ra_ + 0.4), np.array([sx, y_t, sz]) - d * (rb_ + 0.4)):
+                _disque(b, q, d, 1.65, 0.6, c("coque_lavande"), collide=False, name="Collier")
+            if j == 0:
+                _lampe_alien(b, sx + 0.3 * rr, sz - rr - 1.6)
+            else:
+                _arbuste_boule(b, sx + (rr + 1.2) * (1 if sx > 0 else -1) * 0.7, sz + rr * 0.7 + 1.0, rng, h=3.4)
+        _lampe_alien(b, r + 1.4, -(r + 0.8))
+        _arbuste_boule(b, -(r * 0.6), -(r + 1.6), rng, h=3.0)
+        for k, (x, z, rr) in enumerate(((-(r * 0.35), -(r + 1.4), 0.9), (r * 0.75, -(r * 0.75), 0.8))):
+            b.ball((x, 0.4 + rr * 0.45, z), rr, vary("buisson_alien", rng, 0.05), collide=False, name="Buisson")
+    return {"emprise": (2 * (xs + rs + 1.0), 2.2 * r + 6), "hauteur": _hauteur(b, i0)}
 
 
 # ---------------------------------------------------------------------------

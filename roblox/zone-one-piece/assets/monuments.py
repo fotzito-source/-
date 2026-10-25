@@ -807,7 +807,7 @@ def rocher_crane(b, variant: int = 0, passage: float = 96, largeur: float = 440,
                       vary(osf if kk == 0 else oso, rng, 0.04), name="Stalactite", **ND)
                 yb -= hh
 
-    # --- ornements du crâne : lueurs dans les orbites, herbe, palmiers, mouettes, pavillon ---------------
+    # --- ornements du crâne : lierre, lianes, mousse, herbe, palmiers, mouettes, pavillon ----------------
     with b.group("Ornements"):
         # lierre qui pend du bout extérieur des arcades sourcilières, sur les tempes (accroché au surplomb)
         yv = min(ys[j] for j in range(ny) if (ys[j] + ys[j + 1]) / 2 >= EY + EB + 1)    # dessous des arcades
@@ -846,7 +846,8 @@ def rocher_crane(b, variant: int = 0, passage: float = 96, largeur: float = 440,
             if y is None:
                 continue
             w_ = float(rng.uniform(3.0, 5.5))
-            b.box((tx - w_ / 2, y - 0.2, tz - 1.6), (tx + w_ / 2, y + 0.6, tz + 1.6), c("roche_mousse"), studs="top",
+            # (dépasse de 0,1 devant la corniche : pas de face confondue avec le rocher)
+            b.box((tx - w_ / 2, y - 0.2, tz - 1.6), (tx + w_ / 2, y + 0.6, tz + 1.7), c("roche_mousse"), studs="top",
                   name="Mousse", **ND)
         for (tx, tz) in touffes:
             tx = tx * sx + 0.13

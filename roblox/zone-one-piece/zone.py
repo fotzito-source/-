@@ -875,7 +875,7 @@ def abords(b: Builder) -> None:
             kw = {"hauteur": 14 + 2 * (i % 2)} if kind == "palmier" else {}
             place(b, "nature", kind, (s * dx, 0, Z_PORTE + dz), yaw=i * 50, group=f"Abords/{'G' if s < 0 else 'D'}{i}",
                   variant=(i + (s > 0)) % 3, emprise=(8, 8, 14), **kw)
-    place(b, "mobilier", "panneau", (52.5, 0, Z_PORTE + 22), yaw=180, group="Abords/Bienvenue", texte="BIENVENUE", variant=1,
+    place(b, "mobilier", "panneau", (52.5, 0, Z_PORTE + 30), yaw=180, group="Abords/Bienvenue", texte="BIENVENUE", variant=1,
           emprise=(12, 1, 6))
 
 

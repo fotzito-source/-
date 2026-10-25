@@ -113,7 +113,7 @@ def poteau_electrique(b, variant: int = 0, hauteur: float = 24) -> dict:
         b.cyl((0, 1.6, 0), 0.6, 2.4, c("chantier_jaune"), collide=False, name="Manchon")
         for y in (0.9, 2.1):
             b.cyl((0, y, 0), 0.61, 0.4, c("chantier_noir"), collide=False, shadow=False, name="Rayure")
-        b.box((-0.55, 7.0, -0.62), (0.55, 9.0, -0.56), c("auvent_bleu"), collide=False, shadow=False, name="Plaque")
+        b.box((-0.55, 7.0, -0.66), (0.55, 9.0, -0.56), c("auvent_bleu"), collide=False, shadow=False, name="Plaque")
     acc = [(0, y1 + 0.85, -2.2), (0, y1 + 0.85, 0.0), (0, y1 + 0.85, 2.2), (0, y2 + 0.85, -1.8), (0, y2 + 0.85, 1.8)]
     return {"emprise": (1.8, 5.2), "hauteur": H + 0.3, "accroches": [tuple(float(v) for v in b.to_world(p)) for p in acc]}
 
@@ -198,17 +198,17 @@ def panneau_route(b, variant: int = 0) -> dict:
             # triangle inversé en trois marches de pixels, bord blanc
             rouge, blanc = c("feu_rouge"), c("blanc")
             b.box((-1.6, 6.7, -0.32), (1.6, 7.5, -0.14), blanc, collide=False, name="Bord")
-            b.box((-1.4, 6.8, -0.36), (1.4, 7.4, -0.3), rouge, collide=False, name="Triangle")
-            p = b.box((-1.0, 5.9, -0.36), (1.0, 6.8, -0.3), rouge, collide=False, name="Triangle")
+            b.box((-1.4, 6.8, -0.4), (1.4, 7.4, -0.3), rouge, collide=False, name="Triangle")
+            p = b.box((-1.0, 5.9, -0.4), (1.0, 6.8, -0.3), rouge, collide=False, name="Triangle")
             p.label = {"face": "Front", "text": "止まれ", "color": (250, 250, 250), "font": "sans"}
             b.box((-1.2, 5.8, -0.32), (1.2, 6.7, -0.14), blanc, collide=False, name="Bord")
-            b.box((-0.5, 5.2, -0.36), (0.5, 5.9, -0.3), rouge, collide=False, name="Triangle")
+            b.box((-0.5, 5.2, -0.4), (0.5, 5.9, -0.3), rouge, collide=False, name="Triangle")
             b.box((-0.7, 5.0, -0.32), (0.7, 5.8, -0.14), blanc, collide=False, name="Bord")
         elif variant % 3 == 1:
             b.cyl((0, 6.4, -0.25), 1.2, 0.16, c("blanc"), axis="z", collide=False, name="Bord")
-            b.cyl((0, 6.4, -0.36), 1.05, 0.08, c("auvent_bleu"), axis="z", collide=False, name="Disque")
-            b.box((-0.15, 5.7, -0.44), (0.15, 6.9, -0.38), c("blanc"), collide=False, shadow=False, name="Fleche")
-            b.box((-0.45, 6.6, -0.44), (0.45, 6.9, -0.38), c("blanc"), collide=False, shadow=False, name="Fleche")
+            b.cyl((0, 6.4, -0.36), 1.05, 0.1, c("auvent_bleu"), axis="z", collide=False, name="Disque")
+            b.box((-0.15, 5.7, -0.48), (0.15, 6.9, -0.38), c("blanc"), collide=False, shadow=False, name="Fleche")
+            b.box((-0.45, 6.6, -0.48), (0.45, 6.9, -0.38), c("blanc"), collide=False, shadow=False, name="Fleche")
         else:
             p = b.box((-2.2, 5.4, -0.3), (2.2, 7.4, -0.14), c("auvent_bleu"), collide=False, name="Direction")
             p.label = {"face": "Front", "text": "駅 ←  → 東口", "color": (250, 250, 250), "font": "sans"}
@@ -273,7 +273,7 @@ def poubelles_tri(b, variant: int = 0) -> dict:
             col = cols[(i + variant) % 3]
             b.box((x - 0.95, 0, -0.9), (x + 0.95, 3.0, 0.9), col, name="Poubelle")
             b.box((x - 1.05, 3.0, -1.0), (x + 1.05, 3.4, 1.0), shade(col, 0.8), studs="top", name="Couvercle")
-            b.box((x - 0.5, 2.3, -0.98), (x + 0.5, 2.7, -0.9), c("noir"), collide=False, shadow=False, name="Fente")
+            b.box((x - 0.5, 2.3, -1.0), (x + 0.5, 2.7, -0.9), c("noir"), collide=False, shadow=False, name="Fente")
     return {"emprise": (6.6, 2.0), "hauteur": 3.4}
 
 
@@ -416,7 +416,7 @@ def barriere_chantier(b, longueur: float = 8, variant: int = 0, texte: str = "�
             n = max(4, int(L // 1.2))
             for k in range(n):
                 xa = -L / 2 + 0.3 + k * (L - 0.6) / n
-                b.box((xa, 2.9, -0.04), (xa + (L - 0.6) / n, 3.4, 0.04), c("chantier_jaune" if k % 2 == 0 else "chantier_noir"),
+                b.box((xa, 2.9, -0.05), (xa + (L - 0.6) / n, 3.4, 0.05), c("chantier_jaune" if k % 2 == 0 else "chantier_noir"),
                       collide=False, shadow=False, name="Ruban")
             yp = 1.0
         else:

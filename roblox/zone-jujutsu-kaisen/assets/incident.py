@@ -273,8 +273,8 @@ def _facade(b, rng, axe, plan, sens, t0, t1, y0, y1, *, pas=6.0, hb=1.4, bande="
             elif r < p_allume + p_casse + p_brise:
                 # vitre brisée : il ne reste qu'un morceau translucide accroché en haut de la case
                 yh = ya + (yb - ya) * float(rng.uniform(0.35, 0.6))
-                bx(ta, tb, ya, yb, 0.0, 0.08, c(sombre), name="VitreArrachee")
-                bx(ta + 0.2, tb - 0.2, yh, yb, 0.08, 0.16, c("verre_brise"), transparency=0.4, name="VitreBrisee")
+                bx(ta, tb, ya, yb, 0.0, 0.1, c(sombre), name="VitreArrachee")
+                bx(ta + 0.2, tb - 0.2, yh, yb, 0.1, 0.2, c("verre_brise"), transparency=0.4, name="VitreBrisee")
 
 
 def _fissure(b, rng, axe, plan, sens, t, y, *, n=3, longueur=4.0, direction=-90.0, larg=0.35, couleur="fissure",
@@ -969,6 +969,10 @@ def tour_endommagee(b, variant=0, largeur=26, profondeur=32, hauteur=70) -> dict
         with b.group("Corps"):
             b.box((-hw, YP, zf + EF), (hw, y_cut, zb), corps_c, name="Corps")
             for (xa, xb, ya, yb) in _rects_moins(-hw, hw, YP, y_cut, crat):
+                if xb - xa < 0.1:                 # pas de lamelle de moins de 0,1 au bord du cratère
+                    xa, xb = (xa + xb) / 2 - 0.05, (xa + xb) / 2 + 0.05
+                if yb - ya < 0.1:
+                    ya, yb = (ya + yb) / 2 - 0.05, (ya + yb) / 2 + 0.05
                 b.box((xa, ya, zf), (xb, yb, zf + EF), corps_c, name="CoucheAvant")
             # niveaux de l'angle arraché : chaque niveau = un L (deux blocs), de plus en plus entaillé vers le haut
             for (ya, yb, mw, md) in niveaux:
@@ -1227,11 +1231,11 @@ def voiture_abandonnee(b, variant=0) -> dict:
             n_pb /= np.linalg.norm(n_pb)
             pa = np.array([0.0, yc + 0.25, zp + 0.25]) + n_pb * 0.12
             pb = np.array([0.0, yt - 0.2, zh0 - 0.05]) + n_pb * 0.12
-            _barre(b, pa, pb, 2.6, 0.06, n_pb, c("verre_brise"), transparency=0.35, name="PareBriseEtoile", **PETIT)
+            _barre(b, pa, pb, 2.6, 0.1, n_pb, c("verre_brise"), transparency=0.35, name="PareBriseEtoile", **PETIT)
             for ang in (0.6, 2.2, 3.9):
                 q0 = (pa + pb) / 2 + n_pb * 0.06
                 q1 = q0 + np.array([0.9 * math.cos(ang), 0.0, 0.0]) + (pb - pa) / np.linalg.norm(pb - pa) * 0.8 * math.sin(ang)
-                _barre(b, q0, q1, 0.12, 0.05, n_pb, c("fissure"), name="Fele", **PETIT)
+                _barre(b, q0, q1, 0.12, 0.1, n_pb, c("fissure"), name="Fele", **PETIT)
             # porte coulissante ouverte (côté droit, +X) : ouverture sombre, siège, porte glissée vers l'arrière
             za, zb2 = zh0 + 2.0, zh0 + 4.2
             _d(b, (hx - 0.02, yb_ + 0.3, za), (hx + 0.1, yt - 0.2, zb2), c("fissure"), name="Ouverture")
@@ -1248,7 +1252,7 @@ def voiture_abandonnee(b, variant=0) -> dict:
             b.boxc((0.3, yc + 0.12 + 0.3, zf + 1.2), (1.0, 0.6, 0.8), vary(c("gravats"), rng), yaw=25, name="Gravats", **PETIT)
             n_l = np.array([0.0, zl - zh1, yt - yc])
             n_l /= np.linalg.norm(n_l)
-            _barre(b, np.array([0.0, yt - 0.3, zh1 + 0.15]) + n_l * 0.1, np.array([0.0, yc + 0.45, zl - 0.3]) + n_l * 0.1, 2.4, 0.08,
+            _barre(b, np.array([0.0, yt - 0.3, zh1 + 0.15]) + n_l * 0.1, np.array([0.0, yc + 0.45, zl - 0.3]) + n_l * 0.1, 2.4, 0.1,
                    n_l, c("verre_brise"), transparency=0.4, name="LunetteBrisee", **PETIT)
         elif v == 2:
             # capot écrasé : tôle pliée en toit (deux plaques) et bloc de béton tombé dessus
@@ -1262,7 +1266,7 @@ def voiture_abandonnee(b, variant=0) -> dict:
             n_pb = np.array([0.0, zh0 - zp, -(yt - yc)])
             n_pb /= np.linalg.norm(n_pb)
             _barre(b, np.array([-0.6, yc + 0.3, zp + 0.2]) + n_pb * 0.1, np.array([-0.6, yt - 0.25, zh0 - 0.05]) + n_pb * 0.1, 1.9,
-                   0.08, n_pb, c("verre_brise"), transparency=0.4, name="PareBriseBrise", **PETIT)
+                   0.1, n_pb, c("verre_brise"), transparency=0.4, name="PareBriseBrise", **PETIT)
         else:
             # taxi : lanterneau de toit vierge, voyant « libre » rouge (sans texte), bas de caisse sombre
             b.box((-0.7, yt, -0.6), (0.7, yt + 0.15, 0.6), c("anthracite"), name="SocleLanterneau", **PETIT)

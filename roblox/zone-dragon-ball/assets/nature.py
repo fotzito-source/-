@@ -282,49 +282,53 @@ def _noix(b, T, w1, n, rng, a0=0.0):
                vary("noix_coco", rng, 0.05), name="Noix", **DETAIL)
 
 
-def _palmier(b, v, H, s, rng):
+def _palmier(b, v, H, s, rng, ep=1.0):
     a = float(rng.uniform(0, 360))
     ua = np.array([math.cos(math.radians(a)), 0.0, math.sin(math.radians(a))])
     if v == 2:  # double tronc d'une même souche
-        w0 = 1.55
+        w0 = 1.55 * ep
         b.boxc((0, 0.25, 0), (w0 + 0.9, 1.1, w0 + 0.9), vary("palmier_tronc_fonce", rng, 0.04), yaw=a + 45, name="Souche")
         ub = np.array([math.cos(math.radians(a + 150)), 0.0, math.sin(math.radians(a + 150))])
-        Ta, wa = _tronc_palmier(b, ua * 0.35, H, ua * 2.6, 4, 1.35, 1.0, rng, courbe=1.4, anneaux=(2,))
-        Tb, wb = _tronc_palmier(b, ub * 0.35, H * 0.7, ub * 2.3, 3, 1.25, 0.95, rng, courbe=1.3, anneaux=(1,), twist0=30)
+        Ta, wa = _tronc_palmier(b, ua * 0.35, H, ua * 2.6, 4, 1.35 * ep, 1.0 * ep, rng, courbe=1.4, anneaux=(2,))
+        Tb, wb = _tronc_palmier(b, ub * 0.35, H * 0.7, ub * 2.3, 3, 1.25 * ep, 0.95 * ep, rng, courbe=1.3, anneaux=(1,),
+                                twist0=30)
         _couronne_palmier(b, Ta, 5, s * 0.95, rng, etages=2, pousse=False)
         _couronne_palmier(b, Tb, 5, s * 0.85, rng, etages=2, pousse=False)
         _noix(b, Ta, wa, 2, rng, a)
         _noix(b, Tb, wb, 1, rng, a + 90)
         return
     if v == 3:  # court et touffu
-        w0, w1 = 1.8, 1.35
+        w0, w1 = 1.8 * ep, 1.35 * ep
         b.boxc((0, 0.25, 0), (w0 + 0.8, 1.0, w0 + 0.8), vary("palmier_tronc_fonce", rng, 0.04), yaw=a + 45, name="Souche")
         T, w = _tronc_palmier(b, (0, 0, 0), H * 0.55, ua * 0.7, 3, w0, w1, rng, anneaux=(2,))
         _couronne_palmier(b, T, 8, s * 1.05, rng)
         _noix(b, T, w, 3, rng, a)
         return
-    lean = 0.9 if v == 0 else 3.4
-    w0, w1 = 1.5, 1.1
+    lean = (0.9 if v == 0 else 3.4) * max(1.0, H / 16)
+    w0, w1 = 1.5 * ep, 1.1 * ep
     b.boxc((0, 0.25, 0), (w0 + 0.8, 1.0, w0 + 0.8), vary("palmier_tronc_fonce", rng, 0.04), yaw=a + 45, name="Souche")
     T, w = _tronc_palmier(b, (0, 0, 0), H, ua * lean, 5, w0, w1, rng, courbe=1.7 if v == 0 else 1.45, anneaux=(1, 3))
     _couronne_palmier(b, T, 7, s, rng)
     _noix(b, T, w, 3, rng, a)
 
 
-def palmier(b, variant: int = 0, hauteur: float = 14) -> dict:
-    """Palmier de la campagne terrestre (≤ 36 pièces, rayon ≤ 8 autour de l'origine).
+def palmier(b, variant: int = 0, hauteur: float = 14, rayon_max: float = 7.9) -> dict:
+    """Palmier de la campagne terrestre (≤ 36 pièces, rayon ≤ `rayon_max` autour de l'origine, 7,9 par défaut).
 
-    v0 droit à peine courbé, v1 penché, v2 double tronc d'une même souche, v3 court et touffu."""
+    Les grands palmiers (hauteur > 16) ont un tronc plus épais et, si `rayon_max` le permet, une couronne plus
+    large (jusqu'à 1,6 fois). v0 droit à peine courbé, v1 penché, v2 double tronc d'une même souche, v3 court et
+    touffu."""
     v = variant % 4
     H = max(6.0, float(hauteur))
     n0 = len(b.parts)
-    s = min(1.15, max(0.85, H / 14))
-    for _ in range(8):
+    s = min(1.15 if rayon_max <= 8 else 1.6, max(0.85, H / 14))
+    ep = min(1.4, max(1.0, H / 17))
+    for _ in range(10):
         del b.parts[n0:]
         with b.group("Palmier"):
-            _palmier(b, v, H, s, b.rng)
+            _palmier(b, v, H, s, b.rng, ep)
         _recentrer(b, n0)
-        if _rayon_max(b, n0) <= 7.9:
+        if _rayon_max(b, n0) <= rayon_max:
             break
         s *= 0.92
     return _infos(b, n0)

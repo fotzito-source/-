@@ -33,8 +33,8 @@ from textures import write_stud_textures  # noqa: E402
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
     "aerienne": ((360, 330, 190), (0, 0, -235), 48),  # toute la zone dans le cadre
-    "entree": ((0, 12, 64), (0, 40, -20), 84),         # la grande porte blanche (vue d'arrivée), vantaux enduits
-    "faubourg": ((30, 9, -24), (-14, 14, -150), 64),   # en biais depuis le trottoir : façades de bois, cerisiers
+    "entree": ((0, 36, 124), (0, 38, -20), 60),        # arrivée : la grande porte blanche dans son long mur, vantaux enduits
+    "faubourg": ((0, 9, -54), (0, 16, -170), 66),      # la rue au soleil : maisons de bois, lampions, porte intérieure entre deux cerisiers géants
     "revers": ((0, 8, -120), (0, 30, 0), 70),          # le grand mur blanc vu de l'intérieur, au-dessus du faubourg
     "cite": ((4, 8, -192), (0, 22, -380), 70),         # allée entre les murs blancs, passerelle, colline
     "tours": ((10, 9, -238), (0, 38, -330), 72),       # passerelle laquée et tours blanches (entière dans le cadre)

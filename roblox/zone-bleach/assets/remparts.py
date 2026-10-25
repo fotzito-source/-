@@ -593,7 +593,7 @@ def portail_cour(b, variant=0, largeur=10, hauteur=12, texte=None, h_mur=10.0):
                 xa, xb = sorted((s * W, s * X))
                 b.box((xa, 0.3, -1.7), (xb, 1.8, 1.7), c("pierre"), studs="top", name="Socle")
                 b.box((xa, 1.8, -1.45), (xb, Y_s, 1.45), vr("blanc", rng, 0.02), name="Pile")
-                xi, xe = sorted((s * (W - 0.05), s * (X - 0.1)))
+                xi, xe = sorted((s * (W - 0.1), s * (X - 0.1)))
                 b.box((xi, 4.4, -1.6), (xe, 4.9, 1.6), c("blanc_ombre"), name="Bandeau")
                 b.box((xi, Y_l - 1.4, -1.6), (xe, Y_l - 0.9, 1.6), c("bois_fonce"), name="Bandeau")
             b.box((-W, Y_l, -1.2), (W, Y_l + 1.0, 1.2), c("bois"), name="Linteau")
@@ -631,7 +631,7 @@ def portail_cour(b, variant=0, largeur=10, hauteur=12, texte=None, h_mur=10.0):
             za, zb = sorted((zr + s * 0.1, zr - s * 0.5))
             b.box((-X + 0.1, Y_t - 0.15, za), (X - 0.1, Y_t + 0.3, zb), c("ocre_clair"), collide=False, name="Toit_rive")
         for s in (-1, 1):
-            xa, xb = sorted((s * X, s * (X - 1.0)))
+            xa, xb = sorted((s * (X + 0.1), s * (X - 0.9)))
             b.box((xa, hauteur + 1.4, zm - 0.7), (xb, hauteur + 2.6, zm + 0.7), c("ocre_brun"), collide=False,
                   name="Toit_oni")
         # vantaux entrouverts vers l'intérieur (+Z)
@@ -713,19 +713,19 @@ def _vantail(b, charniere, ouv, s, L, H, ep, rng, *, y0=0.3, bandes=None, clous=
         vb = y0 + H * f
         if enduit and k in (0, len(bandes) - 1):
             continue            # porte enduite : les traverses laquées tiennent lieu de bandes haute et basse
-        bloc(0.95, L - 0.95, vb - 0.9, vb + 0.9, ep + 0.4, "fer", f"{name}_bande", collide=False)
+        bloc(0.95, L - 0.95, vb - 0.9, vb + 0.9, ep + 0.7, "fer", f"{name}_bande", collide=False)
         if k in clous:
             for i in range(n_clous):
                 u = L * (i + 0.5) / n_clous
                 if guichet and k == 0 and abs(u - L * 0.62) < 2.8:
                     continue
-                bloc(u - 0.6, u + 0.6, vb - 0.6, vb + 0.6, ep + 0.9, OR_VIEUX if i % 2 else "or",
+                bloc(u - 0.6, u + 0.6, vb - 0.6, vb + 0.6, ep + 1.1, OR_VIEUX if i % 2 else "or",
                      f"{name}_clou", collide=False)
     for u0, u1 in ((0.15, 0.95), (L - 0.95, L - 0.15)):
         bloc(u0, u1, y0 + 0.2, y0 + H - 0.2, ep + 0.3, "laque_noire", f"{name}_montant", collide=False)
     # ferrures d'angle dorées (côté bord libre, en haut et en bas)
     for v0, v1 in ((y0 + 0.4, y0 + 3.4), (y0 + H - 3.4, y0 + H - 0.4)):
-        bloc(L - 3.2, L - 0.3, v0, v1, ep + 0.5, "or", f"{name}_ferrure", collide=False)
+        bloc(L - 3.2, L - 0.3, v0, v1, ep + 0.8, "or", f"{name}_ferrure", collide=False)
     if guichet:
         ug = L * 0.62
         vg0 = y0 + H * bandes[0] + 1.1
@@ -1180,7 +1180,7 @@ def porte_interieure(b, variant=0, ouverture=92, hauteur_passage=36, mur=150, ha
                         z = za + Lv * (i + 0.5) / nc
                         b.box((xa - 0.33, y - 0.38, z - 0.38), (xb + 0.33, y + 0.38, z + 0.38), c("or"), collide=False,
                               name="Vantail_clou")
-            b.box((xa - 0.1, 0.5, zb - 0.85), (xb + 0.1, Hv + 0.1, zb - 0.15), c("laque_noire"), collide=False,
+            b.box((xa - 0.25, 0.5, zb - 0.85), (xb + 0.25, Hv + 0.1, zb - 0.15), c("laque_noire"), collide=False,
                   name="Vantail_montant")
             # gonds de fer entre le poteau de charnière et le vantail
             xg0, xg1 = sorted((s * (xo + 0.3), s * (xo + 2.1)))

@@ -373,7 +373,10 @@ def _dans_dome(x0, x1, z0, z1, marge=6.0) -> bool:
 def skyline_lateral(b: Builder) -> None:
     """Tours d'arrière-plan qui ferment les côtés (|x| ≥ 151) : devant, un immeuble simple (`immeuble_fond` :
     rubans de fenêtres, meneaux, retrait, toit équipé) tourné vers le couloir ; derrière, un volume plus haut
-    (bleu nuit, ardoise, violet) avec une bande éclairée, des néons verticaux et un feu d'obstacle."""
+    (bleu nuit, ardoise, violet) puis un volume plus bas jusqu'au bord du sol. Les deux volumes ont des rubans
+    de fenêtres en ceinture (un sur quatre ou cinq éclairé) et une corniche claire ; le volume haut porte une
+    couronne de néon, un néon vertical ou un panneau lumineux tourné vers le couloir, un local et un feu
+    d'obstacle ou une citerne ; le volume bas, une cage d'escalier et une citerne ou des climatiseurs."""
     rng = np.random.default_rng(23)
     tons = [c("bleu_marine"), c("bleu_ardoise"), shade(c("bleu_acier"), 0.9), c("bleu_nuit"), shade(c("violet_nuit"), 1.15),
             shade(c("bleu_ardoise"), 0.85)]
@@ -417,12 +420,53 @@ def skyline_lateral(b: Builder) -> None:
                 xl = s * (xf + d1 + (xmid - xf - d1) * 0.35)
                 b.box((xl - 3, h2, (za + zb) / 2 - 3), (xl + 3, h2 + 4, (za + zb) / 2 + 3), shade(col, 1.25), studs="top",
                       name="Local")
-                ga, gb = sorted((s * (xf + d1 - 1), s * (xf + d1 - 1.2)))
-                b.box((ga, h1 + 6, za + 4), (gb, h1 + 9, zb - 4), vitres[(k + 2) % len(vitres)], collide=False, shadow=False,
-                      material="Neon" if vitres[(k + 2) % len(vitres)] in (vitres[2], vitres[3]) else "SmoothPlastic", name="Fenetres")
-                if h2 - h1 > 26:
-                    b.box((ga, h1 + 14, za + 4), (gb, h1 + 17, zb - 4), vitres[(k + 4) % len(vitres)], collide=False, shadow=False,
-                          name="Fenetres")
+                # rubans de fenêtres en « ceinture » (un bloc qui dépasse de 0,15 des quatre faces) : les étages du
+                # volume haut au-dessus des voisins, ceux du volume bas (vus d'avion et depuis le côté) ; environ un
+                # sur quatre est éclairé (Neon). Aléa à part : la mise en page (rng) ne change pas.
+                r2 = np.random.default_rng(500 + 37 * k + (s > 0))
+                style = (k + 2 * (s > 0)) % 4
+                eteint = (c("vitre"), c("vitre_bleue"), c("carrelage"), c("vitre_claire"))[style]
+                e = 0.15
+
+                def ceinture(x0, x1, z0, z1, y0, y1, lit, couleur=None, nom="Ruban", neon=None, d=e):
+                    cc = couleur or ((c("fenetre_froide"), c("fenetre_chaude"))[int(r2.integers(0, 2))] if lit else eteint)
+                    neon = (lit or couleur is not None) if neon is None else neon
+                    b.box((x0 - d, y0, z0 - d), (x1 + d, y1, z1 + d), cc, material="Neon" if neon else "SmoothPlastic",
+                          collide=False, shadow=False, name=nom)
+
+                for y in np.arange(max(12.0, min(h1, h3) - 12.0), h2 - 6.0, 8.0):
+                    ceinture(xa2, xb2, za + 2, zb - 2, float(y), float(y) + 3.0, r2.random() < 0.25)
+                for y in np.arange(8.0, h3 - 5.0, 8.0):
+                    ceinture(xa3, xb3, za + 1, zb - 1, float(y), float(y) + 3.0, r2.random() < 0.2)
+                # corniches claires en haut des deux volumes : les toits se détachent mieux vus d'avion
+                ceinture(xa2, xb2, za + 2, zb - 2, h2 - 1.0, h2 - 0.1, False, shade(col, 1.4), "Corniche", neon=False, d=0.25)
+                ceinture(xa3, xb3, za + 1, zb - 1, h3 - 1.0, h3 - 0.1, False, shade(col, 1.3), "Corniche", neon=False, d=0.25)
+                # toit du volume bas : cage d'escalier, citerne ou climatiseurs
+                from assets.batiments import _citerne, _clim_toit, _local_tech
+                zc = (za + zb) / 2
+                if X_FOND - 2 - xmid >= 24:
+                    _local_tech(b, s * (xmid + 6.5), h3, zc + (zb - za) / 2 - 6.0, 5.0, 6.0, 4.0, shade(col, 1.3))
+                    if k % 2:
+                        _citerne(b, s * (X_FOND - 9.0), h3, zc - (zb - za) / 2 + 5.0, r=2.0, h=3.2)
+                    else:
+                        _clim_toit(b, s * (X_FOND - 10.0), h3, zc - 2.0)
+                        _clim_toit(b, s * (X_FOND - 14.0), h3, zc - 2.0)
+                if k % 3 == 0:                   # couronne lumineuse, sous la corniche
+                    ceinture(xa2, xb2, za + 2, zb - 2, h2 - 2.6, h2 - 1.4, True, neons[(k // 3) % len(neons)], "Couronne")
+                elif k % 3 == 2 and zb - za >= 18:
+                    # panneau lumineux de toit tourné vers le couloir (vu de la rue au-dessus des premières rangées)
+                    xp = s * (xf + d1 + 1.5)
+                    zp0, zp1 = za + 4, zb - 4
+                    for zz in (zp0 + 1.5, zp1 - 1.5):
+                        b.box((xp - 0.4, h2, zz - 0.4), (xp + 0.4, h2 + 2.5, zz + 0.4), c("metal_fonce"), name="Montant")
+                    ya, yb = h2 + 2.5, h2 + 2.5 + min(11.0, 0.6 * (zp1 - zp0))
+                    b.box((xp - 0.35, ya, zp0), (xp + 0.35, yb, zp1), c("ecran_fond"), name="Panneau")
+                    fa, fb = sorted((s * (xf + d1 + 1.5 - 0.5), s * (xf + d1 + 1.5 - 0.35)))
+                    pal = ((c("ecran_rose"), c("neon_jaune")), (c("ecran_bleu"), c("neon_cyan")), (c("ecran_orange"), c("neon_rose")))
+                    p1, p2 = pal[(k // 3 + (s > 0)) % 3]
+                    zm = zp0 + 0.6 + (zp1 - zp0 - 1.2) * 0.62
+                    b.box((fa, ya + 0.6, zp0 + 0.6), (fb, yb - 0.6, zm), p1, material="Neon", collide=False, shadow=False, name="Ecran")
+                    b.box((fa, ya + 0.6, zm), (fb, yb - 0.6, zp1 - 0.6), p2, material="Neon", collide=False, shadow=False, name="Ecran")
                 xm = s * (xf + d1 + (xmid - xf - d1) * 0.75)
                 if k % 2 == 0:
                     b.box((xm - 0.6, h2, (za + zb) / 2 - 0.6), (xm + 0.6, h2 + 1.2, (za + zb) / 2 + 0.6), c("rouge_balise"),

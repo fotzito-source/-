@@ -34,7 +34,7 @@ from textures import write_stud_textures  # noqa: E402
 VUES = {
     "aerienne": ((0, 270, 200), (0, 0, -185), 46),        # le couloir au centre, du portail au crâne
     "entree": ((0, 14, 66), (0, 60, -160), 70),            # l'arche, la campagne aux moulins, le crâne au loin
-    "campagne": ((-10, 46, 10), (-96, 6, -72), 60),        # moulin à ailes jaunes, grange, champ, vaches, collines
+    "campagne": ((-30, 40, -22), (-100, 0, -80), 60),      # moulin à ailes jaunes, grange, champ, vaches, collines
     "bourg": ((8, 8, -104), (0, 20, -280), 70),            # maisons colorées, étals, fanions
     "port": ((8, 9, -196), (0, 24, -330), 74),             # navires à quai, phare, bassins
     "quai": ((-38, 12, -214), (-96, 22, -268), 66),        # le galion à quai, l'eau turquoise, le crâne au fond
@@ -102,11 +102,17 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -180), (0, 0, -180.01), fov=30)
+                # vue de dessus orthographique, caméra basse (peu de brume) ; vus d'en haut, tous les dessus font face
+                # au soleil : on baisse un peu l'exposition pour garder des couleurs franches
+                cam = bs.add_camera("plan", (0, 320, -180), (0, 0, -180.01), fov=30)
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 560
+                cam.data.ortho_scale = 540
                 cam.data.clip_end = 2000
+                vs = bpy.context.scene.view_settings
+                expo = vs.exposure
+                vs.exposure = expo - 0.6
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
+                vs.exposure = expo
             else:
                 pos, tgt, fov = VUES[name]
                 cam = bs.add_camera(name, pos, tgt, fov=fov)

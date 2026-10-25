@@ -80,6 +80,8 @@ X_QUAI = 79              # façades de la rive droite (quai pavé 75-79)
 X_FOND_RUE = 87          # axe de la seconde rangée (maisons simples, 81-93)
 H_FANIONS = 38           # corde des guirlandes de fanions (le bas des fanions reste au-dessus de 34)
 X_MAT = 49               # mâts des guirlandes, sur les trottoirs
+Z_GUIRLANDES = (-134, -180, -300, -349, -412, -480)   # -349 : le mât gauche évite l'enseigne LIBRAIRIE (z -352,5)
+X_REVERBERE = 52.2       # réverbères des trottoirs : le fût reste à 2,8 des façades (auvents, jardinières)
 
 VERSION = "0.2"
 
@@ -559,7 +561,7 @@ def place_porte(b: Builder) -> None:
     for i, z in enumerate((-94, -104)):
         place(b, "mobilier", "etal", (50, 0, z), yaw=90, group=f"Ville/PlacePorte/Etal{i}", emprise=(9, 6, 7), variant=i)
     place(b, "mobilier", "caisses", (62, 0, -90), group="Ville/PlacePorte/Caisses", emprise=(5, 4, 4), variant=2)
-    place(b, "mobilier", "tonneaux", (68, 0, -95), group="Ville/PlacePorte/Tonneaux", emprise=(4, 4, 3), variant=2)
+    place(b, "mobilier", "tonneaux", (69, 0, -96), group="Ville/PlacePorte/Tonneaux", emprise=(4, 4, 3), variant=2)
     place(b, "mobilier", "poteau_indicateur", (-50, 0, -103), yaw=-90, group="Ville/PlacePorte/Indicateur", emprise=(4, 1, 7),
           textes=("MARCHÉ", "FONTAINE"), variant=1)
     for i, (x, z) in enumerate(((-112, -100), (86, -100), (-96, -106), (106, -101))):
@@ -596,7 +598,7 @@ def quartier_canal(b: Builder) -> list:
     poses_g = rangee(b, -1, CANAL_G, Z_CANAL - 2, Z_GRANDPLACE, "CanalG")
     # marché sur le trottoir de gauche
     place(b, "mobilier", "panneau_pied", (-50.5, 0, -273), yaw=-90, group="Ville/Marche/Panneau", emprise=(6, 2, 6), texte="MARCHÉ")
-    for i, z in enumerate((-284, -294, -306, -318)):
+    for i, z in enumerate((-284, -294, -311, -321)):      # rien sous l'enseigne FROMAGES (z -305)
         place(b, "mobilier", "etal", (-50, 0, z), yaw=-90, group=f"Ville/Marche/Etal{i}", emprise=(9, 6, 7), variant=i)
     place(b, "monuments", "clocher", (-106, 0, -372), yaw=face_couloir(-1), group="Monuments/ClocherB",
           emprise=(12, 12, 60), variant=1, hauteur=60)
@@ -669,8 +671,10 @@ def grand_place(b: Builder) -> None:
         place(b, "mobilier", "reverbere", (x, 0, z), group=f"GrandPlace/Reverbere{i}", emprise=(5, 2, 12), variant=2)
     for i, (x, z, yaw) in enumerate(((-58, -440, 90), (-58, -452, 90), (62, -446, -90))):
         place(b, "mobilier", "banc", (x, 0, z), yaw=yaw, group=f"GrandPlace/Banc{i}", emprise=(6, 2, 3), variant=i)
-    for i, (x, z) in enumerate(((-88, -405), (86, -405))):
-        place(b, "mobilier", "drapeau", (x, 0, z), group=f"GrandPlace/Drapeau{i}", emprise=(6, 1, 14), variant=i, hauteur=14)
+    # drapeaux devant les arcades, toile vers le couloir (le tissu part vers +X local de la hampe)
+    for i, (x, z, yaw) in enumerate(((-87, -421, 0), (87, -421, 180))):
+        place(b, "mobilier", "drapeau", (x, 0, z), yaw=yaw, group=f"GrandPlace/Drapeau{i}", emprise=(6, 1, 14), variant=i,
+              hauteur=14)
     for i, (x, z) in enumerate(((-66, -486), (66, -486))):
         place(b, "mobilier", "etal", (x, 0, z), yaw=180, group=f"GrandPlace/Etal{i}", emprise=(9, 6, 7), variant=i + 2)
 
@@ -702,7 +706,7 @@ def exterieur(b: Builder) -> None:
 def mats_fanions(b: Builder) -> None:
     """Guirlandes de fanions au-dessus de la grand-rue (corde à 38 studs) entre deux mâts sur les trottoirs."""
     f = _asset("mobilier", "guirlande_fanions")
-    for i, z in enumerate((-134, -180, -300, -352, -412, -480)):
+    for i, z in enumerate(Z_GUIRLANDES):
         n_g = len(b.parts)
         with b.group(f"Fanions/Guirlande{i + 1}"):
             for s in (-1, 1):
@@ -723,12 +727,14 @@ def details_rue(b: Builder, poses) -> None:
     zs_reverberes = (-124, -160, -200, -286, -330, -376)
     for s in (-1, 1):
         for i, z in enumerate(zs_reverberes):
-            x = s * 53
+            if s < 0 and z == -286:
+                z = -277.8                  # à gauche, le marché occupe le trottoir : entre le panneau et le premier étal
+            x = s * X_REVERBERE
             place(b, "mobilier", "reverbere", (x, 0, z), yaw=face_couloir(x), group=f"Details/Reverbere{'G' if s < 0 else 'D'}{i}",
                   emprise=(2, 4, 11), variant=1)
     rng = np.random.default_rng(3)
     props = ["tonneaux", "bac_fleurs", "caisses", "banc", "sacs", "bac_fleurs"]
-    interdits = list(zs_reverberes) + [-134, -180, -300, -352]
+    interdits = list(zs_reverberes) + list(Z_GUIRLANDES[:4])
     k = 0
     for (x, zc, larg, prof, info) in poses:
         s = -1 if x < 0 else 1
@@ -872,9 +878,11 @@ def _penetration(a, bb) -> float:
     return best
 
 
-def chevauchements(b: Builder, tol: float = 0.25, cellule: float = 16.0) -> dict:
+def chevauchements(b: Builder, tol: float = 0.04, cellule: float = 16.0) -> dict:
     """Assets posés qui se recoupent : pour chaque paire de poses, nombre de paires de pièces qui s'interpénètrent
-    de plus de `tol` et profondeur maximale. Le sol plat et les repères sont ignorés (tout y est posé). Les
+    de plus de `tol` et profondeur maximale. `tol` reste petit : les pièces fines (potences d'enseigne, planches,
+    auvents, toiles de drapeau) traversent un mât ou une façade de moins de 0,25. Le sol plat et les repères sont
+    ignorés (tout y est posé). Les
     feuillages (arbres, buissons, parterres) sans collision qui débordent sur un voisin sont rangés à part
     (`feuillage`) ; une pièce enfoncée de moins de `ASSISE` dans ce qui la porte est posée, pas recoupée."""
     n = len(b.parts)

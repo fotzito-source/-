@@ -79,6 +79,9 @@ local SURFACES = { "TopSurface", "BottomSurface", "FrontSurface", "BackSurface",
 -- Modèles imbriqués selon le chemin de groupe « A/B/C » -------------------------
 local zone = Instance.new("Model")
 zone.Name = meta.nom or "ZoneOnePiece"
+-- Pivot du modèle = origine du plan (centre de l'entrée, au sol) : `zone:PivotTo(CFrame.new(X, Y, Z))` pose l'entrée
+-- en (X, Y, Z). Sans pivot enregistré, Studio prendrait le centre de la boîte englobante (à 180 studs de l'entrée).
+zone.WorldPivotData = CFrame.new(0, 0, 0)
 local groupCache: { [string]: any } = {}
 
 local function groupFor(path: string)
@@ -387,6 +390,8 @@ for _, d in back[1]:GetDescendants() do
 end
 local place = roblox.deserializePlace(fs.readFile(placePath))
 assert(nParts == counts.parts, "relecture : nombre de pièces différent")
+local pivot = back[1].WorldPivotData
+assert(pivot ~= nil and pivot.Position.Magnitude < 1e-6, "relecture : pivot du modèle absent ou déplacé")
 assert(place:GetService("Workspace"):FindFirstChild(zone.Name), "relecture : zone absente de la place")
 
 print(serde.encode("json", {
@@ -396,4 +401,5 @@ print(serde.encode("json", {
 	faces_stud = counts.studFaces,
 	textures_posees = counts.textures,
 	panneaux = counts.labels,
+	pivot = { pivot.Position.X, pivot.Position.Y, pivot.Position.Z },
 }, false))

@@ -618,14 +618,14 @@ def faubourg(b: Builder) -> dict:
         x = s * X_ARRIERE_F
         place(b, "batiments", "maison_bois", (x, 0, z), yaw=face_couloir(x), group=f"Faubourg/Arriere/{i:02d}_MaisonBois",
               emprise=(larg, 16, 18), largeur=larg, profondeur=16, variant=v, simple=True)
-    # arbres du faubourg : sur la petite place devant la porte intérieure, deux cerisiers géants entre les
-    # potagers qui dépassent des toits, et des cerisiers plus grands dans les jardins
-    for i, (x, z, kind, v, t) in enumerate(((-63, -145, "cerisier", 0, 1.2), (63, -146, "cerisier", 2, 1.2),
+    # arbres du faubourg : sur la petite place devant la porte intérieure, deux cerisiers géants qui encadrent la
+    # porte et dépassent des toits (vus de toute la rue, et dès l'entrée par l'ouverture de la grande porte) ;
+    # deux autres cerisiers géants entre les potagers, et des cerisiers plus grands dans les jardins
+    for i, (x, z, kind, v, t) in enumerate(((-65, -154, "cerisier_geant", 0, 0.95), (65, -153, "cerisier_geant", 3, 0.95),
                                             (-120, -76, "cerisier_geant", 0, 1.25), (114, -18, "cerisier", 3, 1.3),
                                             (116, -152, "cerisier", 0, 1.35), (-130, -16, "pin", 0, 1.0),
                                             (120, -76, "cerisier_geant", 1, 1.25), (-128, -150, "massif_arbres", 0, 1.0),
-                                            (-114, -136, "cerisier", 4, 1.3), (112, -128, "cerisier", 1, 1.3),
-                                            (-72, -162, "cerisier", 4, 1.0), (72, -161, "cerisier", 0, 1.0))):
+                                            (-114, -136, "cerisier", 4, 1.3), (112, -128, "cerisier", 1, 1.3))):
         kw = {"largeur": 26, "profondeur": 18} if kind == "massif_arbres" else {"taille": t}
         place(b, "vegetation", kind, (x, 0, z), yaw=(i * 37) % 360, group=f"Faubourg/Arbres/{i:02d}_{kind}",
               variant=v, emprise=(14, 14, 16), **kw)
@@ -685,8 +685,8 @@ CITE = {  # par côté : portails des trois enclos, bâtiments, arbres, tours
          "batiments": [("maison_blanche", -213, 24, 18, 4), ("maison_blanche", -262, 24, 18, 2),
                        ("maison_blanche", -358, 30, 18, 1)],
          "arriere": [("caserne", 116, -214, 40, 14, 1), ("maison_blanche", 110, -360, 24, 18, 3)],
-         "cerisiers": [(-68, -192, 0, 1.25), (-68, -235.5, 1, 1.3), (-128, -270, 2, 1.2), (-86, -381, 3, 0.85),
-                       (-110, -340, 0, 1.1), (-72, -320, 4, 1.15)],
+         "cerisiers": [(-69, -192, 0, 1.45), (-69, -235.5, 1, 1.3), (-128, -270, 2, 1.2), (-86, -381, 3, 0.85),
+                       (-110, -340, 0, 1.1), (-72, -319, 4, 1.35)],
          "geant": (-115, -298),
          "tours": [(-134, -196, 44, 0), (-130, -372, 46, 2), (-96, -236, 40, 1), (-64, -302, 36, 3)],
          "ajouts": [("maison_blanche", -110, -262, 24, 18, 4)],
@@ -695,7 +695,7 @@ CITE = {  # par côté : portails des trois enclos, bâtiments, arbres, tours
         "batiments": [("maison_blanche", -222, 24, 18, 1), ("maison_blanche", -312, 24, 18, 2),
                       ("maison_blanche", -354, 30, 18, 4)],
         "arriere": [("caserne", 116, -222, 40, 14, 0), ("maison_blanche", 110, -354, 24, 18, 1)],
-        "cerisiers": [(68, -197, 2, 1.25), (86, -265, 1, 1.25), (90, -236, 0, 1.0), (86, -381, 1, 0.85),
+        "cerisiers": [(69, -197, 2, 1.45), (86, -265, 1, 1.3), (90, -236, 0, 1.0), (86, -381, 1, 0.85),
                       (124, -316, 2, 1.2), (66, -381, 3, 0.85)],
         "geant": (110, -268),
         "tours": [(134, -196, 46, 3), (130, -372, 44, 0), (94, -194, 40, 2), (64, -258, 36, 0)],

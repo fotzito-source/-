@@ -123,7 +123,7 @@ Le joueur arrive par +Z et court vers -Z, puis revient : les deux sens de lectur
 - Carré peint de 118 × 92 studs : quatre passages piétons sur les côtés et deux en diagonale (X). La
   grande rue transversale part à gauche et à droite et finit contre les dômes.
 - Coins : la tour cylindrique (nord-est), l'immeuble à écrans (nord-ouest), la **gare** à longue façade
-  vitrée éclairée (sud-ouest, 駅 / 東口) et une tour de verre déjà fissurée (sud-est). Huit feux tricolores.
+  vitrée éclairée (sud-ouest : 駅, 西口 et la sortie 出口 côté couloir) et une tour de verre déjà fissurée (sud-est). Huit feux tricolores.
 - **Vue joueur** : un grand espace ouvert après la rue étroite. Au fond, l'arche de l'immeuble effondré
   et les dômes violets.
 

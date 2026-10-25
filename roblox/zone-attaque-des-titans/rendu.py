@@ -32,15 +32,15 @@ from textures import write_stud_textures  # noqa: E402
 
 # Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
 VUES = {
-    "aerienne": ((250, 250, 140), (0, 0, -270), 50),
+    "aerienne": ((-240, 340, 120), (10, 0, -285), 48),     # de haut, côté soleil : la ville au-dessus du rempart gauche
     "entree": ((0, 6, 7), (0, 46, -72), 80),             # vue joueur : chemin, prairie, muraille et porte colossale entières
     "prairie": ((34, 8, 6), (-20, 40, -72), 74),          # 3/4 sur la prairie : moulin, ferme, muraille et tunnel
     "rue": ((10, 9, -92), (0, 22, -300), 70),             # place de la porte → rue des colombages
     "eglise": ((24, 10, -192), (-56, 34, -252), 66),       # église et clocher à gauche, mât de fête
-    "canal": ((47, 13, -262), (68, 4, -404), 62),          # le canal, ses ponts et la rive droite
+    "canal": ((40, 24, -262), (72, 0, -380), 64),          # le canal, ses ponts et la rive droite, vus du trottoir
     "place": ((-20, 12, -398), (70, 32, -462), 72),        # grand-place des œufs : cadran, beffroi, muraille intérieure
     "retour": ((-4, 9, -470), (0, 22, -60), 70),           # vers la base : la rue et la muraille d'entrée
-    "cote": ((-370, 200, -60), (0, 20, -300), 45),
+    "cote": ((-380, 260, -80), (0, 10, -300), 45),         # rempart gauche et champs ; la ville du canal par-dessus
     "final": ((0, 14, -398), (0, 64, -548), 68),           # muraille intérieure et tunnel de sortie
     "plan": None,  # vue de dessus orthographique
 }
@@ -102,7 +102,7 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 900, -270), (0, 0, -270.01), fov=30)
+                cam = bs.add_camera("plan", (0, 420, -270), (0, 0, -270.01), fov=30)   # basse : moins de brume
                 cam.data.type = "ORTHO"
                 cam.data.ortho_scale = 600
                 cam.data.clip_end = 2000

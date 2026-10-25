@@ -476,7 +476,8 @@ def galion(b, variant: int = 0, longueur: float = 72, passerelle: float = 0.0, b
         # dunette : flancs et bord avant
         y = Y_DUN + 0.25
         for sg in (-1, 1):
-            _rambarde(S, (sg * (HW - 0.3), Z_DUN - 0.2), (sg * (HW - 0.3), Z_POUPE), y, pot, ram)
+            # flancs : hors du plancher (|x| > 9,9), les balustres reposent directement sur le haut de la dunette
+            _rambarde(S, (sg * (HW - 0.3), Z_DUN + 0.2), (sg * (HW - 0.3), Z_POUPE), Y_DUN, pot, ram, h=1.85)
             _rambarde(S, (sg * 5.3, Z_DUN - 0.2), (sg * 1.0, Z_DUN - 0.2), y, pot, ram)
         # poupe : flancs, arrière, avant
         y = Y_POUPE + 0.25

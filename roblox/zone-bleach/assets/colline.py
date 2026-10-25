@@ -1199,7 +1199,7 @@ def _colline(b, variant, passage, largeur, profondeur, hauteur, dens, graine, so
         massif(x0, x1, -D + 0.6, -29.0, yk + 8.0, 9.0, p=0.95)
         conif.append((sx * 0.85 * P, yk, -18.0, "pin", 1.6))
     # silhouette dissymétrique : un grand cèdre, un pin en nuages, un cèdre plus bas sur le gradin
-    conif.append((-0.2 * P, yk + 22.0, -39.5, "cedre", 2.1))
+    conif.append((-0.2 * P, yk + 22.0, -39.25, "cedre", 2.1))     # reste en deçà de la sortie (z = -522)
     conif.append((0.12 * P, yk + 22.0, -37.0, "pin", 2.2))
     conif.append((0.5 * P, yk + 16.0, -40.0, "cedre", 1.6))
 
