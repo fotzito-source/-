@@ -45,7 +45,7 @@ doivent se lire de loin : tours verticales, portail massif, stade bas et large, 
 
 | z | Moment | Repère | Vue à hauteur de joueur |
 |---|---|---|---|
-| +24 → 0 | **Approche** | Fin de la zone précédente. Abribus, jardinières, arbres d'alignement | La rue de 110 studs s'ouvre d'un coup, le viaduc la barre à 36 studs de haut |
+| 0 → -4 | **Approche** | Le sol commence en z = -4 (la zone précédente pose le sien 4 studs après sa sortie). Abribus, distributeurs, arbres d'alignement juste après | La rue de 110 studs s'ouvre d'un coup, le viaduc la barre à 36 studs de haut |
 | 0 → -26 | **Sous le viaduc** (z = -18) | **Viaduc ferroviaire** en béton clair qui traverse toute la zone. Tablier à 36 studs, piles hors de `|x| < 56`, **train de banlieue blanc à bandes bleues et violettes** arrêté au-dessus de la route, liseré lumineux sous le tablier | Effet de seuil urbain. Par-dessous, on voit la rue, les bureaux et, au fond, le portail |
 | -26 → -122 | **Rue de la ville** | Dix **boutiques vitrées** (CAFÉ, FLEURS, LIVRES, MARCHÉ, RAMEN, BOULANGERIE, SPORT, PHARMACIE), une supérette d'un étage, auvents. Derrière, **8 tours de bureaux** blanches et bleu ciel (50-92). **Carrefour** en z = -66, avec des rues latérales, des voitures garées, des feux et des lignes électriques. Chaussée bleu-gris à ligne jaune, passages piétons, trottoirs roses à bande jaune | Rue japonaise moderne, lumineuse et très large, le portail high-tech en point de fuite |
 | -124 → -140 | **Portail de sécurité** (z = -132) | Deux **pylônes d'acier bleu nuit et de verre** (48 de haut) à bandes cyan, linteau au-dessus de 36 studs, guérite vitrée, caméras. Le **mur d'enceinte** (14 de haut, panneaux gris tachés, piles de brique) court jusqu'à `|x| = 185`. Au sol, dalles bleu nuit et deux lignes lumineuses cyan | Passage de 100 studs : on « entre à l'académie » |
@@ -53,7 +53,7 @@ doivent se lire de loin : tours verticales, portail massif, stade bas et large, 
 | -296 → -400 | **Terrains d'entraînement** | Dalles de béton et **bandes de danger jaunes et noires** au bord de la route. À gauche, derrière un grillage, une **ville factice** : rues tous les 32 studs, 7 immeubles dont certains à demi détruits, décombres, **robots d'entraînement** originaux, cibles. À droite, le matériel (plots, pneus, haies, sac de frappe) et le **dôme de verre** (rayon 52, 50 de haut) : montagne rocheuse, bâtiment rouge en dôme et arbres à l'intérieur, entrée tournée vers la route | Le dôme brille à droite, les silhouettes cassées des immeubles à gauche |
 | -400 → -528 | **Stade et place des œufs** (centre z = -464) | **Stade** de 280 × 128 : tribunes latérales à sièges violet, lavande et bleu, **verrières** sur les tribunes, tribunes basses aux extrémités. **Portiques à écran géant** au-dessus des deux ouvertures (dessous ≥ 38), mâts d'éclairage. Arène : pelouse rayée, **piste d'athlétisme ovale** rouge, **mosaïque d'une étincelle à huit branches** violette et lavande à cœur orangé (rayon 34) au centre. Bornes lumineuses, bannières | On entre sous un écran géant, l'arène s'ouvre, les tours remplissent le ciel derrière le portique de sortie |
 | -528 → -536 | **Parvis** | Dalles blanches à filets violets, totems ACADÉMIE, arbres | — |
-| -536 → -574 | **Tours jumelles** (repère final) | Deux tours de verre bleu-violet à cadres blancs (120 et 134 de haut), écartées de 116, **passerelle vitrée** au-dessus de la route (dessous à 46) | On passe sous la passerelle : fin de la carte |
+| -536 → -574 | **Tours jumelles** (repère final) | Deux tours de verre bleu-violet à cadres blancs (168 et 186 de haut), écartées de 116, **passerelle vitrée** au-dessus de la route (dessous à 72, passerelle haute vers 131) | On passe sous la passerelle : fin de la carte |
 
 **Côtés.** Le mur d'enceinte (`|x| = 185`) ferme le campus, doublé à l'intérieur d'une **ceinture d'arbres** sur
 un talus. Au-delà, la **ville lointaine** (silhouettes blanches, bleu ciel et lavande de 44 à 110 de haut, en
@@ -66,13 +66,13 @@ Les deux faces du portail, du viaduc, des portiques et de la passerelle sont soi
 
 `tours_jumelles` a pour origine le centre de la route au pied de la façade avant des tours (z = -536). Sa grande
 façade regarde +Z, vers le joueur qui arrive.
-- **Tour gauche** `x ∈ [-102, -58]`, 120 de haut ; **tour droite** `x ∈ [58, 102]`, 134 de haut. Chaque tour a
+- **Tour gauche** `x ∈ [-112, -58]`, 168 de haut ; **tour droite** `x ∈ [58, 112]`, 186 de haut. Chaque tour a
   deux volumes décalés pour ne pas faire une boîte : grandes nappes de verre bleu-violet, montants blancs tous les
   4-6 studs, lignes d'étage tous les 6, couronne blanche, feux d'obstacle rouges.
 - **Socle** : un hall vitré clair sur deux niveaux, des auvents et des bandes cyan.
-- **Passerelle** : une boîte vitrée sur 2-3 niveaux, de `x = -58` à `x = 58`, dessous à **46 studs** et liseré lumineux
+- **Passerelle** : une boîte vitrée sur 2-3 niveaux, de `x = -58` à `x = 58`, dessous à **72 studs** (3 niveaux, 20 de haut) et liseré lumineux
   dessous. Une seconde passerelle, plus fine et plus haute (≈ 86), dessine la figure des tours reliées.
-- **Passage** : `|x| < 58` entièrement libre jusqu'à 46 studs, de z = -536 à z = -574. C'est la fin de la carte :
+- **Passage** : `|x| < 49` entièrement libre jusqu'à 72 studs (totems et bornes entre 49 et 53), de z = -536 à z = -574. C'est la fin de la carte :
   la route s'arrête là.
 
 ## 4. Palette (`palette.py`)

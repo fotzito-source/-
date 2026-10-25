@@ -1173,29 +1173,29 @@ def cascade(b, variant: int = 0, hauteur: float = 26, largeur: float = 8) -> dic
     hw = w / 2
     eau = dict(collide=False, shadow=False)
     with b.group("Cascade"):
-        # lèvre : l'eau arrive sur le dessus de la falaise, passe le chapeau et s'enroule vers le bas
+        # lèvre : l'eau arrive sur le dessus de la falaise, passe le chapeau et bascule dans une lèvre d'écume blanche
         b.box((-hw * 0.8, h, -0.9), (hw * 0.8, h + 0.6, 1.5), c("eau"), transparency=0.1, name="Eau", **eau)
-        b.box((-hw * 0.8 - 0.15, h - 0.7, -1.3), (hw * 0.8 + 0.15, h + 0.75, -0.5), c("eau_claire"), name="Eau", **eau)
-        # nappe principale puis élargissements en paliers vers le bas
-        b.box((-hw, 0.1, -1.15), (hw, h - 0.5, -0.75), c("eau"), transparency=0.12, name="Eau", **eau)
-        b.box((-hw - 0.75, 0.05, -1.0), (hw + 0.75, h * 0.45, -0.7), shade(c("eau"), 0.94), transparency=0.12, name="Eau", **eau)
-        b.box((-hw - 1.5, 0.0, -0.9), (hw + 1.5, h * 0.18, -0.65), shade(c("eau"), 0.9), transparency=0.12, name="Eau", **eau)
-        # filets clairs (pixels de lumière qui descendent)
-        xs = np.linspace(-hw + 0.8, hw - 0.8, 4)
+        b.box((-hw * 0.8 - 0.15, h - 0.9, -1.4), (hw * 0.8 + 0.15, h + 0.75, -0.5), c("ecume"), name="Ecume", **eau)
+        # nappe principale translucide puis élargissements plus clairs en paliers vers le bas
+        b.box((-hw, 0.1, -1.15), (hw, h - 0.5, -0.75), c("eau"), transparency=0.2, name="Eau", **eau)
+        b.box((-hw - 0.75, 0.05, -1.0), (hw + 0.75, h * 0.45, -0.7), c("eau_claire"), transparency=0.25, name="Eau", **eau)
+        b.box((-hw - 1.5, 0.0, -0.9), (hw + 1.5, h * 0.18, -0.65), c("eau_claire"), transparency=0.25, name="Eau", **eau)
+        # traînées d'écume blanches et d'eau claire (larges de 1 à 1,5), longueurs variées, accrochées à la nappe
+        xs = np.linspace(-hw + 0.9, hw - 0.9, 6)
         for i, x in enumerate(xs):
-            lw = (0.6, 1.0, 0.5, 0.8)[i]
-            y_hi = h - 0.75 - float(rng.uniform(0, 0.25)) * h * (i % 2)
-            y_lo = float(rng.uniform(0.1, 0.45)) * h if i % 2 else 0.1
-            col = c("ecume") if i % 2 == 0 else c("eau_claire")
-            b.box((x - lw / 2, y_lo, -1.3), (x + lw / 2, y_hi, -1.12), col, name="Filet", **eau)
-        # écume au pied
-        for i, (x, y, z, sx, sy, sz, yw) in enumerate(((0.0, 0.8, -1.6, w * 0.7, 1.6, 2.0, 0),
-                                                         (-hw * 0.7, 0.5, -2.4, 2.2, 1.0, 1.8, 20),
-                                                         (hw * 0.65, 0.6, -2.2, 2.4, 1.2, 1.6, -15),
-                                                         (0.4, 0.35, -3.2, 2.0, 0.7, 1.4, 35))):
+            lw = (1.2, 1.5, 1.0, 1.4, 1.1, 1.3)[i]
+            y_hi = h - 1.0 - float(rng.uniform(0, 0.3)) * h * (i % 2)
+            y_lo = max(0.3, y_hi - h * float(rng.uniform(0.35, 0.8)))
+            col = c("ecume") if i % 3 != 2 else c("eau_claire")
+            b.box((x - lw / 2, y_lo, -1.4), (x + lw / 2, y_hi, -1.1), col, name="Filet", **eau)
+        # gros bouillon blanc au pied
+        for i, (x, y, z, sx, sy, sz, yw) in enumerate(((0.0, 1.0, -1.7, w * 0.85, 2.0, 2.2, 0),
+                                                         (-hw * 0.7, 0.8, -2.6, 3.0, 1.6, 2.0, 20),
+                                                         (hw * 0.65, 0.9, -2.4, 3.0, 1.8, 2.0, -15),
+                                                         (0.4, 0.6, -3.4, 3.2, 1.2, 2.0, 35))):
             b.boxc((x, y, z), (sx, sy, sz), c("ecume"), yaw=yw, name="Ecume", **eau)
         # brume (blocs blancs translucides)
-        for i, (x, y, z, s) in enumerate(((-hw * 0.45, 3.4, -2.4, 3.2), (hw * 0.5, 4.6, -2.0, 2.8), (0.2, 2.6, -3.6, 3.4))):
+        for i, (x, y, z, s) in enumerate(((-hw * 0.45, 3.6, -2.4, 3.2), (hw * 0.5, 4.8, -2.0, 2.8), (0.2, 2.8, -3.6, 3.4))):
             b.boxc((x, y, z), (s * 1.4, s * 0.8, s), c("blanc"), yaw=float(rng.uniform(-20, 20)), transparency=0.55, name="Brume",
                    **eau)
         # vasque : fond d'eau 0,2 au-dessus du sol, rides claires, bordure
@@ -1209,7 +1209,7 @@ def cascade(b, variant: int = 0, hauteur: float = 26, largeur: float = 8) -> dic
                    (-hw + 0.9, -8.9, 2.8, 1.8), (0.4, -9.2, 3.0, 1.6), (hw - 0.6, -8.9, 2.8, 1.8),
                    (hw + 0.95, -6.6, 1.8, 2.6), (hw + 1.1, -3.9, 1.7, 2.8), (hw + 1.15, -1.3, 1.6, 2.6)]
         for i, (x, z, sx, sz) in enumerate(pierres):
-            hy = float(rng.uniform(0.8, 1.35))
+            hy = round(float(rng.uniform(0.8, 1.3)) * 4) / 4 + (0.12 if i % 2 else 0.0)
             yw = float(rng.uniform(-10, 10))
             ex, ez = _demi_emprise(sx, sz, yw)
             x = max(-hw - 2 + ex, min(hw + 2 - ex, x))

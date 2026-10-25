@@ -396,7 +396,7 @@ def _interp(pts, x):
     return float(np.interp(x, xs, ys))
 
 
-def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_alien", fh=1.0):
+def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_alien", fh=1.0, zf=0.0):
     """Piton géant massif : jupe d'éboulis au pied, six tronçons empilés qui s'affinent (demi-côté `demi` au pied,
     `demi_haut` au sommet) et se décalent irrégulièrement (± 2 studs, vers `sens` en moyenne), deux replats
     herbus sur les ressauts, évasement érodé au sommet, chapeau d'herbe débordant à coulures, et sur le dessus
@@ -404,7 +404,7 @@ def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_ali
     plaquée, le relief vient des ressauts entre tronçons et des filets roses en saillie.
     Strates sur les quarts de stud (départ à -0,75) et arêtes sur les quarts de stud (xc, zc ≡ 0,25 ; demi-côtés
     et décalages multiples de 0,5) : jamais de face confondue avec la masse de l'arche. L'avant reste derrière
-    z = -0,25. Renvoie le dessus (x, y, z)."""
+    z = zf - 0,25 (zf = 0 : façade de l'arche ; zf = inf : piton isolé). Renvoie le dessus (x, y, z)."""
     strates = _strates(MOTIF_PITON, -0.75, H + 2)
     cap = 1.6
     Hs = H - cap
@@ -420,12 +420,12 @@ def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_ali
             if hi - lo < 0.1:
                 continue
             g = 0.4 if t in SAILLANTS else 0.0
-            b.box((x0 - g, lo, z0 - g), (x1 + g, hi, min(z1 + g, 0.0)), vary(_ton(t), rng, 0.03), studs="top",
+            b.box((x0 - g, lo, z0 - g), (x1 + g, hi, min(z1 + g, zf)), vary(_ton(t), rng, 0.03), studs="top",
                   name=nom)
 
     # jupe d'éboulis au pied (côtés et arrière ; l'avant reste dans l'alignement de la base)
     yj = min(v for v in bornes if v >= 4.0)
-    b.box((xc - demi - 1.5, -0.6, zc - demi - 1.5), (xc + demi + 1.5, yj - 0.6, min(zc + demi - 0.5, -0.75)),
+    b.box((xc - demi - 1.5, -0.6, zc - demi - 1.5), (xc + demi + 1.5, yj - 0.6, min(zc + demi + (-0.5 if zf < 1e6 else 1.5), zf - 0.75)),
           vary("falaise_sable_fonce", rng, 0.03), studs="top", name="Jupe")
     y = -0.75
     dx = dz = 0.0
@@ -438,7 +438,7 @@ def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_ali
             dx = float(np.clip(dx + float(rng.choice((-1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0))) * (1 if rng.random() < 0.7 else -1) * sens,
                                -2.0, 2.0))
             dz = float(np.clip(dz + float(rng.choice((-1.0, -0.5, 0.0, 0.5))), -2.0, 2.0))
-        z_max = -0.25 - (zc + d)                    # l'avant du tronçon reste derrière z = -0,25
+        z_max = zf - 0.25 - (zc + d)               # l'avant du tronçon reste derrière z = zf - 0,25
         dz_i = min(dz, z_max)
         if i == n_t - 1:
             y1 = Hs - 3.0                           # l'évasement du sommet prend les 3 derniers studs
@@ -449,7 +449,7 @@ def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_ali
         if i in replats and prec is not None:
             # replat herbu sur le ressaut : dalle d'herbe sur le dessus du tronçon du dessous
             px0, px1, pz0, pz1 = prec
-            b.box((px0 - 0.3, y - 0.05, pz0 - 0.3), (px1 + 0.3, y + 0.45, min(pz1 + 0.3, -0.1)),
+            b.box((px0 - 0.3, y - 0.05, pz0 - 0.3), (px1 + 0.3, y + 0.45, min(pz1 + 0.3, zf - 0.1)),
                   vary(herbe, rng, 0.03), studs="top", name="Herbe")
         bandes(x0, x1, z0, z1, y, y1)
         prec = (x0, x1, z0, z1)
@@ -457,11 +457,11 @@ def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_ali
         sommet = (x0, x1, z0, z1)
     x0, x1, z0, z1 = sommet
     # évasement du sommet (piton érodé) puis chapeau d'herbe épais et débordant
-    b.box((x0 - 0.5, Hs - 3.0, z0 - 0.5), (x1 + 0.5, Hs, min(z1 + 0.5, -0.05)), vary(_ton("SC"), rng, 0.03),
+    b.box((x0 - 0.5, Hs - 3.0, z0 - 0.5), (x1 + 0.5, Hs, min(z1 + 0.5, zf - 0.05)), vary(_ton("SC"), rng, 0.03),
           studs="top", name="Piton")
-    b.box((x0 - 1.5, Hs, z0 - 1.5), (x1 + 1.5, H, min(z1 + 1.5, 1.25)), vary(herbe, rng, 0.025), studs="top",
+    b.box((x0 - 1.5, Hs, z0 - 1.5), (x1 + 1.5, H, min(z1 + 1.5, zf + 1.25)), vary(herbe, rng, 0.025), studs="top",
           name="Herbe")
-    for (za, zb2) in ((min(z1 + 1.0, 0.75), min(z1 + 1.35, 1.1)), (z0 - 1.35, z0 - 1.0)):
+    for (za, zb2) in ((min(z1 + 1.0, zf + 0.75), min(z1 + 1.35, zf + 1.1)), (z0 - 1.35, z0 - 1.0)):
         u = x0 + float(rng.uniform(0.0, 1.5))
         while u < x1 - 1.5:
             w = float(rng.choice((1.2, 1.6, 2.0, 2.4)))
@@ -844,7 +844,7 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
     v = variant % 3
     rng = b.rng
     n0 = len(b.parts)
-    BUDGET = 350
+    BUDGET = 440
     p = 2.0 * math.ceil(max(float(portee), PORTEE_MIN) / 4.0)       # demi-portée, sur la grille de 2
     L = 2.0 * max(8.0, round(float(largeur_pile) / 2.0))
     X = p + L
@@ -864,9 +864,9 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
                 if v == 1:
                     y += 1.0 if x0 < 0 else -1.0
                 return max(y_min, 2.0 * math.ceil(y / 2.0))
-            # encorbellements entre |x| = 46 et la pile
+            # encorbellements en gradins de 4 entre |x| = 46 et la pile : la voûte retombe sur les piles
             k = int((ax_in - X_CIEL) // 2)
-            return max(h - 14.0, y_min - 4.0 - 4.0 * k)
+            return max(h - 20.0, y_min - 4.0 - 4.0 * k)
 
         tops = {}
         for s in (-1, 1):
@@ -915,17 +915,18 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
         with b.group("Roche"):
             dessus_herbe = _masse(b, cols, strates, r, herbe=("herbe", "herbe_claire"), deux_faces=True, larg=larg,
                                   larg_gros=larg, bande=8.0, retraits=(0.0, 0.5, 1.0, 1.5, 2.0, 3.0),
-                                  coulures=0.55 * dens, coulure_max=3.5, fissures=0.12 * dens)
+                                  coulures=0.8 * dens, coulure_max=5.5, fissures=0.12 * dens)
             # jupes d'éboulis au pied des piles (côtés et extérieur ; arêtes sur les quarts de stud)
             yj = min(v for (v, _, _) in strates if v >= 4.0) - 0.6
             for s in (-1, 1):
                 xa, xb = sorted((s * (p + 2.25), s * (X + 1.25)))
                 b.box((xa, -0.4, -11.25), (xb, yj, 11.25), vary("mesa_violet_fonce", r, 0.03), studs="top",
                       name="Jupe")
-        # lianes sous le tablier (v2) : elles s'arrêtent à 34 au-dessus du couloir
-        if v == 2:
+        # lianes vertes sous le tablier, près des deux faces : elles s'arrêtent au-dessus de 34 sur le couloir
+        if True:
             with b.group("Lianes"):
-                for xl in (-30.0, -18.0, -7.0, 5.0, 16.0, 27.0):
+                for xl in ((-36.0, -30.0, -18.0, -7.0, 5.0, 16.0, 27.0, 38.0) if v == 2 else
+                           (-38.0, -27.0, -15.0, -3.0, 9.0, 21.0, 33.0, 42.0)):
                     xl += float(r.uniform(-1.5, 1.5))
                     col = next(cc for cc in cols if cc["x0"] <= xl < cc["x1"])
                     yi = col["pierre"][0][0]
@@ -959,10 +960,12 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
         # buissons sur le tablier et les piles
         with b.group("Vegetation"):
             for (xt, zt) in ((-24, 3), (-6, -4), (12, 4), (30, -3), (-36, -4), (40, 4), (-(p + 10), 5),
-                             (p + 8, -6), (-(p + 22), -4), (p + 20, 4), (-(p + 4), -5), (p + 14, 6)):
+                             (p + 8, -6), (-(p + 22), -4), (p + 20, 4), (-(p + 4), -5), (p + 14, 6),
+                             (-44, 5), (-30, -5), (-16, 4), (-2, 5), (6, -5), (20, -5), (24, 5), (36, -5), (46, -4),
+                             (-(p + 16), -6), (p + 26, -5)):
                 d = _dessus_a(dessus_herbe, xt, 1.5, z=zt)
                 if d is not None:
-                    _buisson(b, xt, d[2], zt, r, alien=False, taille=float(r.uniform(1.2, 1.8)))
+                    _buisson(b, xt, d[2], zt, r, alien=False, taille=float(r.uniform(1.2, 1.9)))
 
     with b.group("PontRocheux"):
         for dens in (1.0, 0.8, 0.65, 0.5):
@@ -973,6 +976,19 @@ def pont_rocheux(b, variant: int = 0, portee: float = 100, hauteur: float = 36, 
     info = _infos(b, n0)
     info["portee"] = 2 * p
     return info
+
+
+def piton_geant(b, variant: int = 0, hauteur: float = 62, demi: float = 8.0, demi_haut: float = 5.5) -> dict:
+    """Piton de sable isolé de la planète extraterrestre (même construction que les pitons de l'arche) : jupe
+    d'éboulis, six tronçons en strates sable / violet / rose qui s'affinent (demi-côté `demi` au pied, `demi_haut`
+    au sommet) et se décalent, replats herbus, chapeau d'herbe sarcelle débordant, arbres boules et buissons au
+    sommet. Origine au centre du pied, au sol. Emprise ≈ (2·demi + 3)². ≤ 110 pièces."""
+    rng = b.rng
+    n0 = len(b.parts)
+    with b.group("Piton"):
+        _piton(b, 0.25, 0.25, float(hauteur), rng, demi=float(demi), demi_haut=float(demi_haut),
+               sens=1 if variant % 2 == 0 else -1, fh=float(hauteur) / 110.0, zf=1e9)
+    return _infos(b, n0)
 
 
 # ---------------------------------------------------------------------------

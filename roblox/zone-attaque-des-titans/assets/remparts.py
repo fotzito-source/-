@@ -256,15 +256,18 @@ def _gargouille(b, x, z0, niv, occupe, y_bas: float = 57.6):
 
 
 def _lierre(b, rng, x, z0, occupe, h: float = 12.0):
-    """Touffe de lierre au pied du mur (au ras du talus), en deux tons ; emprise x ∈ [x - w/2 - 1,5, x + w/2 + 1,5]."""
+    """Touffe de lierre au pied du mur (au ras du talus), en deux tons : nappe large en bas qui s'effiloche en montant
+    d'un côté (une tige droite à bras se lisait comme un cactus) ; emprise x ∈ [x - 2,5, x + 2,5]. Sans tirage
+    aléatoire (le côté dépend de x) pour ne pas décaler l'appareil des murs."""
     w = 2.0
     y0 = 9.0
-    b.box((x - 1.0, y0, z0 - 0.4), (x + 1.0, y0 + h, z0), c("lierre"), collide=False, name="Lierre")
-    b.box((x - 2.5, y0 + 0.3 * h, z0 - 0.55), (x - 0.5, y0 + 0.3 * h + 3.0, z0), c("lierre_clair"),
+    s = 1 if int(round(x)) % 2 == 0 else -1          # côté vers lequel le lierre grimpe
+    b.box((x - 2.2, y0 - 0.2, z0 - 0.4), (x + 2.2, y0 + 0.42 * h, z0), c("lierre"), collide=False, name="Lierre")
+    b.box((x - 1.2 * s, y0 + 0.25 * h, z0 - 0.55), (x + 1.9 * s, y0 + 0.72 * h, z0), c("lierre_clair"),
           collide=False, name="Lierre")
-    b.box((x + 0.5, y0 + 0.6 * h, z0 - 0.65), (x + 2.5, y0 + 0.6 * h + 2.5, z0), c("lierre"), collide=False,
+    b.box((x + 0.2 * s, y0 + 0.6 * h, z0 - 0.45), (x + 1.6 * s, y0 + h, z0), c("lierre"), collide=False,
           name="Lierre")
-    b.box((x - 1.5, y0 + h - 1.0, z0 - 0.55), (x + 1.3, y0 + h + 1.5, z0), c("lierre_clair"), collide=False,
+    b.box((x - 2.5 * s, y0 + 0.3 * h, z0 - 0.62), (x - 1.1 * s, y0 + 0.52 * h, z0), c("lierre_clair"), collide=False,
           name="Lierre")
     b.box((x - 2.4, y0 - 0.5, z0 - 0.75), (x + 2.4, y0 + 1.0, z0), c("mur_mousse"), collide=False, name="Mousse")
     occupe.append((x - w / 2 - 1.8, x + w / 2 + 1.8, 0, y0 + h + 1.8))

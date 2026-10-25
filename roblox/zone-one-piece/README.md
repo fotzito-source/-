@@ -27,8 +27,9 @@ Dans l'ordre de la course (de la base vers la zone suivante) :
 2. **L'arche du port** : deux piles de trois mâts liés de cordages sur socle de pierre, nids-de-pie et pavillons
    à tête de mort générique, vergue à voile ferlée et barre de navire. Le **panneau de jeu** bleu marine est
    suspendu au-dessus du couloir : « ZONE RARE » en violet et « VITESSE CONSEILLÉE : 200 » en jaune, sur deux
-   planches de 9 et 7,5 studs de haut (lettres d'environ 5 à 6 studs), lisible des deux côtés. Autour : bouées, rames croisées, lanternes, filet de pêche à flotteurs,
-   tonneaux, caisses, ancre, et une palissade de pieux avec tours de guet jusqu'aux collines.
+   planches de 9 et 7,5 studs de haut (lettres d'environ 5 à 6 studs), lisible des deux côtés. Autour : bouées,
+   rames croisées, lanternes, filet de pêche à flotteurs, tonneaux, caisses, ancre, et une palissade de pieux avec
+   tours de guet jusqu'aux collines.
 3. **La campagne aux moulins** : chemin de terre à ornières bordé de clôtures, de buissons fleuris et de palmiers.
    - À gauche : le grand moulin de bois à **ailes jaunes** (44 de haut) tourné vers les joueurs, un champ de blé
      et de choux avec épouvantail, une tour de pierre à dôme, une grange rouge à silo et un enclos à vaches.
@@ -70,7 +71,7 @@ Dans l'ordre de la course (de la base vers la zone suivante) :
 | Rocher du crâne | façade en z = -366, 130 de haut, 440 de large, 34 d'épaisseur | `Z_ROCHER`, `H_ROCHER`, `PROF_ROCHER` |
 | Bouche du crâne | 96 de large, dents à 36 studs et plus | `PASSAGE` |
 | Largeur totale | 440 (\|x\| ≤ 220), murs invisibles sur les bords | `X_FOND` |
-| Abords (devant l'arche) | 40 (z de 0 à +40), dossier `Abords` | `Z_APPROCHE` |
+| Abords (devant l'arche) | 40 (z de 0 à +40), groupe `Abords` | `Z_APPROCHE` |
 | Eau | surface à y = -1,5 (sol et quais à y = 0) | `Y_EAU` |
 
 L'origine du modèle est au **centre de l'entrée** (au sol, sous l'arche). L'avant de la zone est vers **-Z**.
@@ -78,7 +79,8 @@ Rien de solide dans le couloir au sol, rien du tout au-dessus du couloir sous 30
 saute pas) : les fanions les plus bas sont à 31 studs, le panneau de l'arche à 35, les dents du crâne à 36.
 Rien ne dépasse z = -400 : la zone suivante commence exactement là.
 
-**Pièces : 12 219** (budget 12 500), dont 30 panneaux de texte. `python zone.py --stats` donne le détail par groupe.
+**Pièces : 12 219** (budget 12 500), dont 30 portent un panneau de texte (SurfaceGui). `python zone.py --stats`
+donne le détail par groupe.
 
 ## Importer dans Roblox Studio
 
@@ -94,10 +96,11 @@ La place contient la zone, l'éclairage des rendus et un point d'apparition deva
 2. Placer la zone au bout de la zone Naruto, dans la barre de commande :
    `workspace.ZoneOnePiece:PivotTo(CFrame.new(X, Y, Z))`, avec (X, Y, Z) le point où l'entrée doit se trouver
    (centre du couloir, au sol). Le **pivot du modèle est le centre de l'entrée** : il est enregistré dans le fichier.
-   Si votre couloir ne file pas vers -Z, ajoutez une rotation : `* CFrame.Angles(0, math.rad(R), 0)`.
-3. Le dossier **`Abords`** contient les 40 studs d'approche devant l'arche : sol, palmiers, panneau « BIENVENUE »
-   et début des collines. Supprimez-le si la zone est collée à la sortie de la zone précédente, sinon il tomberait
-   dedans. Les accessoires au pied de l'arche dépassent de 11 studs vers +Z.
+   Si votre couloir ne file pas vers -Z, ajoutez une rotation de R degrés :
+   `workspace.ZoneOnePiece:PivotTo(CFrame.new(X, Y, Z) * CFrame.Angles(0, math.rad(R), 0))`.
+3. Le groupe **`ZoneOnePiece.Abords`** contient les 40 studs d'approche devant l'arche : sol, palmiers, panneau
+   « BIENVENUE » et début des collines. Supprimez-le si la zone est collée à la sortie de la zone précédente, sinon
+   il tomberait dedans. Les accessoires au pied de l'arche dépassent de 11 studs vers +Z.
 4. Les **repères** invisibles du dossier `ZoneOnePiece.Reperes` servent au jeu :
    - `ZoneOeufs` : le carré de 68 × 68 autour de la rose des vents, où poser les œufs ;
    - `Entree` et `Sortie` ;
@@ -125,7 +128,7 @@ require(workspace.ZoneOnePiece.Outils.AppliquerStuds)("rbxassetid://VOTRE_ID")
 - Les petits détails n'ont ni collision ni ombre portée : cordages, fanions, cadres de fenêtres, lisses…
 - Les grands ensembles (sol, eau, collines, arche, rocher) sont découpés en blocs de 64 × 64 studs pour le
   streaming (`Workspace.StreamingEnabled`, `ModelStreamingBehavior = Improved`).
-- L'eau est solide : on peut marcher dessus jusqu'aux deux murs invisibles du dossier `Limites`.
+- L'eau est solide : on peut marcher dessus jusqu'aux deux murs invisibles du groupe `Limites`.
 
 ## Fichiers
 
