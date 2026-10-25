@@ -56,6 +56,8 @@ X_CIEL = 46.0         # rien du tout en deçà sous y = 30
 Y_ENJAMBE = 34.0      # dessous minimal de ce qui enjambe le couloir
 PASSAGE_MIN = 96.0    # sortie sous l'arche : au moins 96 studs de large
 PORTEE_MIN = 92.0     # pont : au moins 92 studs entre les piles
+DEMI_PITON = 13.5     # demi-côté des pitons géants au pied (9 au sommet)
+Z_PITON = -13.75      # centre des pitons (leur avant reste derrière z = -0,25)
 
 DETAIL = dict(collide=False, shadow=False)
 YV = np.array([0.0, 1.0, 0.0])
@@ -67,14 +69,13 @@ TONS = {
 
 # Strates (épaisseur, ton). Elles commencent sur un demi-stud et ont des épaisseurs entières : leurs limites
 # tombent toutes sur des demi-studs, alors que les dessus d'herbe sont sur des studs pairs (jamais confondus).
-# Arche : sable ocre dominant, bandes violettes, filets roses « P » qui avancent de 0,4 devant la paroi.
-MOTIF_ARCHE = [(6, "SF"), (7, "S"), (2, "PR"), (8, "SC"), (5, "S"), (4, "V"), (2, "PR"), (8, "SC"), (6, "S"),
-               (5, "VC"), (2, "PR"), (8, "S"), (5, "SC"), (5, "V"), (2, "PR"), (7, "SC"), (5, "S"), (5, "VC"),
-               (2, "PR"), (7, "V"), (6, "SC"), (2, "PR"), (8, "S")]
-# Pitons géants : même famille, bancs plus épais (limites sur les quarts de stud : départ à -0,75)
-MOTIF_PITON = [(7, "SF"), (8, "S"), (2, "PR"), (9, "SC"), (6, "V"), (2, "PR"), (9, "SC"), (8, "S"), (2, "PR"),
-               (8, "VC"), (8, "SC"), (6, "V"), (2, "PR"), (9, "S"), (8, "SC"), (2, "PR"), (7, "VC"), (8, "S"),
-               (2, "PR"), (9, "SC"), (8, "V")]
+# Arche : sable ocre dominant (bancs de 8 à 12), trois ou quatre bandes violettes d'épaisseurs différentes et
+# trois filets roses « PR » qui avancent de 0,4 devant la paroi (pas d'effet « gâteau à étages »).
+MOTIF_ARCHE = [(8, "SF"), (10, "S"), (3, "V"), (9, "SC"), (2, "PR"), (12, "S"), (6, "VC"), (10, "SC"), (11, "S"),
+               (2, "PR"), (8, "SC"), (4, "V"), (12, "S"), (9, "SC"), (2, "PR"), (10, "S")]
+# Pitons géants : même famille, bancs épais irréguliers (limites sur les quarts de stud : départ à -0,75)
+MOTIF_PITON = [(9, "SF"), (11, "S"), (4, "V"), (10, "SC"), (2, "PR"), (12, "S"), (6, "VC"), (11, "SC"), (10, "S"),
+               (2, "PR"), (9, "SC"), (3, "V"), (12, "S"), (10, "SC"), (2, "PR"), (12, "S")]
 # Pont de roche (terres de combat) : flancs violets de mesa, pied nuit, filets roses
 MOTIF_PONT = [(3, "N"), (6, "VF"), (6, "V"), (2, "P"), (7, "VC"), (6, "V"), (5, "VF"), (2, "P"), (6, "VC"),
               (5, "V"), (2, "P"), (6, "VC"), (6, "V"), (6, "VF")]
@@ -395,79 +396,95 @@ def _interp(pts, x):
     return float(np.interp(x, xs, ys))
 
 
-def _piton(b, xc, zc, H, rng, demi=8.0, sens=1, herbe="herbe_alien"):
-    """Piton géant : jupe d'éboulis au pied, tronçons empilés qui s'affinent et penchent un peu vers `sens`
-    (x), bosses en saillie sur la face avant et le côté extérieur, évasement érodé au sommet, chapeau d'herbe à
-    coulures. Strates sur les quarts de stud (départ à -0,75) et arêtes sur les quarts de stud (xc, zc ≡ 0,25 ;
-    demi-côtés et décalages multiples de 0,5) : jamais de face confondue avec la masse de l'arche.
-    Renvoie le dessus (x, y, z)."""
+def _piton(b, xc, zc, H, rng, demi=13.5, demi_haut=9.0, sens=1, herbe="herbe_alien", fh=1.0):
+    """Piton géant massif : jupe d'éboulis au pied, six tronçons empilés qui s'affinent (demi-côté `demi` au pied,
+    `demi_haut` au sommet) et se décalent irrégulièrement (± 2 studs, vers `sens` en moyenne), deux replats
+    herbus sur les ressauts, évasement érodé au sommet, chapeau d'herbe débordant à coulures, et sur le dessus
+    trois ou quatre arbres boules de tailles différentes et des buissons. Aucune « fenêtre » : pas de bosse
+    plaquée, le relief vient des ressauts entre tronçons et des filets roses en saillie.
+    Strates sur les quarts de stud (départ à -0,75) et arêtes sur les quarts de stud (xc, zc ≡ 0,25 ; demi-côtés
+    et décalages multiples de 0,5) : jamais de face confondue avec la masse de l'arche. L'avant reste derrière
+    z = -0,25. Renvoie le dessus (x, y, z)."""
     strates = _strates(MOTIF_PITON, -0.75, H + 2)
-    cap = 1.2
+    cap = 1.6
     Hs = H - cap
-    tr = [(0.26, demi, 0.0, 0.0), (0.48, demi - 0.5, sens * 0.5, -0.5), (0.68, demi - 1.0, sens * 1.0, -1.0),
-          (0.85, demi - 1.5, sens * 1.5, -1.0), (1.00, demi - 2.0, sens * float(rng.choice((0.5, 1.0))), -1.5)]
     bornes = [s_[0] for s_ in strates]
+    n_t = 6
+    d_s = [demi - (demi - demi_haut) * i / (n_t - 1) for i in range(n_t)]
+    d_s = [math.floor(d * 2) / 2 for d in d_s]
+    fracs = (0.2, 0.37, 0.53, 0.68, 0.82, 1.0)
 
-    def bandes(x0, x1, z0, z1, y0, y1, nom="Piton", plus=0.0):
+    def bandes(x0, x1, z0, z1, y0, y1, nom="Piton"):
         for (s0, s1, t) in strates:
             lo, hi = max(s0, y0), min(s1, y1)
             if hi - lo < 0.1:
                 continue
-            g = (0.4 if t in SAILLANTS else 0.0) + plus
+            g = 0.4 if t in SAILLANTS else 0.0
             b.box((x0 - g, lo, z0 - g), (x1 + g, hi, min(z1 + g, 0.0)), vary(_ton(t), rng, 0.03), studs="top",
                   name=nom)
 
     # jupe d'éboulis au pied (côtés et arrière ; l'avant reste dans l'alignement de la base)
     yj = min(v for v in bornes if v >= 4.0)
-    b.box((xc - demi - 1.5, -0.6, zc - demi - 1.5), (xc + demi + 1.5, yj - 0.6, zc + demi - 0.5),
+    b.box((xc - demi - 1.5, -0.6, zc - demi - 1.5), (xc + demi + 1.5, yj - 0.6, min(zc + demi - 0.5, -0.75)),
           vary("falaise_sable_fonce", rng, 0.03), studs="top", name="Jupe")
     y = -0.75
+    dx = dz = 0.0
     sommet = None
-    for i, (fh, d, dx, dz) in enumerate(tr):
-        if i == len(tr) - 1:
-            y1 = Hs - 3.0                     # l'évasement du sommet prend les 3 derniers studs
+    replats = {1, 3}
+    prec = None
+    for i in range(n_t):
+        d = d_s[i]
+        if i > 0:                                   # décalage irrégulier (± 2), dérive vers `sens`
+            dx = float(np.clip(dx + float(rng.choice((-1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0))) * (1 if rng.random() < 0.7 else -1) * sens,
+                               -2.0, 2.0))
+            dz = float(np.clip(dz + float(rng.choice((-1.0, -0.5, 0.0, 0.5))), -2.0, 2.0))
+        z_max = -0.25 - (zc + d)                    # l'avant du tronçon reste derrière z = -0,25
+        dz_i = min(dz, z_max)
+        if i == n_t - 1:
+            y1 = Hs - 3.0                           # l'évasement du sommet prend les 3 derniers studs
         else:
-            y1 = max(min(bornes, key=lambda v: abs(v - fh * Hs)), y + 6)
+            y1 = max(min(bornes, key=lambda v: abs(v - fracs[i] * Hs)), y + 8)
         x0, x1 = xc + dx - d, xc + dx + d
-        z0, z1 = zc + dz - d, zc + dz + d
+        z0, z1 = zc + dz_i - d, zc + dz_i + d
+        if i in replats and prec is not None:
+            # replat herbu sur le ressaut : dalle d'herbe sur le dessus du tronçon du dessous
+            px0, px1, pz0, pz1 = prec
+            b.box((px0 - 0.3, y - 0.05, pz0 - 0.3), (px1 + 0.3, y + 0.45, min(pz1 + 0.3, -0.1)),
+                  vary(herbe, rng, 0.03), studs="top", name="Herbe")
         bandes(x0, x1, z0, z1, y, y1)
-        # bosses en saillie sur la face avant et sur le côté extérieur (masses rocheuses)
-        if y1 - y > 12 and i < 4:
-            for face in (0, 1):
-                hb = float(rng.choice((6.0, 8.0, 10.0, 12.0)))
-                yb = math.floor(y + float(rng.uniform(1, max(1.5, y1 - y - hb - 1)))) + 0.1
-                wb = float(rng.choice((4.0, 5.0, 6.0)))
-                ub = round(float(rng.uniform(0.5, 2 * d - wb - 0.5)) * 2) / 2
-                col = vary(_ton(("SC", "S", "VC", "SF")[(i + face) % 4]), rng, 0.04)
-                if face == 0:
-                    b.box((x0 + ub, yb, z1 - 0.5), (x0 + ub + wb, yb + hb, min(z1 + 0.6, -0.15)), col, studs="top",
-                          name="Bosse")
-                else:
-                    xe = x1 if sens > 0 else x0
-                    xa, xb = sorted((xe - sens * 0.5, xe + sens * 0.9))
-                    b.box((xa, yb, z0 + ub), (xb, yb + hb, z0 + ub + wb), col, studs="top", name="Bosse")
+        prec = (x0, x1, z0, z1)
         y = y1
         sommet = (x0, x1, z0, z1)
     x0, x1, z0, z1 = sommet
-    # évasement du sommet (piton érodé) puis chapeau d'herbe
-    b.box((x0 - 0.5, Hs - 3.0, z0 - 0.5), (x1 + 0.5, Hs, z1 + 0.5), vary(_ton("SC"), rng, 0.03), studs="top",
-          name="Piton")
-    b.box((x0 - 1.1, Hs, z0 - 1.1), (x1 + 1.1, H, z1 + 1.1), vary(herbe, rng, 0.025), studs="top", name="Herbe")
-    for (za, zb2) in ((z1 + 0.6, z1 + 0.95), (z0 - 0.95, z0 - 0.6)):
+    # évasement du sommet (piton érodé) puis chapeau d'herbe épais et débordant
+    b.box((x0 - 0.5, Hs - 3.0, z0 - 0.5), (x1 + 0.5, Hs, min(z1 + 0.5, -0.05)), vary(_ton("SC"), rng, 0.03),
+          studs="top", name="Piton")
+    b.box((x0 - 1.5, Hs, z0 - 1.5), (x1 + 1.5, H, min(z1 + 1.5, 1.25)), vary(herbe, rng, 0.025), studs="top",
+          name="Herbe")
+    for (za, zb2) in ((min(z1 + 1.0, 0.75), min(z1 + 1.35, 1.1)), (z0 - 1.35, z0 - 1.0)):
         u = x0 + float(rng.uniform(0.0, 1.5))
         while u < x1 - 1.5:
-            w = float(rng.choice((1.2, 1.6, 2.0)))
-            if rng.random() < 0.6:
-                L = float(rng.uniform(1.5, 3.5))
-                b.box((u, Hs - L, za), (u + w, Hs, zb2), vary("herbe_alien", rng, 0.03), name="Coulure", **DETAIL)
+            w = float(rng.choice((1.2, 1.6, 2.0, 2.4)))
+            if rng.random() < 0.65:
+                L = float(rng.uniform(1.5, 4.0))
+                b.box((u, Hs - L, za), (u + w, Hs + 0.1, zb2), vary("herbe_alien", rng, 0.03), name="Coulure", **DETAIL)
             u += w + float(rng.choice((1.5, 3.0, 4.5)))
-    return ((x0 + x1) / 2, H, (z0 + z1) / 2)
+    # couronne de végétation : 3 ou 4 arbres boules de tailles différentes, buissons
+    cx_, cz_ = (x0 + x1) / 2, (z0 + z1) / 2
+    hw = (x1 - x0) / 2
+    arbres = [(-0.45, -0.3, 16, 6.0), (0.4, -0.5, 11, 4.5), (0.35, 0.45, 20, 5.2), (-0.5, 0.5, 9, 3.6)]
+    for (fx, fz, ht, rc) in arbres[: 3 + int(rng.random() < 0.6)]:
+        _arbre_boule(b, cx_ + fx * hw, H, cz_ + fz * hw, ht * fh, rng, Rc=rc)
+    for (fx, fz) in ((0.05, -0.75), (-0.8, 0.05), (0.8, 0.0)):
+        _buisson(b, cx_ + fx * hw, H, cz_ + fz * hw, rng, taille=float(rng.uniform(1.0, 1.5)))
+    return (cx_, H, cz_)
 
 
 def _cascade_fente(b, x0, x1, y_haut, z_mur, rng):
-    """Cascade à deux chutes dans une fente de la jambe : ruisseau et lèvre sur le dessus, première nappe devant
-    la paroi du fond (z_mur), rebord rocheux à mi-hauteur où l'eau rebondit (écume), seconde nappe plus large
-    devant le rebord, filets clairs, écume et brume au pied, vasque entre z_mur et 0 (fond de pierre, bord de
+    """Cascade à deux chutes dans une fente de la jambe : ruisseau sur le dessus, lèvre d'écume blanche continue
+    où l'eau bascule, première nappe d'eau claire translucide devant la paroi du fond (z_mur), rebord rocheux à
+    mi-hauteur coiffé d'écume, seconde nappe plus large devant le rebord, filets d'écume blancs larges (1 à 1,5)
+    accrochés aux nappes, gros bouillon blanc et brume au pied, vasque entre z_mur et 0 (fond de pierre, bord de
     rochers). Rien ne dépasse z = 0."""
     eau = dict(collide=False, shadow=False)
     xm = (x0 + x1) / 2
@@ -475,54 +492,60 @@ def _cascade_fente(b, x0, x1, y_haut, z_mur, rng):
     yl = math.floor(0.44 * y_haut) + 0.3          # dessus du rebord (hors des limites de strates et des dessus)
     zr = z_mur + 2.6                              # avant du rebord
     with b.group("Cascade"):
-        # ruisseau sur le dessus et lèvre qui s'enroule devant le chapeau d'herbe
+        # ruisseau sur le dessus, lèvre d'écume blanche continue à la bascule
         b.box((xm - w * 0.3, y_haut, z_mur - 14.0), (xm + w * 0.3, y_haut + 0.4, z_mur + 0.3), c("eau"),
               transparency=0.1, name="Eau", **eau)
-        b.box((xm - w * 0.34, y_haut - 1.4, z_mur + 0.65), (xm + w * 0.34, y_haut + 0.55, z_mur + 1.35),
-              c("eau_claire"), name="Eau", **eau)
-        # première chute (plus étroite) jusqu'au rebord
-        b.box((x0 + 2.2, yl - 0.5, z_mur + 0.15), (x1 - 2.2, y_haut - 0.3, z_mur + 0.55), c("eau"), transparency=0.08,
-              name="Eau", **eau)
-        # rebord rocheux, écume qui rebondit, lèvre claire
+        b.box((xm - w * 0.36, y_haut - 1.6, z_mur + 0.45), (xm + w * 0.36, y_haut + 0.65, z_mur + 1.45),
+              c("ecume"), name="Ecume", **eau)
+        # première chute (plus étroite) jusqu'au rebord : nappe turquoise translucide, bords plus clairs
+        b.box((x0 + 2.2, yl - 0.5, z_mur + 0.15), (x1 - 2.2, y_haut - 0.3, z_mur + 0.55), c("eau"),
+              transparency=0.2, name="Eau", **eau)
+        # rebord rocheux coiffé d'écume, lèvre blanche devant
         b.box((x0, yl - 2.5, z_mur), (x1, yl, zr), vary("falaise_sable_fonce", rng, 0.03), studs="top", name="Rebord")
-        b.box((x0 + 1.4, yl - 0.1, z_mur + 0.3), (x1 - 1.4, yl + 1.0, zr - 0.4), c("ecume"), name="Ecume", **eau)
-        b.box((x0 + 1.0, yl - 1.6, zr + 0.05), (x1 - 1.0, yl + 0.45, zr + 0.6), c("eau_claire"), name="Eau", **eau)
-        # seconde chute (plus large) devant le rebord, élargie en bas
-        b.box((x0 + 0.8, 0.1, zr + 0.1), (x1 - 0.8, yl - 1.2, zr + 0.5), c("eau"), transparency=0.08, name="Eau", **eau)
-        b.box((x0 + 0.3, 0.2, zr + 0.25), (x1 - 0.3, yl * 0.35, zr + 0.65), shade(c("eau"), 0.94), transparency=0.1,
+        b.box((x0 + 1.4, yl - 0.1, z_mur + 0.3), (x1 - 1.4, yl + 1.3, zr - 0.3), c("ecume"), name="Ecume", **eau)
+        b.box((x0 + 1.0, yl - 1.8, zr + 0.05), (x1 - 1.0, yl + 0.7, zr + 0.7), c("ecume"), name="Ecume", **eau)
+        # seconde chute (plus large) devant le rebord
+        b.box((x0 + 0.8, 0.1, zr + 0.1), (x1 - 0.8, yl - 1.2, zr + 0.5), c("eau"), transparency=0.2,
               name="Eau", **eau)
-        # filets clairs (pixels de lumière qui descendent)
-        for i, fx in enumerate((0.15, 0.4, 0.62, 0.85)):
-            lw = (0.6, 0.9, 0.5, 0.8)[i]
-            x = x0 + 2.4 + fx * (w - 4.8)
-            y_lo = yl + (float(rng.uniform(0.1, 0.4)) * (y_haut - yl) if i % 2 else 0.9)
-            b.box((x - lw / 2, y_lo, z_mur + 0.6), (x + lw / 2, y_haut - 1.0, z_mur + 0.75),
-                  c("ecume") if i % 2 == 0 else c("eau_claire"), name="Filet", **eau)
-        for i, fx in enumerate((0.08, 0.26, 0.47, 0.66, 0.9)):
-            lw = (0.6, 1.0, 0.5, 0.9, 0.6)[i]
-            x = x0 + 1.0 + fx * (w - 2.0)
-            y_hi = yl - 1.4 - float(rng.uniform(0.0, 0.3)) * yl * (i % 2)
-            y_lo = float(rng.uniform(0.25, 0.5)) * yl if i % 2 else 0.4
-            b.box((x - lw / 2, y_lo, zr + 0.7), (x + lw / 2, y_hi, zr + 0.85),
-                  c("ecume") if i % 2 == 0 else c("eau_claire"), name="Filet", **eau)
-        # vasque : fond de pierre, eau, ride, bord de rochers, écume, brume
+
+        def filets(xa, xb, ya, yb, z0, n):
+            """Traînées d'eau qui touchent la nappe : longueurs et départs variés, en quinconce (écume blanche et
+            eau claire), larges de 1 à 1,5 ; jamais deux traînées côte à côte de même hauteur."""
+            pas = (xb - xa) / n
+            for i in range(n):
+                lw = float(rng.choice((1.0, 1.2, 1.5)))
+                x = xa + pas * (i + 0.5) + float(rng.uniform(-0.2, 0.2)) * pas
+                long_ = (yb - ya) * float(rng.uniform(0.3, 0.75))
+                y_hi = yb - (yb - ya) * float(rng.uniform(0.0, 0.25)) * (i % 2)
+                y_lo = max(ya, y_hi - long_)
+                col = c("ecume") if i % 3 != 1 else c("eau_claire")
+                b.box((x - lw / 2, y_lo, z0), (x + lw / 2, y_hi, z0 + 0.25), col, name="Filet", **eau)
+                if i % 2 == 0 and y_lo - ya > 3.0:      # seconde traînée plus bas, décalée
+                    y2 = y_lo - float(rng.uniform(1.0, 2.5))
+                    b.box((x - lw / 2 + 0.3, max(ya, y2 - long_ * 0.6), z0), (x + lw / 2 + 0.3, y2, z0 + 0.25),
+                          c("ecume"), name="Filet", **eau)
+
+        filets(x0 + 2.4, x1 - 2.4, yl + 0.8, y_haut - 1.2, z_mur + 0.5, 3)
+        filets(x0 + 1.0, x1 - 1.0, 0.6, yl - 1.8, zr + 0.45, 5)
+        # vasque : fond de pierre, eau, ride, bord de rochers
         b.box((x0, -1.0, z_mur), (x1, -0.3, 0.0), vary("falaise_sable_fonce", rng, 0.03), studs="top", name="Vasque")
         b.box((x0, -0.3, z_mur), (x1, 0.15, -0.2), c("eau"), transparency=0.1, name="Vasque", **eau)
         b.box((x0 + 1.5, 0.15, -2.2), (x1 - 1.5, 0.3, -1.8), c("eau_claire"), name="Ride", **eau)
         for i, (fx, sx, sz) in enumerate(((0.06, 2.2, 1.6), (0.28, 1.8, 1.3), (0.5, 1.6, 1.2), (0.74, 2.0, 1.5),
                                           (0.94, 1.8, 1.4))):
             x = x0 + fx * w
-            hy = float(rng.uniform(0.7, 1.2))
+            hy = round(float(rng.uniform(0.7, 1.2)) * 4) / 4 + 0.05 * i
             b.boxc((x, hy / 2 - 0.2, -0.9), (sx, hy + 0.4, sz), vary(("falaise_sable", "falaise_sable_claire",
                                                                     "rocher_clair")[i % 3], rng, 0.05),
                    yaw=float(rng.uniform(-20, 20)), studs="top", name="Bord")
-        for (x, y, z, sx, sy, sz, yw) in ((xm, 0.8, zr + 1.1, w * 0.75, 1.6, 1.4, 0),
-                                          (xm - w * 0.32, 0.5, zr + 1.6, 2.2, 1.0, 1.4, 20),
-                                          (xm + w * 0.3, 0.55, zr + 1.5, 2.4, 1.1, 1.3, -15),
-                                          (xm + w * 0.05, 0.4, zr + 2.3, 2.0, 0.8, 1.2, 35)):
+        # gros bouillon blanc au pied de la seconde chute (blocs d'écume 3 × 2) puis brume
+        for (x, y, z, sx, sy, sz, yw) in ((xm, 1.0, zr + 1.2, w * 0.8, 2.0, 1.8, 0),
+                                          (xm - w * 0.3, 0.8, zr + 1.9, 3.0, 1.6, 2.0, 18),
+                                          (xm + w * 0.28, 0.9, zr + 1.8, 3.0, 1.8, 2.0, -14),
+                                          (xm + w * 0.02, 0.6, zr + 2.6, 3.2, 1.2, 2.0, 32)):
             b.boxc((x, y, z), (sx, sy, sz), c("ecume"), yaw=yw, name="Ecume", **eau)
-        for (x, y, z, s_) in ((xm - w * 0.22, 2.6, zr + 1.5, 2.6), (xm + w * 0.26, 3.4, zr + 1.2, 2.2),
-                              (xm, 1.8, zr + 2.2, 2.0), (xm + w * 0.1, yl + 1.6, z_mur + 1.6, 2.0)):
+        for (x, y, z, s_) in ((xm - w * 0.22, 2.9, zr + 1.5, 2.8), (xm + w * 0.26, 3.6, zr + 1.2, 2.4),
+                              (xm, 2.0, zr + 2.4, 2.2), (xm + w * 0.1, yl + 1.8, z_mur + 1.7, 2.2)):
             b.boxc((x, y, z), (s_ * 1.3, s_, s_), c("blanc"), yaw=float(rng.uniform(0, 45)), transparency=0.45,
                    name="Brume", **eau)
 
@@ -559,9 +582,9 @@ def _front(ax, a, P):
         return -2.5
     if ax < P["f1"]:
         return -6.5
-    if ax < P["xp"] - 8.25:
+    if ax < P["xp"] - DEMI_PITON - 0.25:
         return -2.5
-    if ax < P["xp"] + 7.75:
+    if ax < P["xp"] + DEMI_PITON - 0.25:
         return -4.5            # derrière le piton, qui avance jusqu'à z = -0,25
     return -1.5
 
@@ -677,7 +700,7 @@ def _arche(b, v, a, W, D, H, rng, dens):
     kw = dict(larg=larg, larg_gros=larg_gros, bande=12.0 / max(dens, 0.5), coulures=0.5 * dens,
               fissures=0.2 * dens)
     with b.group("Roche"):
-        tops = _masse(b, cols, strates, rng, **kw)
+        tops = _masse(b, cols, strates, rng, debord_arriere=0.0, **kw)    # rien ne dépasse l'arrière (sortie)
         for lst, ouv in ((avant_g, (True, False)), (avant_d, (False, True))):
             if lst:
                 tops += _masse(b, lst, strates, rng, debord_arriere=0.0, ouvert=ouv, **kw)
@@ -698,7 +721,8 @@ def _arche(b, v, a, W, D, H, rng, dens):
                        yaw=float(rng.uniform(-8, 8)), studs="top", name="Rocher")
             # talus au pied des jambes et des baies : masses de sable en saillie (arêtes sur les demi-studs,
             # dessus sur les trois-quarts : jamais confondus avec les strates)
-            for (u0, u1) in ((a + 1.0, f0 - 1.0), (f1 + 1.0, xp - 9.25), (xp + 8.75, xm - 1.0)):
+            for (u0, u1) in ((a + 1.0, f0 - 1.0), (f1 + 1.0, xp - DEMI_PITON - 2.75),
+                             (xp + DEMI_PITON + 2.25, xm - 1.0)):
                 u = u0 + float(rng.uniform(0.0, 3.0))
                 while u < u1 - 4.0:
                     wt = float(rng.choice((4.0, 5.0, 6.0, 8.0)))
@@ -729,7 +753,7 @@ def _arche(b, v, a, W, D, H, rng, dens):
     sommets = []
     with b.group("Pitons"):
         for s, hp in zip((-1, 1), h_pit):
-            sommets.append(_piton(b, s * xp, -8.25, float(round(hp * fh)), rng, sens=s))
+            sommets.append(_piton(b, s * xp, Z_PITON, float(round(hp * fh)), rng, demi=DEMI_PITON, sens=s, fh=fh))
 
     # -- végétation sur la couronne, les épaules, les pitons et les gradins ----------------------------------
     with b.group("Vegetation"):
@@ -739,32 +763,31 @@ def _arche(b, v, a, W, D, H, rng, dens):
             if d is None:
                 continue
             _arbre_boule(b, xt, d[2], zt, ht * fh, rng)
-        for (sx, sy, sz) in sommets:
-            _arbre_boule(b, sx + 1.5, sy, sz - 1.0, 14 * fh, rng, Rc=3.8)
-        # rideaux de lianes sarcelle sous la voûte, près de la façade (et quelques-uns au fond) : brins effilés en
-        # trois tronçons (foncé → clair), groupés par deux ou trois ; dessous ≥ 36 au-dessus du couloir
+        # quelques lianes vertes sous la voûte, seulement contre les jambes (|x| > a - 14), près de la façade :
+        # deux tronçons (foncé puis clair) et une touffe au bout ; dessous ≥ 36 au-dessus du couloir
         prof_max = 4.0 + 1.5 + 0.5                     # retrait maximal du linteau (masses 4, fissures +1,5) + marge
-        for zl, dens_l in ((-0.5 - prof_max - 0.3, 0.8), (-D + 3.0, 0.35)):
-            for col in cols:
-                if not (-a + 4.0 <= col["x0"] and col["x1"] <= a - 4.0) or rng.random() > dens_l:
-                    continue
-                yi = col["pierre"][0][0]
-                lmax = min(11.0, yi - (Y_ENJAMBE + 2.0))
-                if lmax < 3.0:
-                    continue
-                # longueurs en k + 0,2 : bouts sur des dixièmes, jamais sur les strates (demi-studs) ni les dessus
-                L = math.floor(float(rng.uniform(2.5, lmax))) + 0.2
-                l1 = round(L * 0.45, 1) + 0.05
-                l2 = round(L * 0.3, 1) + 0.05
-                y = yi
-                for k, (h_, w_, ton) in enumerate(((l1, 1.4, "herbe_alien_fonce"), (l2, 1.0, "herbe_alien"),
-                                                   (L - l1 - l2, 0.6, "boule_alien_claire"))):
-                    if h_ < 0.1:
-                        break
-                    xa_ = col["x0"] + 1.0 - w_ / 2
-                    b.box((xa_, y - h_, zl - 0.5 + 0.1 * k), (xa_ + w_, y, zl - 0.1 * k), vary(ton, rng, 0.04),
-                          name="Liane", **DETAIL)
-                    y -= h_
+        zl = -0.5 - prof_max - 0.3
+        for col in cols:
+            xc_ = (col["x0"] + col["x1"]) / 2
+            if not (a - 14.0 <= abs(xc_) <= a - 2.0) or rng.random() > 0.3:
+                continue
+            yi = col["pierre"][0][0]
+            lmax = min(8.0, yi - (Y_ENJAMBE + 2.0))
+            if lmax < 3.0:
+                continue
+            # longueurs en k + 0,2 : bouts sur des dixièmes, jamais sur les strates (demi-studs) ni les dessus
+            L = math.floor(float(rng.uniform(2.5, lmax))) + 0.2
+            l1 = round(L * 0.55, 1) + 0.05
+            y = yi
+            for k, (h_, w_, ton) in enumerate(((l1, 1.2, "feuillage_fonce"), (L - l1 - 1.0, 0.8, "feuillage"))):
+                if h_ < 0.1:
+                    break
+                xa_ = col["x0"] + 1.0 - w_ / 2
+                b.box((xa_, y - h_, zl - 0.5 + 0.1 * k), (xa_ + w_, y, zl - 0.1 * k), vary(ton, rng, 0.04),
+                      name="Liane", **DETAIL)
+                y -= h_
+            b.box((col["x0"] + 0.1, y - 1.0, zl - 0.85), (col["x1"] - 0.1, y + 0.2, zl + 0.15),
+                  vary("feuillage_clair", rng, 0.04), name="Liane", **DETAIL)
         for (xt, zt) in ((-4, -6), (8, -28), (-30, -18), (34, -6), (-24, -28), (12, -16), (-70, -20), (78, -26),
                          (-118, -10), (130, -24), (106, -8), (-140, -8), (-176, -26), (184, -10), (150, -6),
                          (-132, -6), (140, -6), (-170, -6), (176, -4)):
@@ -1011,8 +1034,8 @@ def nuages_dores(b, variant: int = 0, largeur: float = 100, profondeur: float = 
                 f = profil(x / hl)
                 top = y_corps + H_dispo * f * k_h
                 r = float(np.clip((top - y_corps) * 0.55 + 2.0, 5.0, min(13.0, hp * 0.8)))
-                r *= float(rng.uniform(0.8, 1.08))
-                yc = max(top - r, y_corps - 0.35 * r)
+                r *= float(rng.uniform(0.72, 1.12)) if cote < 0 else float(rng.uniform(0.82, 1.08))
+                yc = max(top - r, y_corps - 0.35 * r) + (float(rng.uniform(-0.6, 0.8)) if cote < 0 else 0.0)
                 xx = float(np.clip(x, -hl + r, hl - r))
                 zz = cote * max(0.0, hp - r - 0.2) * (0.85 if cote else 0.0)
                 b.ball((xx, yc, zz), r, vary(col, rng, 0.012), **kw)

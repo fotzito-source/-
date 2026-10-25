@@ -249,17 +249,21 @@ def lanterne_chinoise(b, variant: int = 0) -> dict:
     return {"emprise": (2, 2.6 if variant % 3 != 1 else 5.2), "hauteur": 8.4}
 
 
-def poteau_arene(b, variant: int = 0, hauteur: float = 6.0) -> dict:
-    """Poteau d'angle de l'arène : pilier de pierre carré, bassin de bronze et flamme en blocs (Neon).
+def poteau_arene(b, variant: int = 0, hauteur: float = 6.0, socle: float = 0.0) -> dict:
+    """Poteau d'angle de l'arène : pilier de pierre carré (fût de 2,8), bagues rouges, chapiteau, bassin de
+    bronze et flamme en blocs (Neon). `socle` : piédestal de pierre sous le poteau (le poteau commence à y = socle).
 
     variant 0 : flamme ; 1 : lanterne carrée blanche ; 2 : flamme et écharpe rouge."""
-    h = hauteur
+    h = hauteur + socle
     p, pf, pc = c("pierre"), c("pierre_fonce"), c("pierre_claire")
     with b.group("PoteauArene"):
-        b.box((-1.6, 0, -1.6), (1.6, 0.8, 1.6), pf, studs="top", name="Socle")
-        b.box((-1.1, 0.8, -1.1), (1.1, h - 0.6, 1.1), p, name="Fut")
-        b.box((-1.18, h - 2.0, -1.18), (1.18, h - 1.6, 1.18), c("laque_rouge"), collide=False, name="Bague")
-        b.box((-1.5, h - 0.6, -1.5), (1.5, h, 1.5), pc, studs="top", name="Chapiteau")
+        if socle > 0:
+            b.box((-1.7, 0, -1.7), (1.7, socle, 1.7), pf, studs="top", name="Piedestal")
+        b.box((-1.6, socle, -1.6), (1.6, socle + 0.8, 1.6), pf, studs="top", name="Socle")
+        b.box((-1.4, socle + 0.8, -1.4), (1.4, h - 0.6, 1.4), p, name="Fut")
+        b.box((-1.5, h - 2.0, -1.5), (1.5, h - 1.6, 1.5), c("laque_rouge"), collide=False, name="Bague")
+        b.box((-1.5, socle + 2.0, -1.5), (1.5, socle + 2.4, 1.5), c("laque_rouge"), collide=False, name="Bague")
+        b.box((-1.65, h - 0.6, -1.65), (1.65, h, 1.65), pc, studs="top", name="Chapiteau")
         if variant % 3 == 1:
             b.box((-0.9, h, -0.9), (0.9, h + 1.8, 0.9), c("neon_blanc"), material="Neon", collide=False, shadow=False, name="Lumiere")
             for sx in (-0.95, 0.95):
@@ -276,8 +280,8 @@ def poteau_arene(b, variant: int = 0, hauteur: float = 6.0) -> dict:
         b.boxc((-0.1, h + 3.6, 0.1), (0.6, 0.9, 0.6), fl, yaw=40, material="Neon", collide=False, shadow=False, name="Flamme")
         b.boxc((0, h + 2.0, 0), (1.0, 1.5, 2.0), fc, yaw=45, material="Neon", collide=False, shadow=False, name="Coeur")
         if variant % 3 == 2:
-            b.box((-1.2, h - 3.2, -1.2), (1.2, h - 2.6, 1.2), c("banniere_rouge"), collide=False, name="Echarpe")
-            b.box((-0.5, h - 4.6, -1.3), (0.3, h - 2.6, -1.2), c("banniere_rouge"), collide=False, shadow=False, name="Pan")
+            b.box((-1.5, h - 3.2, -1.5), (1.5, h - 2.6, 1.5), c("banniere_rouge"), collide=False, name="Echarpe")
+            b.box((-0.5, h - 4.6, -1.6), (0.3, h - 2.6, -1.5), c("banniere_rouge"), collide=False, shadow=False, name="Pan")
     return {"emprise": (3.2, 3.2), "hauteur": h + 4.0}
 
 
@@ -314,7 +318,7 @@ def panneau(b, texte: str = "道場", variant: int = 0) -> dict:
     with b.group("Panneau"):
         if v == 0:
             for x in (-w / 2 + 0.3, w / 2 - 0.3):
-                b.box((x - 0.25, 0, -0.25), (x + 0.25, 5.4, 0.25), c("bois_fonce"), name="Pied")
+                b.box((x - 0.25, 0, -0.25), (x + 0.25, 5.3, 0.25), c("bois_fonce"), name="Pied")
             p = b.box((-w / 2, 2.6, -0.2), (w / 2, 4.8, 0.2), c("bois_clair"), name="Planche")
             p.label = {"face": "Front", "text": texte, "color": c("encre"), "font": "brush"}
             b.wedge((-w / 2 - 0.6, 5.4, -0.9), (w / 2 + 0.6, 6.4, 0), c("tuile_orange"), down="-z", studs="top", collide=False, name="Toit")

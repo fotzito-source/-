@@ -10,8 +10,8 @@ pavée et on repart. La colline de la grande tour blanche et du monolithe ferme 
 
 | Vue | Fichier |
 |---|---|
-| Entrée, vue joueur (grande porte blanche 門) | [`rendus/entree.png`](rendus/entree.png) |
-| Rue du faubourg | [`rendus/faubourg.png`](rendus/faubourg.png) |
+| Arrivée : la grande porte blanche 門 dans son long mur | [`rendus/entree.png`](rendus/entree.png) |
+| Rue du faubourg et porte intérieure | [`rendus/faubourg.png`](rendus/faubourg.png) |
 | Le grand mur blanc vu de l'intérieur | [`rendus/revers.png`](rendus/revers.png) |
 | Allée de la cité blanche | [`rendus/cite.png`](rendus/cite.png) |
 | Passerelle laquée et tours blanches | [`rendus/tours.png`](rendus/tours.png) |
@@ -30,10 +30,11 @@ Dans l'ordre de la course :
    d'entrepôt japonais (cadre laqué noir, bandes de fer cloutées d'or, petit guichet), sont ouverts vers
    l'extérieur et bordent l'esplanade. Lanternes de pierre, cerisiers, pins.
 2. **Le faubourg** : une rue de sable doré avec un chemin central de grandes dalles, huit maisons de marchands à
-   étage en bois sombre et tuiles grises (thé 茶, auberge 宿, riz 米, soba 蕎麦, confiserie 甘味, bains 湯), avec
-   balcons, stores de bambou, rideaux de boutique et lanternes. Dans les ruelles : échoppes, puits, seaux
-   d'incendie, bannières, trois tours de guet en bois à cloche. Trois guirlandes de lampions au-dessus de la rue,
-   une petite place plantée de cerisiers devant la porte intérieure et deux cerisiers géants derrière les toits.
+   étage en bois sombre et tuiles grises (thé 茶, auberge 宿, riz 米, soba 蕎麦), avec balcons, stores de bambou,
+   rideaux de boutique et lanternes. Sur les trottoirs et dans les ruelles : échoppes (kimonos 呉服), puits,
+   seaux d'incendie, bannières (団子, 甘味, 薬), trois tours de guet en bois à cloche. Trois guirlandes de lampions au-dessus de la rue.
+   Au bout, sur une petite place, deux cerisiers géants encadrent la porte intérieure et dépassent des toits ;
+   deux autres se dressent derrière les maisons, entre les potagers.
 3. **La porte intérieure** : une tour-porte blanche à corps de garde, balcons rouges et plaque 静. Ses vantaux de
    bois sombre sont ouverts côté faubourg : passé la porte, tout devient blanc.
 4. **La cité blanche** : l'allée court entre deux longs murs blancs de 14 studs à chaperon ocre. Au sol, un
@@ -41,14 +42,14 @@ Dans l'ordre de la course :
    (repère de vitesse). Trois enclos par côté, chacun avec son portail à petit toit (静 茶 白 宿 門) et une maison
    blanche à étage aux toits ocre (un hall à toit bleu par côté). Tours de guet blanches, cerisiers qui débordent
    des murs, cerisiers géants, jardin à étang et pont rouge, lanternes. Une **passerelle couverte laquée rouge**
-   enjambe l'allée à 38 studs entre deux tours blanches.
+   enjambe l'allée (dessous à 36,6 studs) entre deux tours blanches.
 5. **La cour des œufs** : une grande cour pavée fermée de murs blancs de 16 studs, encadrée à l'entrée par deux
    tours blanches, avec au centre une **mosaïque de fleur de cerisier** (rayon 34) dans un cadre de pierre
    sombre. Pavillons à piliers rouges, lanternes de pierre, cerisiers.
 6. **La colline** : un mur de soutènement de pierre pâle percé d'un **tunnel de 96 de large** (sortie vers la
    zone suivante) sous un corps de garde blanc ; derrière, une butte boisée de cèdres. À gauche, la **grande tour
    blanche** à bandes rouges, jupes de tuiles et flèches sombres (sommet vers 149) ; à droite, un **monolithe
-   de pierre** grise ceint d'une corde sacrée à papiers blancs (sommet vers 143), sur sa terrasse.
+   de pierre** grise ceint d'une corde sacrée à papiers blancs (sommet vers 144), sur sa terrasse.
 
 Des remparts blancs de 28 studs à tours ferment les côtés ; au-delà, une ville lointaine d'enclos blancs à toits
 ocre donne l'échelle d'une cité immense.
@@ -68,8 +69,8 @@ ocre donne l'échelle d'une cité immense.
 | Place des œufs | cercle de rayon 34, centre en z = -430 | `Z_PLACE`, `R_PLACE` |
 | Tunnel de sortie | 96 de large, 38 de haut, z -476 → -522 | `PASSAGE_TUNNEL`, `Z_COLLINE` |
 | Largeur totale | 300 entre les remparts, 420 avec la ville lointaine | `X_ENCEINTE`, `X_FOND` |
-| Repères verticaux | grande porte 104, tour blanche 149, monolithe 143 | — |
-| Pièces | **12 809** (plafond 13 500) | `PLAFOND` |
+| Repères verticaux | grande porte 104, porte intérieure 69, tour blanche 149, monolithe 144 | — |
+| Pièces | **12 712** (plafond 13 500) | `PLAFOND` |
 
 Au-dessus du couloir, rien ne descend sous 34 studs (lampions des guirlandes à 34, solives de la porte
 intérieure à 35, voûte du tunnel à 38) : la caméra Roblox ne saute pas. Au sol, rien de solide dans |x| < 45.
@@ -145,6 +146,6 @@ python3.13 -m venv .venv && .venv/bin/pip install bpy==5.2.3 numpy pillow
 Uniquement des éléments japonais génériques : enceintes de château blanches, tours de guet, maisons d'Edo,
 cerisiers, pierre sacrée à corde *shimenawa*. Aucun nom de la licence (ni lieu ni personnage), aucun personnage,
 aucun numéro de division, aucun insigne, pas de 護廷, 十三隊, 霊 ou 隊, pas de sabre, de masque ni de hallebarde
-géante. Les enseignes n'utilisent que des mots courants (門, 静, 白, 茶, 宿, 米, 湯, 薬, 団子, 蕎麦, 甘味, 呉服).
+géante. Les enseignes n'utilisent que des mots courants (門, 静, 白, 茶, 宿, 米, 薬, 団子, 蕎麦, 甘味, 呉服).
 Le nom de la licence n'apparaît que dans le nom interne du modèle (`ZoneBleach`) et des fichiers : renommer le
 modèle dans Studio, et éviter ce nom dans le titre, les miniatures et le nom affiché de la zone.

@@ -144,8 +144,10 @@ for _, p in data.parts do
 		part.Reflectance = p.reflectance
 	end
 	part.CanCollide = p.collide ~= false
-	part.CanTouch = false
-	if p.collide == false then
+	-- les repères (ZoneOeufs, Entree, Sortie, Couloir) restent détectables par .Touched et par les raycasts
+	local estRepere = p.group == "Reperes" or string.sub(p.group or "", 1, 8) == "Reperes/"
+	part.CanTouch = estRepere
+	if p.collide == false and not estRepere then
 		part.CanQuery = false
 	end
 	part.CastShadow = p.shadow ~= false

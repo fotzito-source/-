@@ -677,6 +677,12 @@ def grand_place(b: Builder) -> None:
               hauteur=14)
     for i, (x, z) in enumerate(((-66, -486), (66, -486))):
         place(b, "mobilier", "etal", (x, 0, z), yaw=180, group=f"GrandPlace/Etal{i}", emprise=(9, 6, 7), variant=i + 2)
+    # marché de la grand-place : étals adossés aux arcades (gauche) et devant le beffroi (droite), dos aux façades
+    for i, (x, z) in enumerate(((-82, -432), (-82, -460), (81, -441), (81, -453))):
+        place(b, "mobilier", "etal", (x, 0, z), yaw=face_couloir(x), group=f"GrandPlace/Marche{i}", emprise=(9, 6, 7),
+              variant=i)
+    for i, (fn, x, z, v) in enumerate((("tonneaux", -86, -446, 1), ("caisses", -85, -423, 0), ("sacs", 85, -447, 2))):
+        place(b, "mobilier", fn, (x, 0, z), group=f"GrandPlace/{fn}{i}", emprise=(3, 3, 3), variant=v)
 
 
 def parvis(b: Builder) -> None:
@@ -695,12 +701,26 @@ def parvis(b: Builder) -> None:
 
 
 def exterieur(b: Builder) -> None:
-    """Bosquets hors des remparts (vues aérienne et de côté seulement ; les champs sont peints au sol)."""
+    """Campagne hors des remparts (|x| > 145, vues aérienne, de côté et du chemin de ronde) : bosquets, champs
+    cultivés posés sur les bandes peintes de même culture, meules, une ferme tournée vers les champs (côté gauche,
+    celui que montrent les vues aérienne et de côté)."""
     for s in (-1, 1):
         cote = "G" if s < 0 else "D"
         for i, z in enumerate((-100, -236, -384)):
             place(b, "nature", "arbre", (s * (158 + 8 * (i % 2)), 0, z), group=f"Exterieur/Arbre{cote}{i}",
                   emprise=(10, 10, 14), variant=i % 4, taille=1.2)
+    # champs (36 × 24) : blé sur les bandes de blé, potager sur le potager, pré fauché sur l'herbe sèche
+    champs = ((-198, -133, 0), (-204, -209, 1), (-198, -323, 2), (-204, -437, 0),      # gauche
+              (200, -178, 2), (204, -292, 0))                                         # droite
+    for i, (x, z, v) in enumerate(champs):
+        place(b, "nature", "champ", (x, 0, z), group=f"Exterieur/Champ{i}", emprise=(36, 24, 2), variant=v,
+              largeur=36, profondeur=24)
+    place(b, "batiments", "ferme", (-200, 0, -270), yaw=90, group="Exterieur/Ferme", emprise=(24, 14, 14), variant=2)
+    for i, (x, z, v) in enumerate(((-180, -165, 0), (-226, -170, 1), (-178, -292, 3), (-224, -384, 2), (182, -205, 1))):
+        place(b, "nature", "meule_foin", (x, 0, z), group=f"Exterieur/Meule{i}", emprise=(5, 5, 6), variant=v)
+    for i, (x, z, v, t) in enumerate(((-224, -110, 1, 1.1), (-226, -252, 0, 1.3), (-178, -472, 2, 1.2),
+                                      (-224, -486, 3, 1.0), (220, -130, 0, 1.2), (186, -452, 1, 1.1))):
+        place(b, "nature", "arbre", (x, 0, z), group=f"Exterieur/Bosquet{i}", emprise=(10, 10, 14), variant=v, taille=t)
 
 
 def mats_fanions(b: Builder) -> None:

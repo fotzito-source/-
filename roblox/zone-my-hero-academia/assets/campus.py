@@ -227,10 +227,11 @@ def _prisme_verre(b, P, autres, verre, rng, *, pas_dense=4.6, pas_clair=9.5, ref
                         if a < um < bb:
                             y_min = max(y_min, h)
                     # grande diagonale claire (3 étages) liserée de reflet blanc, petite diagonale plus bas
-                    for (j0, long_, couleur) in ((nb_et // 3 + k + decal, 3, "vitre_violette_claire"),
-                                                 (nb_et // 3 + k + decal + 3, 1, "vitre_reflet"),
-                                                 (k + decal - 3, 2, "vitre_violette_claire")):
-                        j0 = j0 % max(1, nb_et)
+                    base = nb_et // 4 + k + decal + 2 * len(nom)        # départ différent selon la face
+                    for (j0, long_, couleur) in ((base, 3, "vitre_violette_claire"),
+                                                 (base + 4, 1, "vitre_reflet")):
+                        if j0 < 0 or j0 >= nb_et:
+                            continue
                         ja, jb = j0, min(nb_et, j0 + long_)
                         ya, yb = ys_all[ja], ys_all[jb]
                         ya = max(ya, y_min)
@@ -462,10 +463,10 @@ def tours_jumelles(b, variant=0, passage=116.0, largeur_tour=44.0, profondeur=38
         # passerelles
         zc = -D / 2
         with b.group("PasserelleBasse"):
-            _passerelle(b, -xi - 0.6, xi + 0.6, y_passerelle, 13.0, zc - 8, zc + 8, verre,
-                        "vitre_violette_claire", niveaux=2, pas=5.3, x_col=xi)
+            _passerelle(b, -xi - 0.6, xi + 0.6, y_passerelle, 20.0, zc - 10, zc + 10, verre,
+                        "vitre_violette_claire", niveaux=3, pas=5.3, x_col=xi)
         with b.group("PasserelleHaute"):
-            y2 = y_passerelle + 42.0
+            y2 = float(round(0.78 * hL))
             _passerelle(b, -xi - 0.6, xi + 0.6, y2, 8.0, zc - 5, zc + 5, "vitre_violette_claire", "vitre_claire",
                         niveaux=1, pas=7.3, x_col=xi, sous_face=False)
             b.box((-xi + 0.5, y2 + 0.05, zc - 0.3), (xi - 0.5, y2 + 0.4, zc + 0.3), c("neon_cyan"), material="Neon",

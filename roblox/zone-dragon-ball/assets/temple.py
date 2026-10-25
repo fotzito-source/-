@@ -697,7 +697,7 @@ def _tour(b, x, z, w, d, y0, h, toit_kw, *, rng=None, fenetres_x=0, banniere=Non
 def _banniere_murale(b, x, y_haut, w, h, texte, *, fond="banniere_rouge", encre="or"):
     """Bannière verticale accrochée à une tringle dorée sur la face z = 0 (saillie vers -Z), texte doré,
     barre lestée et pointes en bas."""
-    b.box((x - w / 2 - 0.45, y_haut, -0.65), (x + w / 2 + 0.45, y_haut + 0.35, -0.1), c("or"), collide=False,
+    b.box((x - w / 2 - 0.45, y_haut, -0.65), (x + w / 2 + 0.45, y_haut + 0.35, 0.05), c("or"), collide=False,
           name="Tringle")
     p = b.box((x - w / 2, y_haut - h, -0.35), (x + w / 2, y_haut, -0.12), _col(fond), collide=False, name="Banniere")
     p.label = {"face": "Front", "text": _texte(texte), "color": _col(encre), "font": "brush", "vertical": True}
@@ -859,8 +859,10 @@ AUVENTS = [("bande_rouge", "blanc"), ("bande_bleue", "blanc"), ("bande_orange", 
 
 def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
     """Gradins de spectateurs face à l'arène (avant vers -Z) : marches de pierre de 2 de profondeur et 1,2 de
-    haut à studs, bancs rouges / blancs / bleus, escaliers latéraux, mur de fond et auvent rayé sur poteaux
-    rouges, mâts à fanion aux deux bouts. Emprise longueur × (2·rangs + 4)."""
+    haut à studs, bancs rouges / blancs / bleus, escaliers latéraux, mur de fond et grand auvent rayé sur poteaux
+    rouges (son bord haut repose sur le mur, ses poteaux portent son bord bas), mâts à fanion aux deux bouts.
+    Le mur de fond monte à 1,2·rangs + 4,4 et l'auvent jusqu'à environ 1,2·rangs + 8,6 (≈ 18 pour 8 rangs).
+    Emprise longueur × (2·rangs + 4)."""
     v = variant % 4
     ca, cb = (c(n) for n in AUVENTS[v])
     L = longueur / 2
@@ -870,6 +872,7 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
     xg = L - 1.6                           # les gradins s'arrêtent avant les escaliers latéraux
     rouge = c("laque_rouge")
     bancs = ("banniere_rouge", "banniere_blanche", "banniere_bleue")
+    y_dos = round(hr * rangs + 4.4, 2)     # haut du mur de fond (10,4 pour 5 rangs)
     with b.group("Gradins"):
         b.box((-L, 0, -D), (L, 0.3, D), c("pierre_fonce"), studs="top", name="Dalle")
         b.box((-xg, 0.3, -D + 0.1), (xg, 1.2, -D + 0.7), rouge, name="Parapet")
@@ -882,7 +885,6 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
             b.box((-xg + 0.3, top, za_ + 0.5), (xg - 0.3, top + 0.6, za_ + 1.9), c(bancs[i % 3]), studs="top",
                   name="Banc")
         zb_ = z0 + 2 * rangs                 # fond des gradins
-        y_dos = 10.4
         zm_ = D - 0.7                        # dos du mur (les bannières y pendent sans sortir de l'emprise)
         b.box((-L + 0.15, 0.3, zb_), (L - 0.15, y_dos, zm_), vary("enduit", b.rng, 0.02), name="Mur_fond")
         b.box((-L, y_dos - 1.4, zb_ - 0.1), (L, y_dos - 0.8, zm_ + 0.1), rouge, collide=False, name="Bandeau")
@@ -907,31 +909,36 @@ def tribune(b, variant=0, longueur=28, rangs=5) -> dict:
             _barre(b, (xr, 1.6, z0 - 1.0), (xr, hr * rangs + 1.4, zb_), 0.3, 0.3, rouge, collide=False, name="Rampe")
             b.box((xr - 0.2, 0.3, z0 - 1.2), (xr + 0.2, 1.8, z0 - 0.8), rouge, collide=False, name="Pilastre")
     with b.group("Auvent"):
-        y_ar, y_av = y_dos + 0.6, y_dos - 1.8           # bord arrière posé sur le mur, bord avant plus bas
+        y_ar = y_dos + 4.2                              # bord arrière, au-dessus du mur (porté par la faîtière)
+        y_av = y_dos + 1.0                              # bord avant, porté par les poteaux
         z_ar, z_av = zm_ - 0.05, z0 + 0.2
         pente = (y_ar - y_av) / (z_ar - z_av)
         zp = z0 + 0.9                                   # poteaux sur le premier gradin
         for x in (-xg + 0.8, -xg / 3, xg / 3, xg - 0.8):
-            b.box((x - 0.3, hr, zp - 0.3), (x + 0.3, y_av + (zp - z_av) * pente - 0.3, zp + 0.3), rouge, name="Poteau")
+            # le poteau monte jusque dans la toile (0,1 de recouvrement)
+            b.box((x - 0.3, hr, zp - 0.3), (x + 0.3, y_av + (zp - z_av) * pente - 0.05, zp + 0.3), rouge, name="Poteau")
         nb = int(round(2 * L / 2.0))
         lb = 2 * L / nb
         for k in range(nb):
             x = -L + (k + 0.5) * lb
-            _barre(b, (x, y_ar, z_ar), (x, y_av, z_av), 0.3, lb + (0.06 if k % 2 else 0.0),
+            # bandes jointives : les impaires plus épaisses (0,5) dépassent de 0,1 dessus et dessous
+            _barre(b, (x, y_ar, z_ar), (x, y_av, z_av), 0.3 if k % 2 == 0 else 0.5, lb,
                    ca if k % 2 == 0 else cb, collide=False, name="Toile")
-            b.wedge_under((x - lb / 2 + 0.05, y_av - 1.0, z_av - 0.25), (x + lb / 2 - 0.05, y_av - 0.1, z_av - 0.1),
+            b.wedge_under((x - lb / 2 + 0.05, y_av - 1.0, z_av - 0.15), (x + lb / 2 - 0.05, y_av - 0.05, z_av + 0.1),
                           ca if k % 2 == 1 else cb, down="-x", collide=False, shadow=False, name="Lambrequin")
-        b.box((-L, y_ar - 0.3, zm_ - 0.8), (L, y_ar + 0.35, zm_ + 0.1), c("or"), collide=False, name="Faitiere")
+        # faîtière dorée : elle descend jusqu'au haut du mur et porte le bord arrière de la toile
+        b.box((-L, y_dos, zm_ - 0.8), (L, y_ar + 0.35, zm_ + 0.1), c("or"), collide=False, name="Faitiere")
     with b.group("Mats"):
+        h_mat = y_ar + 1.0
         for sx in (-1, 1):
             x, z = sx * (L - 0.6), -D + 0.35
             b.box((x - 0.35, 0.3, z - 0.35), (x + 0.35, 1.0, z + 0.35), c("pierre_fonce"), name="Pied")
-            b.cyl((x, 1.0 + (11.3 - 1.0) / 2, z), 0.18, 11.3 - 1.0, c("laque_rouge_fonce"), collide=False, name="Mat")
-            b.cyl((x, 11.65, z), 0.3, 0.7, c("or"), collide=False, name="Pointe")
+            b.cyl((x, 1.0 + (h_mat - 1.0) / 2, z), 0.18, h_mat - 1.0, c("laque_rouge_fonce"), collide=False, name="Mat")
+            b.cyl((x, h_mat + 0.35, z), 0.3, 0.7, c("or"), collide=False, name="Pointe")
             xa_, xb_ = sorted((x - sx * 0.15, x - sx * 2.8))
-            b.wedge_under((xa_, 9.7, z - 0.05), (xb_, 11.2, z + 0.05), ca, down="-x" if sx > 0 else "+x",
+            b.wedge_under((xa_, h_mat - 1.6, z - 0.05), (xb_, h_mat - 0.1, z + 0.05), ca, down="-x" if sx > 0 else "+x",
                           collide=False, shadow=False, name="Fanion")
-    return {"emprise": (longueur, 2 * D), "hauteur": 12.0}
+    return {"emprise": (longueur, 2 * D), "hauteur": round(h_mat + 0.7, 2)}
 
 
 # ---------------------------------------------------------------------------
@@ -1088,6 +1095,6 @@ def pagode(b, variant=0, etages=3) -> dict:
             yy += 0.6
             if i < n - 1:
                 b.cyl((0, yy - 0.05, 0), 0.25, 0.1 + 0.0, orf, collide=False, name="Tige")
-        b.cyl((0, yy + 0.6, 0), 0.18, 1.2, orr, collide=False, name="Pointe")
-        top = yy + 1.2
+        b.cyl((0, yy + 0.5, 0), 0.18, 1.2, orr, collide=False, name="Pointe")
+        top = yy + 1.1
     return {"emprise": (11.8, 11.8), "hauteur": round(top, 2)}

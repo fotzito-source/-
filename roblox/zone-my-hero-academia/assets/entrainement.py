@@ -385,10 +385,12 @@ def _tribune_bout(b, rng, AX, AZ, PZ, P2, sx):
         bx((xa_int, 0, AZ), (x_mur, 6.0, z_mur), c("blanc_casse"), name="MurRoute")
         xa, xb = sorted((X(xa_int), X(x_mur)))
         b.wedge((xa, 6.0, AZ), (xb, Y_PLINTHE, z_mur), c("blanc_casse"), down="-z", name="MurRoute")
-        bx((xa_int - 0.4, 1.4, AZ + 0.6), (xa_int, 3.0, z_mur), c("violet"), collide=False, name="Bande")
+        z_stop = PZ - 9.1                    # s'arrête avant les pylônes du portique (face en |x| = 52,4 dès PZ - 9)
+        bx((xa_int - 0.4, 1.4, AZ + 0.6), (xa_int, 3.0, z_stop), c("violet"), collide=False, name="Bande")
         # liseré néon le long du rampant
+        y_ramp = 6.0 + (Y_PLINTHE - 6.0) * (z_stop - AZ) / (z_mur - AZ)
         p0 = np.array([X(xa_int - 0.2), 6.0 - 1.2, AZ + 0.6])
-        p1 = np.array([X(xa_int - 0.2), Y_PLINTHE - 1.2, z_mur - 0.4])
+        p1 = np.array([X(xa_int - 0.2), y_ramp - 1.2, z_stop])
         d = p1 - p0
         _piece(b, "block", (0.4, 0.4, float(np.linalg.norm(d))), (p0 + p1) / 2, (1, 0, 0), (0, d[2], -d[1]),
                "neon_cyan", material="Neon", collide=False, shadow=False, name="Neon")
@@ -501,13 +503,13 @@ def _portique(b, rng, AX, PZ, P2, y_bas, hauteur_ecran=14.0):
             _neon(b, (xa, y1 - 2.2, zb), (xb, y1 - 1.8, zb + 0.3))
         # face intérieure (-Z) : écran géant
         w = 47
-        b.box((-w - 1.0, y0 + 1.0, za - 0.3), (w + 1.0, y1 - 0.5, za), c("blanc"), name="CadreEcran")
+        b.box((-(xp - 1.0), y0 + 1.0, za - 0.3), (xp - 1.0, y1 - 0.5, za), c("blanc"), name="CadreEcran")
         b.box((-w, y0 + 1.5, za - 0.7), (w, y1 - 1.0, za - 0.3), c("ecran_fond"), name="Ecran")
         hh = (y1 - 1.0) - (y0 + 1.5)
         _pixels(b, ECRAN, -w, y0 + 1.5, 2.0, hh / len(ECRAN), za - 0.9, za - 0.7)
         for s in (-1, 1):
             xa, xb = sorted((s * (w + 1.5), s * (xp - 1.0)))
-            _neon(b, (xa, y0 + 7.0, za - 0.3), (xb, y0 + 7.4, za))
+            _neon(b, (xa, y0 + 7.0, za - 0.6), (xb, y0 + 7.4, za - 0.3))
             # haut-parleurs sur la membrure haute
             b.box((s * 30 - 1.5, y1, za + 1.0), (s * 30 + 1.5, y1 + 2.4, za + 3.5), c("gris_acier"), name="HautParleur")
 
@@ -568,7 +570,7 @@ def stade(b, variant=0, passage=104.0, largeur=280.0, longueur=128.0, arene=(76,
 
 DOME_PHI = (0.0, 14.0, 28.0, 42.0, 55.0, 67.0, 78.0)    # anneaux du dôme (élévation, degrés)
 DOME_N = 24                                              # panneaux par anneau (méridiens tous les 15°)
-VERRE_DOME = mix(c("verre_dome"), c("vitre_bleue"), 0.35)     # verre teinté bleu : l'intérieur se lit au travers
+VERRE_DOME = mix(c("verre_dome"), c("vitre_bleue"), 0.15)     # verre teinté bleu : l'intérieur se lit au travers
 VERRE_DOME_CLAIR = mix(c("verre_dome"), c("vitre_reflet"), 0.5)
 
 
@@ -590,10 +592,12 @@ def _sous_dome(R, y_mur, hauteur, r, marge=1.5):
 
 
 def _arbre_rond(b, x, z, rng, s=1.0, y0=0.4):
-    """Arbre rond simple : tronc et deux boules de feuillage (3 pièces)."""
-    b.cyl((x, y0 + 2.2 * s, z), 0.55 * s, 4.4 * s, c("tronc"), name="Tronc")
-    b.ball((x, y0 + 6.0 * s, z), 3.3 * s, tirer(["feuille", "feuille_claire"], rng), name="Feuillage")
-    b.ball((x + 0.9 * s, y0 + 7.9 * s, z - 0.6 * s), 2.2 * s, tirer(["feuille_claire", "feuille_pale"], rng),
+    """Arbre en blocs (style stud) : tronc, houppier droit, houppier tourné à 45°, cime (4 pièces)."""
+    b.box((x - 0.5 * s, y0, z - 0.5 * s), (x + 0.5 * s, y0 + 4.2 * s, z + 0.5 * s), c("tronc"), name="Tronc")
+    b.boxc((x, y0 + 5.6 * s, z), (6.0 * s, 3.2 * s, 6.0 * s), vary("feuille", rng, 0.04), studs="top", name="Feuillage")
+    b.boxc((x, y0 + 7.0 * s, z), (5.0 * s, 3.0 * s, 5.0 * s), vary("feuille_claire", rng, 0.04), yaw=45, studs="top",
+           collide=False, name="Feuillage")
+    b.boxc((x, y0 + 9.0 * s, z), (3.0 * s, 1.6 * s, 3.0 * s), vary("feuille_pale", rng, 0.04), studs="top",
            collide=False, name="Feuillage")
 
 
@@ -601,12 +605,13 @@ def _montagne(b, rng, cx, cz):
     """Montagne rocheuse artificielle : strates de masses tournées (sombre en bas, claire en haut), deux pics,
     éperons basculés pour une silhouette déchiquetée, corniches herbeuses et buissons, cascade vers l'étang,
     sentier en marches."""
-    tons = {"F": mix(c("roche"), c("roche_claire"), 0.35), "R": c("roche_claire"),
-            "C": mix(c("roche_claire"), c("blanc_casse"), 0.3), "S": mix(c("roche_claire"), c("blanc_casse"), 0.55)}
+    # roches chaudes (référence 3) : base terre cuite, milieu ocre, sommet sable ; échelle 1,2 (1,15 en hauteur)
+    tons = {"F": (178, 96, 66), "R": (204, 138, 78), "C": (222, 178, 116), "S": (236, 214, 168)}
+    K, KY = 1.2, 1.15
     # (dx, y0, dz, sx, h, sz, yaw, ton)
     masses = [
         (0, 0, 0, 32, 5, 22, 8, "F"), (11, 0, 7, 16, 4.5, 14, -14, "F"), (-12, 0, -4, 14, 4, 13, 22, "F"),
-        (-3, 0, 9, 18, 4.5, 10, -30, "R"),
+        (-3, 0, 9, 18, 4.75, 10, -30, "R"),
         (1, 5, 2, 23, 6, 15, -6, "R"), (10, 4.5, 6, 12, 6, 10, 18, "R"), (-10, 4, -4, 10, 5.5, 9, -20, "C"),
         (-7, 4.5, 8, 11, 7, 8, 35, "F"),
         (-1, 11, 3, 16, 6, 11, 12, "C"), (8, 10.5, 7, 9, 7, 8, -25, "R"), (-7, 9.5, 0, 7, 5, 7, 30, "R"),
@@ -615,33 +620,36 @@ def _montagne(b, rng, cx, cz):
     ]
     with b.group("Montagne"):
         for (dx, y0, dz, sx, h, sz, yaw, t) in masses:
-            b.boxc((cx + dx, y0 + h / 2, cz + dz), (sx, h, sz), vary(tons[t], rng, 0.04), yaw=yaw, studs="top",
-                   name="Roche")
+            b.boxc((cx + K * dx, KY * (y0 + h / 2), cz + K * dz), (K * sx, KY * h, K * sz), vary(tons[t], rng, 0.04),
+                   yaw=yaw, studs="top", name="Roche")
         # éperons basculés (silhouette déchiquetée)
         for (dx, y, dz, sx, h, sz, yaw, tilt, t) in ((12.5, 8.0, -3.0, 5, 12, 4, -20, 18, "R"),
                                                      (-14.5, 7.0, 6.0, 4, 11, 4, 40, -16, "C"),
                                                      (4.5, 21.0, -1.0, 3, 8, 3, 15, 14, "C"),
                                                      (-9.0, 15.0, 6.0, 3.5, 8, 3, -35, -12, "R")):
-            _dalle_penchee(b, (cx + dx, y, cz + dz), (sx, h, sz), yaw, tilt, vary(tons[t], rng, 0.04),
-                           name="Eperon")
+            _dalle_penchee(b, (cx + K * dx, KY * y, cz + K * dz), (K * sx, KY * h, K * sz), yaw, tilt,
+                           vary(tons[t], rng, 0.04), name="Eperon")
         # corniches herbeuses et buissons
         for (dx, y, dz, sx, sz, yaw) in ((-10, 5.0, -8.2, 7, 4, 22), (11, 10.5, 2, 6, 4, -25),
                                          (-7, 15.0, -3.5, 5, 3, 30),
                                          (6, 17.0, 1.5, 4, 3, -10)):
-            b.boxc((cx + dx, y + 0.2, cz + dz), (sx, 0.6, sz), vary("herbe_claire", rng, 0.04), yaw=yaw, studs="top",
-                   name="Corniche")
+            yc = KY * y + 0.45
+            b.boxc((cx + K * dx, yc, cz + K * dz), (K * sx, 0.6, K * sz), vary("herbe_claire", rng, 0.04), yaw=yaw,
+                   studs="top", name="Corniche")
+            if sx >= 5:     # petit arbre en blocs sur les grandes corniches
+                _arbre_rond(b, cx + K * dx, cz + K * dz, rng, 0.45, y0=yc + 0.3)
         for (dx, y, dz, r) in ((-11, 5.6, -9, 1.5), (12, 11.2, 1.2, 1.3), (-6, 15.8, -4, 1.1), (14, 0.4, -6, 1.8),
                                (-16, 0.4, -9, 1.6)):
-            b.ball((cx + dx, y + r * 0.6, cz + dz), r, tirer(["feuille", "feuille_claire", "feuille_fonce"], rng),
+            b.ball((cx + K * dx, KY * y + 0.45 + r * 0.6, cz + K * dz), K * r, tirer(["feuille", "feuille_claire", "feuille_fonce"], rng),
                    collide=False, name="Buisson")
         # cascade vers l'étang (face avant, -Z)
-        b.box((cx - 6.6, 0.4, cz - 11.6), (cx - 4.4, 12.0, cz - 10.9), c("eau"), material="Glass", transparency=0.15,
+        b.box((cx - 6.6 * K, 0.4, cz - 11.6 * K), (cx - 4.4 * K, 12.0 * KY, cz - 10.9 * K), c("eau"), material="Glass", transparency=0.15,
               collide=False, name="Cascade")
-        b.box((cx - 6.2, 0.4, cz - 11.9), (cx - 4.8, 8.5, cz - 11.5), c("vitre_reflet"), collide=False, shadow=False,
+        b.box((cx - 6.2 * K, 0.4, cz - 11.9 * K - 0.1), (cx - 4.8 * K, 8.5 * KY, cz - 11.5 * K), c("vitre_reflet"), collide=False, shadow=False,
               name="Cascade")
         # sentier en marches vers une corniche
         for k in range(5):
-            b.boxc((cx + 13 - k * 1.6, 0.4 + 1.1 * (k + 1) - 0.55, cz - 7 + k * 1.4), (3.0, 1.1, 2.2),
+            b.boxc((cx + K * (13 - k * 1.6), 0.4 + 1.1 * (k + 1) - 0.55, cz + K * (-7 + k * 1.4)), (3.0, 1.1, 2.2),
                    c("dalle_claire"), yaw=-35, studs="top", name="Marche")
 
 
@@ -664,14 +672,15 @@ def _mini_ville(b, rng, x0, z0):
 def _dome_rouge(b, rng, x, z, r=11.0, porte_vers=(0.0, 0.0)):
     """Bâtiment en dôme rouge : demi-sphère en cylindres empilés, bandeau blanc, porte ronde cerclée de blanc."""
     with b.group("DomeRouge"):
-        couches = [(0.4, 3.0, 1.0), (3.0, 5.4, 0.96), (5.4, 7.4, 0.87), (7.4, 8.9, 0.74), (8.9, 9.9, 0.58),
-                   (9.9, 10.6, 0.40)]
+        k_ = r / 11.0
+        couches = [(0.4, 3.0 * k_, 1.0), (3.0 * k_, 5.4 * k_, 0.96), (5.4 * k_, 7.4 * k_, 0.87),
+                   (7.4 * k_, 8.9 * k_, 0.74), (8.9 * k_, 9.9 * k_, 0.58), (9.9 * k_, 10.6 * k_, 0.40)]
         for k, (ya, yb, f) in enumerate(couches):
             b.cyl((x, (ya + yb) / 2, z), r * f, yb - ya, vary("rouge_dome", rng, 0.03) if k % 2 else c("rouge_dome"),
                   studs="top", name="Coque")
-        b.cyl((x, 3.15, z), r * 1.0 + 0.15, 0.5, c("blanc"), collide=False, name="Bandeau")
-        b.cyl((x, 10.9, z), r * 0.22, 0.6, c("blanc"), name="Lanterneau")
-        b.cyl((x, 11.35, z), r * 0.12, 0.3, c("neon_cyan"), material="Neon", collide=False, shadow=False, name="Feu")
+        b.cyl((x, 3.0 * k_ + 0.15, z), r * 1.0 + 0.15, 0.5, c("blanc"), collide=False, name="Bandeau")
+        b.cyl((x, 10.6 * k_ + 0.3, z), r * 0.22, 0.6, c("blanc"), name="Lanterneau")
+        b.cyl((x, 10.6 * k_ + 0.75, z), r * 0.12, 0.3, c("neon_cyan"), material="Neon", collide=False, shadow=False, name="Feu")
         d = _unit(np.array([porte_vers[0] - x, 0.0, porte_vers[1] - z]))
         up = np.array([0.0, 1.0, 0.0])
         for (rr, ep, coul, saillie) in ((3.4, 0.8, "blanc", 0.35), (2.7, 0.8, "rouge_fonce", 0.5)):
@@ -738,7 +747,7 @@ def dome_entrainement(b, variant=0, rayon=52.0, hauteur=50.0):
                         clair = (k + 2 * i) % 7 == 0 or (k + 2 * i) % 7 == 3
                         _piece(b, "block", (w, float(np.linalg.norm(T0 - B0)), 0.3), (B0 + T0) / 2, X, Y,
                                VERRE_DOME_CLAIR if clair else VERRE_DOME, material="Glass",
-                               transparency=0.4 if clair else 0.5, collide=False, shadow=False, name="Verre")
+                               transparency=0.55 if clair else 0.65, collide=False, shadow=False, name="Verre")
                     # méridien (le long de l'arête θk)
                     if not (i == 0 and k in (0, 1, n - 1)):
                         V0, V1 = pt(r0, y0, th), pt(r1, y1, th)
@@ -777,7 +786,7 @@ def dome_entrainement(b, variant=0, rayon=52.0, hauteur=50.0):
             for s in (-1, 1):
                 xa, xb = sorted((s * 12.0, s * 12.25))
                 _neon(b, (xa, 12.5, za), (xb, 12.8, zf + 1.0))
-                b.cyl((s * 10.5, 5.7, za + 1.0), 0.35, 11.4, c("blanc"), name="Poteau")
+                b.cyl((s * 10.5, 6.2, za + 1.0), 0.35, 12.4, c("blanc"), name="Poteau")
             b.wedge((-11, 0, za + 0.2), (11, 0.45, zf + 0.6), c("dalle_claire"), down="-z", studs="top", name="Rampe")
             b.box((-13, 0, zf + 0.6), (13, 0.45, zf + 3.6), c("dalle_claire"), studs="top", name="Seuil")
         # --- intérieur --------------------------------------------------------------------------
@@ -802,16 +811,16 @@ def dome_entrainement(b, variant=0, rayon=52.0, hauteur=50.0):
             b.cyl((0, 1.2, -2), 2.5, 1.05, c("eau"), name="Eau")
             b.cyl((0, 2.6, -2), 0.4, 2.8, c("vitre_reflet"), material="Neon", collide=False, shadow=False, name="Jet")
             # étang au pied de la cascade
-            b.cyl((-22, 0.45, 9), 8.0, 0.2, c("eau"), name="Etang")
+            b.cyl((-22, 0.5, 9), 8.0, 0.2, c("eau"), name="Etang")
             b.cyl((-22, 0.45, 9), 8.6, 0.12, c("gravier"), name="Rive")
             for (dx, dz, s_) in ((-7.5, 4, 1.4), (6.5, -5, 1.1), (-3, -8, 1.0), (8, 3, 1.3)):
                 b.boxc((-22 + dx, 0.4 + s_ / 2, 9 + dz), (s_ * 1.6, s_, s_ * 1.3), vary("roche_claire", rng, 0.05),
                        yaw=float(rng.uniform(0, 90)), studs="top", name="Galet")
-            _montagne(b, rng, -14.0, 24.0)
-            _dome_rouge(b, rng, 24.0, 12.0, porte_vers=(0.0, -2.0))
-            _mini_ville(b, rng, 18.0, -33.0)
-            for (x, z, s_) in ((-36, -16, 1.0), (-26, -32, 0.9), (8, -27, 0.8), (42, -8, 0.8), (36, 28, 0.9),
-                               (12, 36, 0.8), (-41, 4, 0.85), (-12, -38, 0.75)):
+            _montagne(b, rng, -6.0, 22.0)
+            _dome_rouge(b, rng, 26.0, -14.0, r=15.0, porte_vers=(0.0, -2.0))
+            _mini_ville(b, rng, 24.0, 14.0)
+            for (x, z, s_) in ((-36, -16, 1.0), (-26, -32, 0.9), (4, -33, 0.8), (-41, 4, 0.85), (-12, -40, 0.75),
+                               (-36, 22, 0.8)):
                 _arbre_rond(b, x, z, rng, s_)
     return {"emprise": (2 * R + 1, 2 * R + 5.4), "hauteur": hauteur + 0.6}
 
@@ -822,9 +831,9 @@ def dome_entrainement(b, variant=0, rayon=52.0, hauteur=50.0):
 
 STYLES_FACTICES = [
     # (corps, bandeaux d'étage, vitrage, style de fenêtres)
-    ("beton_clair", "blanc_casse", "vitre_nuit", "bandes"),
-    ("facade_creme", "beton_clair", "acier_fonce", "rubans"),
-    ("beton", "beton_clair", "vitre_bleue_fonce", "colonnes"),
+    ("facade_rose", "robot_orange", "vitre_nuit", "bandes"),
+    ("facade_ciel", "blanc", "acier_fonce", "rubans"),
+    ("facade_creme", "violet", "vitre_bleue_fonce", "colonnes"),
 ]
 ETAGE = 4.0
 
@@ -907,11 +916,9 @@ def immeuble_factice(b, variant=0, largeur=20.0, profondeur=20.0, hauteur=26.0, 
     if degats == 0:
         blocs = [(-w, w, -df, d, H, False)]
     elif degats == 1:
-        a = round(W * 0.38)
-        h1 = max(ETAGE * 2, H - 2 * ETAGE)
-        h2 = max(ETAGE, H - 4 * ETAGE)
-        zc = -df + D * 0.45
-        blocs = [(-w, w - a, -df, d, H, False), (w - a, w, zc, d, h1, True), (w - a, w, -df, zc, h2, True)]
+        # toute la moitié haute arrachée sur la moitié de la largeur (lisible de loin)
+        h1 = max(ETAGE * 2, math.floor(H / 2 / ETAGE) * ETAGE + 1.0)
+        blocs = [(-w, 0.0, -df, d, H, False), (0.0, w, -df, d, h1, True)]
     else:
         fr = (0.62, 0.9, 0.45)
         xs_ = np.linspace(-w, w, 4)
@@ -1003,15 +1010,23 @@ def immeuble_factice(b, variant=0, largeur=20.0, profondeur=20.0, hauteur=26.0, 
         if degats == 1:
             x0, x1, z0, z1, hb, _ = blocs[0]
             _trou(b, x1 - 5.0, x1 - 1.6, hb - 9.0, hb - 6.0, z0, -1, rng)
-            _gravats(b, w - W * 0.19, -df + 1.0, rng, n=3, taille=1.4)
+            _gravats(b, w * 0.5, -df + 1.0, rng, n=4, taille=1.8)
+            # taches de brûlure noires autour des brèches (saillie 0,15)
+            for (xa_, xb_, ya_, yb_) in ((x0 + 1.5, x0 + 5.5, hb - 5.0, hb - 2.0), (x1 - 4.0, x1 - 0.5, 2.0, 5.5),
+                                         (w * 0.3, w * 0.75, blocs[1][4] - 3.5, blocs[1][4] - 1.0)):
+                b.box((xa_, ya_, z0 - 0.15), (xb_, yb_, z0), c("noir"), collide=False, name="Brulure")
         elif degats == 2:
             for (x0, x1, z0, z1, hb, _) in blocs[:2]:
                 if hb > 9:
                     xm = (x0 + x1) / 2
                     _trou(b, xm - 1.2, xm + 1.8, hb - 5.5, hb - 2.6, z0, -1, rng)
-            b.wedge((-w * 0.3, 0.6, -d), (w * 0.6, 3.0, -df + 2.6), c("beton_fonce"), down="-z", studs="top",
+            b.wedge((-w * 0.6, 0.6, -d - 2.0), (w * 0.9, 5.0, -df + 3.0), c("beton_fonce"), down="-z", studs="top",
                     name="Tas")
-            _gravats(b, w * 0.05, -df + 1.5, rng, n=3, taille=1.4)
+            _gravats(b, w * 0.05, -df - 1.0, rng, n=5, taille=2.0)
+            # grand pan de façade basculé contre le volume (≈ 8 × 12 × 1, à 30°)
+            tt = math.radians(30)
+            ctr = (-w * 0.55, 6.0 * math.cos(tt) + 0.3, -df - 0.6 - 6.0 * math.sin(tt))
+            _dalle_penchee(b, ctr, (8.0, 12.0, 1.0), 0, -30, vary(corps_nom, rng, 0.03), name="PanBascule")
     return {"emprise": (W, D), "hauteur": max(bl[4] for bl in blocs) + (5.6 if degats < 2 else 3.2)}
 
 
@@ -1068,7 +1083,24 @@ def _antenne(b, x, y, z, h=1.6):
     b.ball((x, y + h + 0.2, z), 0.28, c("lentille"), material="Neon", collide=False, shadow=False, name="Balise")
 
 
-def robot_entrainement(b, variant=0):
+def robot_entrainement(b, variant=0, taille=1.0):
+    """Robot d'entraînement (voir _robot_base) agrandi de `taille` autour de son origine au sol."""
+    n0 = len(b.parts)
+    info = _robot_base(b, variant)
+    if variant % 4 == 3:         # le chenillé posait ses chenilles à y = 0,25 : on le pose au sol
+        for p in b.parts[n0:]:
+            p.pos = (p.pos[0], p.pos[1] - 0.25, p.pos[2])
+    k = float(taille)
+    if k != 1.0:
+        o = np.asarray(b._t[-1], float)
+        for p in b.parts[n0:]:
+            p.pos = tuple(float(v) for v in o + k * (np.asarray(p.pos) - o))
+            p.size = tuple(float(v) * k for v in p.size)
+        info = {"emprise": tuple(v * k for v in info["emprise"]), "hauteur": info["hauteur"] * k}
+    return info
+
+
+def _robot_base(b, variant=0):
     """Robots d'entraînement de dessin original (cubiques, UN œil rond, bandes de danger, aucune marque).
     v0 petit robot à quatre roues (≈ 6) ; v1 marcheur bipède (≈ 12) ; v2 drone posé sur son pylône de recharge
     (≈ 8) ; v3 chenillé lourd à bras de sparring rembourré (≈ 8). L'œil regarde -Z ; emprise ≤ 6 × 6."""
@@ -1192,3 +1224,51 @@ def cible(b, variant=0):
             avant, arriere = -(0.6 + 0.15 * k), -0.3 - 0.05 * k
             b.cyl((0, 6.0, (avant + arriere) / 2), r, arriere - avant, c(coul), axis="z", name="Disque")
         return {"emprise": (3.0, 2.0), "hauteur": 7.5}
+
+
+def mur_obstacles(b, variant=0, longueur=14.0, hauteur=13.0):
+    """Mur d'obstacles et d'escalade (face vers -Z) : voile de béton à bandes de danger, prises colorées en
+    saillie, plateforme supérieure à garde-corps, poutres d'appui à l'arrière."""
+    rng = b.rng
+    L, H = float(longueur), float(hauteur)
+    with b.group("MurObstacles"):
+        b.box((-L / 2, 0, -0.8), (L / 2, H, 0.8), c("beton_clair"), name="Voile")
+        for k in range(int(L // 2)):
+            x0 = -L / 2 + 2 * k
+            if k % 2 == 0:
+                b.box((x0, 0, -0.95), (x0 + 2, 1.2, -0.8), c("danger_jaune"), collide=False, name="Danger")
+                b.box((x0, H - 1.2, -0.95), (x0 + 2, H, -0.8), c("danger_jaune"), collide=False, name="Danger")
+            else:
+                b.box((x0, 0, -0.95), (x0 + 2, 1.2, -0.8), c("noir"), collide=False, name="Danger")
+                b.box((x0, H - 1.2, -0.95), (x0 + 2, H, -0.8), c("noir"), collide=False, name="Danger")
+        cols = ("robot_orange", "violet", "neon_cyan", "jaune", "rouge")
+        for i in range(14):
+            x = float(rng.uniform(-L / 2 + 1, L / 2 - 1))
+            y = 1.8 + (H - 3.6) * i / 13
+            b.box((x - 0.4, y, -1.35), (x + 0.4, y + 0.6, -0.8), c(cols[i % len(cols)]), collide=False, name="Prise")
+        b.box((-L / 2 - 0.3, H, -1.2), (L / 2 + 0.3, H + 0.6, 2.4), c("acier"), studs="top", name="Plateforme")
+        b.box((-L / 2 - 0.3, H + 0.6, 2.1), (L / 2 + 0.3, H + 2.2, 2.4), c("robot_orange"), collide=False,
+              name="GardeCorps")
+        for x in (-L / 2 + 0.6, L / 2 - 0.6):
+            b.box((x - 0.3, 0, 0.8), (x + 0.3, H, 2.0), c("acier_fonce"), name="Appui")
+    return {"emprise": (L + 0.6, 3.6), "hauteur": H + 2.2}
+
+
+def mat_cibles(b, variant=0, hauteur=14.0):
+    """Mât d'entraînement à trois cibles rondes étagées (face vers -Z), socle à bandes de danger."""
+    H = float(hauteur)
+    with b.group("MatCibles"):
+        b.box((-1.4, 0, -1.4), (1.4, 0.9, 1.4), c("danger_jaune"), studs="top", name="Socle")
+        b.box((-1.45, 0.3, -1.45), (1.45, 0.6, 1.45), c("noir"), collide=False, name="Bande")
+        b.box((-0.35, 0.9, -0.35), (0.35, H, 0.35), c("acier"), name="Mat")
+        for k, (y, dx) in enumerate(((5.0, -2.2), (8.6, 2.2), (12.2, -1.6))):
+            b.box((min(0, dx) - 0.2, y - 0.2, -0.1), (max(0, dx) + 0.2, y + 0.2, 0.3), c("acier_fonce"),
+                  collide=False, name="Bras")
+            for j, (r, coul) in enumerate(((1.8, "cible_blanc"), (1.25, "cible_rouge"), (0.7, "cible_blanc"),
+                                           (0.3, "cible_rouge"))):
+                avant, arriere = -(0.45 + 0.12 * j), -0.2 - 0.04 * j
+                b.cyl((dx, y, (avant + arriere) / 2), r, arriere - avant, c(coul), axis="z", collide=False,
+                      name="Anneau")
+        b.box((-0.5, H, -0.5), (0.5, H + 0.4, 0.5), c("neon_cyan"), material="Neon", collide=False, shadow=False,
+              name="Feu")
+    return {"emprise": (6.4, 2.8), "hauteur": H + 0.4}

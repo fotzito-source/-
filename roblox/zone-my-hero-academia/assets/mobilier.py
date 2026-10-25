@@ -85,7 +85,7 @@ def lampadaire_ville(b, variant: int = 0, hauteur: float = 13.0) -> dict:
     return {"emprise": (1.4, 4.1), "hauteur": h}
 
 
-def lampadaire_campus(b, variant: int = 0, hauteur: float = 11.0) -> dict:
+def lampadaire_campus(b, variant: int = 0, hauteur: float = 16.0) -> dict:
     """Lampadaire du campus : poteau carré blanc à bande lumineuse cyan sur l'avant, tête plate à LED.
     variant 0 tête simple vers l'avant, 1 double tête en T (le long de X), 2 colonne à lanterne lavande."""
     h = hauteur
@@ -233,10 +233,10 @@ def abribus(b, variant: int = 0, longueur: float = 10.0) -> dict:
         b.box((-w + 1.2, 0.3, 0.3), (-0.4, 1.6, 1.0), c("acier_fonce"), name="Banc")
         b.box((-w + 1.2, 1.6, 0.2), (-0.4, 1.8, 1.05), c("bois"), studs="top", name="Assise")
         # plan du quartier sur la paroi de droite
-        b.box((1.0, 1.4, 1.0), (w - 1.0, 5.0, 1.1), c("blanc"), collide=False, name="Plan")
-        b.box((1.4, 2.0, 0.95), (2.8, 3.4, 1.0), c("herbe_claire"), collide=False, shadow=False, name="PlanParc")
-        b.box((2.9, 3.0, 0.95), (w - 1.4, 4.4, 1.0), c("facade_ciel_fonce"), collide=False, shadow=False, name="PlanQuartier")
-        b.box((1.4, 3.6, 0.95), (2.8, 4.4, 1.0), c("violet"), collide=False, shadow=False, name="PlanCampus")
+        b.box((1.0, 1.4, 1.0), (w - 1.0, 5.0, 1.14), c("blanc"), collide=False, name="Plan")
+        b.box((1.4, 2.0, 0.9), (2.8, 3.4, 1.0), c("herbe_claire"), collide=False, shadow=False, name="PlanParc")
+        b.box((2.9, 3.0, 0.9), (w - 1.4, 4.4, 1.0), c("facade_ciel_fonce"), collide=False, shadow=False, name="PlanQuartier")
+        b.box((1.4, 3.6, 0.9), (2.8, 4.4, 1.0), c("violet"), collide=False, shadow=False, name="PlanCampus")
         # poteau d'arrêt
         xp = w + 1.0
         b.box((xp - 0.5, 0, -1.2), (xp + 0.5, 0.3, -0.2), c("beton_fonce"), name="PiedArret")
@@ -472,14 +472,15 @@ def banniere(b, variant: int = 0, hauteur: float = 11.0) -> dict:
         b.box((-0.7, 0, -0.7), (0.7, 0.4, 0.7), c("beton_fonce"), name="Socle")
         b.cyl((0, 0.4 + (h - 0.4) / 2, 0), 0.22, h - 0.4, c("acier"), name="Mat")
         b.ball((0, h + 0.25, 0), 0.4, c("blanc"), collide=False, name="Boule")
-        for y in (h - 0.6, h - 6.2):
-            b.box((-0.1, y - 0.15, -2.9), (0.1, y + 0.15, 0.0), c("acier"), collide=False, name="Bras")
-        b.box((-0.08, h - 6.4, -2.8), (0.08, h - 0.6, -0.3), fond, collide=False, shadow=False, name="Tissu")
-        b.box((-0.18, h - 3.8, -2.8), (0.18, h - 3.0, -0.3), bande, collide=False, shadow=False, name="Bande")
-        b.box((-0.18, h - 2.2, -2.8), (0.18, h - 1.9, -0.3), bande, collide=False, shadow=False, name="Filet")
-        b.box((-0.18, h - 6.4, -2.8), (0.18, h - 6.0, -0.3), c("orange") if variant % 2 else c("lavande"),
+        # tissu ≈ 4 × 9
+        for y in (h - 0.6, h - 9.4):
+            b.box((-0.1, y - 0.15, -4.1), (0.1, y + 0.15, 0.0), c("acier"), collide=False, name="Bras")
+        b.box((-0.08, h - 9.6, -4.0), (0.08, h - 0.6, -0.3), fond, collide=False, shadow=False, name="Tissu")
+        b.box((-0.18, h - 5.0, -4.0), (0.18, h - 3.8, -0.3), bande, collide=False, shadow=False, name="Bande")
+        b.box((-0.18, h - 2.4, -4.0), (0.18, h - 2.0, -0.3), bande, collide=False, shadow=False, name="Filet")
+        b.box((-0.18, h - 9.7, -4.0), (0.18, h - 9.2, -0.3), c("orange") if variant % 2 else c("lavande"),
               collide=False, shadow=False, name="Ourlet")
-    return {"emprise": (1.4, 3.2), "hauteur": h + 0.65}
+    return {"emprise": (1.4, 4.4), "hauteur": h + 0.65}
 
 
 def guirlande_fanions(b, p0, p1, n: int = 10, creux: float = 1.5, variant: int = 0) -> dict:
@@ -653,3 +654,18 @@ def planche(b, variant: int = 0, partie: int | None = None) -> dict:
     trop = {k: v for k, v in n.items() if v > 40}
     assert not trop, f"objets au-delà de 40 pièces : {trop}"
     return {"pieces_par_objet": n}
+
+
+def guirlande_route(b, variant: int = 0, demi_portee: float = 51.0, y_fil: float = 37.0, n: int = 26) -> dict:
+    """Guirlande de fanions tendue au-dessus de la route entre deux mâts blancs de 40 studs posés en
+    x = ±demi_portee (origine au milieu de la route). Le fil est à y_fil ; le fanion le plus bas reste ≈ 3,4
+    sous le fil (au-dessus de 30 studs pour y_fil = 37)."""
+    xm = demi_portee
+    with b.group("Guirlande"):
+        for s in (-1, 1):
+            b.box((s * xm - 0.9, 0, -0.9), (s * xm + 0.9, 0.5, 0.9), c("beton_fonce"), studs="top", name="Socle")
+            b.box((s * xm - 0.4, 0.5, -0.4), (s * xm + 0.4, 40.0, 0.4), c("blanc"), name="Mat")
+            b.box((s * xm - 0.6, 40.0, -0.6), (s * xm + 0.6, 40.6, 0.6), c("violet"), studs="top", collide=False,
+                  name="Chapeau")
+        guirlande_fanions(b, (-xm + 0.4, y_fil, 0.0), (xm - 0.4, y_fil, 0.0), n=n, creux=1.5, variant=variant)
+    return {"emprise": (2 * xm + 2, 1.8), "hauteur": 40.6}

@@ -377,10 +377,11 @@ def skyline_lateral(b: Builder) -> None:
     de fenêtres en ceinture (un sur quatre ou cinq éclairé) et une corniche claire ; le volume haut porte une
     couronne de néon, un néon vertical ou un panneau lumineux tourné vers le couloir, un local et un feu
     d'obstacle ou une citerne ; le volume bas, une cage d'escalier et une citerne ou des climatiseurs."""
+    from assets.batiments import _citerne, _clim_toit, _local_tech   # équipements de toit des immeubles
+
     rng = np.random.default_rng(23)
     tons = [c("bleu_marine"), c("bleu_ardoise"), shade(c("bleu_acier"), 0.9), c("bleu_nuit"), shade(c("violet_nuit"), 1.15),
             shade(c("bleu_ardoise"), 0.85)]
-    vitres = [c("vitre_bleue"), c("vitre_claire"), c("fenetre_froide"), c("fenetre_chaude"), c("vitre_cyan")]
     neons = [c("neon_magenta"), c("neon_cyan"), c("neon_jaune"), c("neon_orange")]
     for s in (-1, 1):
         cote = "Gauche" if s < 0 else "Droite"
@@ -442,7 +443,6 @@ def skyline_lateral(b: Builder) -> None:
                 ceinture(xa2, xb2, za + 2, zb - 2, h2 - 1.0, h2 - 0.1, False, shade(col, 1.4), "Corniche", neon=False, d=0.25)
                 ceinture(xa3, xb3, za + 1, zb - 1, h3 - 1.0, h3 - 0.1, False, shade(col, 1.3), "Corniche", neon=False, d=0.25)
                 # toit du volume bas : cage d'escalier, citerne ou climatiseurs
-                from assets.batiments import _citerne, _clim_toit, _local_tech
                 zc = (za + zb) / 2
                 if X_FOND - 2 - xmid >= 24:
                     _local_tech(b, s * (xmid + 6.5), h3, zc + (zb - za) / 2 - 6.0, 5.0, 6.0, 4.0, shade(col, 1.3))

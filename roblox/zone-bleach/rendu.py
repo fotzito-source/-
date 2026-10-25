@@ -36,7 +36,7 @@ VUES = {
     "entree": ((0, 36, 124), (0, 38, -20), 60),        # arrivée : la grande porte blanche dans son long mur, vantaux enduits
     "faubourg": ((0, 9, -54), (0, 16, -170), 66),      # la rue au soleil : maisons de bois, lampions, porte intérieure entre deux cerisiers géants
     "revers": ((0, 8, -120), (0, 30, 0), 70),          # le grand mur blanc vu de l'intérieur, au-dessus du faubourg
-    "cite": ((4, 8, -192), (0, 22, -380), 70),         # allée entre les murs blancs, passerelle, colline
+    "cite": ((0, 16, -190), (0, 20, -380), 62),        # allée entre les murs blancs (vue juste au-dessus des murs), passerelle, colline
     "tours": ((10, 9, -238), (0, 38, -330), 72),       # passerelle laquée et tours blanches (entière dans le cadre)
     "place": ((18, 12, -378), (0, 52, -520), 72),      # cour des œufs, colline, tour et monolithe
     "retour": ((-4, 9, -444), (0, 16, 0), 70),         # demi-tour vers la base

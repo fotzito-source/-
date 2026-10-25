@@ -36,11 +36,12 @@ VUES = {
     "entree": ((0, 9, 40), (0, 26, -150), 72),         # rue de la ville sous le viaduc, portail au bout
     "ville": ((10, 8, -40), (0, 24, -150), 70),         # boutiques, rue latérale, grand portail de sécurité
     "campus": ((6, 8, -150), (0, 34, -420), 70),        # avenue du campus, dortoirs, tours au fond
-    "terrains": ((12, 9, -296), (70, 22, -380), 72),    # dôme de verre à droite, ville factice à gauche
+    "avenue": ((-30, 8, -146), (-38, 26, -300), 72),    # cadrage de la référence 2 : dortoirs, conifères, tours
+    "terrains": ((0, 10, -292), (0, 20, -400), 82),     # dôme à droite, ville factice à gauche, stade et tours
     "place": ((20, 12, -416), (0, 30, -540), 72),       # arène du stade, place des œufs, tours derrière
     "retour": ((-4, 9, -500), (0, 18, 0), 70),          # demi-tour vers la base
-    "cote": ((-380, 300, -150), (0, 0, -320), 42),       # au-dessus de la ville lointaine
-    "tours": ((20, 104, -446), (0, 78, -560), 70),       # repère final vu du haut du stade, au-dessus du portique
+    "cote": ((-300, 360, -170), (10, 0, -330), 44),      # au-dessus de la ville lointaine
+    "tours": ((20, 96, -430), (0, 110, -560), 72),       # repère final vu du haut du stade, au-dessus du portique
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -56,7 +57,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,ville,campus,terrains,place,retour,cote,tours,plan")
+    ap.add_argument("--vues", default="aerienne,entree,ville,campus,avenue,terrains,place,retour,cote,tours,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -81,8 +82,8 @@ def main() -> None:
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
-        # soleil bas derrière les tours, ciel orangé et violet (références 1 et 2) : les néons ressortent
-        bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
+        # soleil bas côté entrée (les façades principales, tournées vers +Z, sont éclairées), ciel orangé et violet (références 1 et 2) : les néons ressortent
+        bs.setup_world(sun_elev=11, sun_azim=190, view="AgX", look="AgX - Punchy", exposure=1.0,
                        ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
         bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
     else:

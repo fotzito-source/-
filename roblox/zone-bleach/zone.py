@@ -531,9 +531,8 @@ def ville_lointaine(b: Builder) -> None:
 # (largeur, profondeur, variante, ruelle après, contenu de la ruelle) ; les rangées commencent en z_depart.
 # Contenu : échoppe sur le trottoir, puits, seaux d'incendie, bannières ; « +tour » ajoute une tour de guet
 # au fond de la ruelle (ruelles de 11).
-# Les rangées s'arrêtent vers z = -129 : devant la porte intérieure s'ouvre une petite place plantée de cerisiers,
-# visibles depuis la rue (les vantaux de la porte intérieure, ouverts côté faubourg, cacheraient des arbres plus
-# proches de la porte).
+# Les rangées s'arrêtent vers z = -129 : devant la porte intérieure s'ouvre une petite place où deux cerisiers
+# géants encadrent la porte (|x| ≈ 51 à 79, au-delà des vantaux ouverts côté faubourg) et dépassent des toits.
 FAUBOURG = {
     -1: (Z_RUE, [(22, 16, 0, 10, "echoppe"), (20, 16, 1, 8, "puits"), (24, 18, 2, 11, "echoppe+tour"),
                  (18, 16, 3, 0, "seaux")]),

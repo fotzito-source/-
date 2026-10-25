@@ -52,7 +52,7 @@ X_LIBRE = 46             # rien au-dessus de |x| < 46 sous Y_LIBRE (caméra Robl
 Y_LIBRE = 30
 X_ENCEINTE = 185         # axe du mur d'enceinte latéral du campus
 X_FOND = 239             # fin du sol (la ville lointaine se dresse entre 205 et 231)
-Z_APPROCHE = 24          # sol avant l'entrée (côté zone précédente)
+Z_APPROCHE = -4          # début du sol : la zone précédente pose déjà son sol 4 studs après sa sortie
 Z_ENTREE = 0
 Z_VIADUC = -18           # axe du viaduc ferroviaire (tablier de 12 de large, dessous à 36 studs)
 Z_RUE_A = (-26, -51)     # premier îlot de boutiques (le trottoir de la rue latérale commence en -52)
@@ -75,7 +75,7 @@ Z_FIN_STADE = Z_PLACE - DEMI_STADE_Z           # -528
 Z_TOURS = -536           # façade avant des tours jumelles
 Z_SORTIE = -574          # fin de la carte : la route sort sous la passerelle
 PASSAGE_TOURS = 116      # écart entre les deux tours (faces intérieures en |x| = 58)
-Y_PASSERELLE = 46        # dessous de la passerelle des tours
+Y_PASSERELLE = 72        # dessous de la passerelle des tours
 
 VERSION = "0.1"
 
@@ -92,6 +92,7 @@ BUDGETS = {
     ("entrainement", "stade"): 1500, ("entrainement", "dome_entrainement"): 1100,
     ("entrainement", "immeuble_factice"): 50, ("entrainement", "decombres"): 16,
     ("entrainement", "robot_entrainement"): 40, ("entrainement", "cible"): 10,
+    ("entrainement", "mur_obstacles"): 40, ("entrainement", "mat_cibles"): 24,
     # vegetation.py
     ("vegetation", "conifere"): 8, ("vegetation", "arbre_rond"): 20, ("vegetation", "bosquet"): 30,
     ("vegetation", "parterre"): 10, ("vegetation", "rocher"): 6,
@@ -115,7 +116,7 @@ def _asset(module: str, fn: str):
 
 def _budget(module: str, fn: str, params: dict) -> int:
     if module == "mobilier":
-        return 50 if fn == "ligne_electrique" else BUDGET_MOBILIER
+        return {"ligne_electrique": 50, "guirlande_route": 80}.get(fn, BUDGET_MOBILIER)
     if fn == "mur_campus":
         return int(math.ceil(4 + params.get("longueur", 32) / 4))
     if fn == "haie":
@@ -277,24 +278,23 @@ def mosaique_place(x: float, z: float):
     d = math.hypot(dx, dz)
     if d >= R_PLACE:
         return None
-    if d < 3.5:
-        return c("orange_couchant")
+    if d < 5:
+        return c("jaune") if d < 2.5 else c("orange_couchant")
     if d < 17:
-        # étincelle à quatre branches longues (axes) et quatre courtes (diagonales), branches concaves
-        u, v = (dx + dz) / math.sqrt(2), (dx - dz) / math.sqrt(2)
-        if abs(dx) * abs(dz) < 30 and max(abs(dx), abs(dz)) < 16.5:
+        # étincelle à huit branches droites en losange : quatre longues dans les axes, quatre courtes en diagonale
+        adx, adz = abs(dx), abs(dz)
+        if adz <= 0.3 * (16.5 - adx) or adx <= 0.3 * (16.5 - adz):
             return c("violet")
-        if abs(u) * abs(v) < 16 and max(abs(u), abs(v)) < 13:
+        u, v = abs(dx + dz) / math.sqrt(2), abs(dx - dz) / math.sqrt(2)
+        if v <= 0.3 * (12 - u) or u <= 0.3 * (12 - v):
             return c("lavande")
         return c("blanc_casse")
     if d < 19:
         return c("violet_fonce")
-    if 24 <= d < 26:
-        return c("lavande")
     if d < 30:
         return c("arene_claire")
     if d < 32:
-        return c("orange_couchant")
+        return c("violet_fonce")
     return c("blanc")
 
 
@@ -370,6 +370,10 @@ def sol_avenue(x: float, z: float):
     if ax < DEMI_COULOIR:
         if ax >= 41:
             return c("pave_campus_fonce")
+        if 29 <= ax < 31:                                   # filets violets qui filent vers les tours
+            return c("violet")
+        if ax < 14 and ((z - 0.75 * ax) % 24) < 3:          # chevrons lavande pointant vers -Z (sens de course)
+            return c("lavande")
         rang = math.floor(z / 12)
         decal = 6 if rang % 2 else 0
         return c("pave_campus") if (math.floor((x + decal) / 12) + rang) % 2 == 0 else c("pave_campus_clair")
@@ -426,7 +430,11 @@ def sol_terrains(x: float, z: float):
     if ax < DEMI_COULOIR:
         if ax >= 41:
             return c("danger_jaune") if math.floor(z / 4) % 2 == 0 else c("noir")
-        return c("dalle") if (math.floor(x / 16) + math.floor(z / 16)) % 2 == 0 else c("dalle_claire")
+        if ax < 24:                                         # piste droite de 8 couloirs, ligne de départ
+            if -301 <= z < -300 or ax >= 23 or (x + 24) % 6 < 1:
+                return c("marquage")
+            return c("piste") if math.floor((x + 24) / 6) % 2 == 0 else c("piste_claire")
+        return c("dalle") if (math.floor(x / 16) + math.floor(z / 16)) % 2 == 0 else c("dalle_fonce")
     if ax < X_BORD:
         return c("dalle_fonce")
     if ax > X_ENCEINTE + 2:
@@ -445,10 +453,12 @@ def sol_tours(x: float, z: float):
     """Parvis des tours jumelles : dalles blanches, deux filets violets le long de la route, pelouses."""
     ax = abs(x)
     if ax < DEMI_COULOIR:
+        if -570 <= z < -566:                                 # bande d'arrivée en damier blanc et violet
+            return c("violet") if math.floor((x + 45) / 4) % 2 else c("blanc")
         if 17 <= ax < 21:
             return c("violet")
         return c("dalle_claire") if (math.floor(x / 16) + math.floor(z / 16)) % 2 == 0 else c("blanc_casse")
-    if ax < 108:
+    if ax < 118:
         return c("dalle_claire")
     return sol_campus(x, z)
 
@@ -480,16 +490,27 @@ def sol(b: Builder) -> None:
     bandes = [
         (Z_PORTAIL + EP_PORTAIL / 2, Z_APPROCHE, 2, 4),
         (Z_AVENUE, Z_PORTAIL + EP_PORTAIL / 2, 2, 8),
-        (Z_FIN_AVENUE, Z_AVENUE, 4, 8),
+        (Z_FIN_AVENUE, Z_AVENUE, 2, 8),
         (Z_FIN_TERRAINS, Z_FIN_AVENUE, 4, 8),
         (Z_FIN_STADE, Z_STADE, 4, 8),
         (z_fin, Z_FIN_STADE, 4, 8),
     ]
     with b.group("Sol/Route"):
         for z0, z1, cr, _ in bandes:
-            if z0 == Z_FIN_STADE:          # stade : la place des œufs en cases de 2, le reste en cases de 4
+            if z0 == Z_FIN_AVENUE:         # terrains : piste centrale en cases de 1, dalles en cases de 4
+                sol_pixel(b, -24, 24, z0, z1, 1, couleur_sol)
+                for s in (-1, 1):
+                    xa, xb = sorted((s * 24, s * DEMI_COULOIR))
+                    sol_pixel(b, xa, xb, z0, z1, cr, couleur_sol)
+            elif z0 == Z_FIN_STADE:        # stade : la place des œufs en cases de 2, le reste en cases de 4
                 sol_pixel(b, -DEMI_COULOIR, DEMI_COULOIR, zp_haut, z1, cr, couleur_sol)
-                sol_pixel(b, -36, 36, zp_bas, zp_haut, 2, couleur_sol)
+                zc_h, zc_b = Z_PLACE + 20, Z_PLACE - 20
+                sol_pixel(b, -20, 20, zc_b, zc_h, 1, couleur_sol)
+                sol_pixel(b, -36, 36, zc_h, zp_haut, 2, couleur_sol)
+                sol_pixel(b, -36, 36, zp_bas, zc_b, 2, couleur_sol)
+                for s in (-1, 1):
+                    xa, xb = sorted((s * 20, s * 36))
+                    sol_pixel(b, xa, xb, zc_b, zc_h, 2, couleur_sol)
                 for s in (-1, 1):
                     xa, xb = sorted((s * 36, s * DEMI_COULOIR))
                     sol_pixel(b, xa, xb, zp_bas, zp_haut, 3, couleur_sol)
@@ -503,7 +524,7 @@ def sol(b: Builder) -> None:
                 if z0 == Z_FIN_STADE:
                     sol_pixel(b, xa, xb, z0, z1, 4, couleur_sol)
                 else:
-                    sol_pixel(b, xa, xb, z0, z1, 1 if cr == 2 else 2, couleur_sol)
+                    sol_pixel(b, xa, xb, z0, z1, 1 if z0 >= Z_AVENUE else 2, couleur_sol)
     with b.group("Sol/Cotes"):
         for z0, z1, _, cc in bandes:
             for s in (-1, 1):
@@ -588,7 +609,7 @@ def mobilier_ville(b: Builder) -> None:
     for s in (-1, 1):
         c_ = "G" if s < 0 else "D"
         x = s * 50.5
-        for i, z in enumerate((9, -40, -96, -118)):
+        for i, z in enumerate((-6, -40, -96, -118)):
             place(b, "mobilier", "lampadaire_ville", (x, 0, z), yaw=face_couloir(x), group=f"Ville/Mobilier/Lampe{c_}{i}",
                   variant=1)
         for i, z in enumerate((Z_CARREFOUR + DEMI_RUE_LAT + 2, Z_CARREFOUR - DEMI_RUE_LAT - 2)):
@@ -596,14 +617,12 @@ def mobilier_ville(b: Builder) -> None:
                   variant=i)
         for i, z in enumerate((-24, -88, -108) if s < 0 else (-30, -88, -104)):
             place(b, "mobilier", "arbre_rue", (s * 50.3, 0, z), group=f"Ville/Mobilier/Arbre{c_}{i}", variant=(i + (s > 0)) % 2)
-        place(b, "mobilier", "abribus", (s * 51.5, 0, 0), yaw=face_couloir(x), group=f"Ville/Mobilier/Abribus{c_}",
+        place(b, "mobilier", "abribus", (s * 51.5, 0, -13.5), yaw=face_couloir(x), group=f"Ville/Mobilier/Abribus{c_}",
               variant=0 if s < 0 else 2)
-        place(b, "mobilier", "distributeur", (s * 53.5, 0, -10.5), yaw=face_couloir(x), group=f"Ville/Mobilier/Distrib{c_}",
+        place(b, "mobilier", "distributeur", (s * 53.5, 0, -3.2 if s < 0 else -22), yaw=face_couloir(x), group=f"Ville/Mobilier/Distrib{c_}",
               variant=1 if s < 0 else 3, nombre=2)
-        place(b, "mobilier", "poubelle", (s * 53, 0, -15.2), yaw=face_couloir(x), group=f"Ville/Mobilier/Poubelle{c_}",
+        place(b, "mobilier", "poubelle", (s * 53, 0, -21.2 if s < 0 else -2.5), yaw=face_couloir(x), group=f"Ville/Mobilier/Poubelle{c_}",
               variant=0)
-        place(b, "mobilier", "jardiniere", (s * 52, 0, 14), yaw=face_couloir(x), group=f"Ville/Mobilier/Jardiniere{c_}",
-              variant=1 if s < 0 else 3)
         # lignes électriques le long des rues latérales (de |x| = 60 vers l'extérieur)
         for j, dz in enumerate((DEMI_RUE_LAT + 2.5, -DEMI_RUE_LAT - 2.5)):
             place(b, "mobilier", "ligne_electrique", (s * 60, 0, Z_CARREFOUR + dz), yaw=-90 * s,
@@ -660,23 +679,23 @@ def avenue(b: Builder) -> None:
             while z > Z_FIN_AVENUE + 4:
                 if all(abs(z - ze) > 6 for ze in zs):
                     place(b, "vegetation", "conifere", (-62.5, 0, z), group=f"Campus/Coniferes/K{k:02d}",
-                          emprise=(4, 4, 14), variant=(0, 2, 1, 0, 1)[k % 5], taille=(1.0, 1.15, 1.3, 1.1, 1.2)[k % 5])
+                          emprise=(4, 4, 14), variant=(0, 2, 1, 0, 1)[k % 5], taille=(1.5, 1.7, 1.9, 1.6, 1.8)[k % 5])
                     k += 1
-                z -= 6
+                z -= 5
         else:
             # rangée d'arbres ronds (houppiers qui se touchent), interrompue au droit des allées
             z, k = Z_AVENUE - 7, 0
             while z > Z_FIN_AVENUE + 4:
                 if all(abs(z - ze) > 7 for ze in zs):
                     place(b, "vegetation", "arbre_rond", (63.5, 0, z), group=f"Campus/Arbres/A{k:02d}",
-                          emprise=(9, 9, 14), variant=(0, 1, 2, 1)[k % 4], taille=(0.95, 1.05, 0.9, 1.0)[k % 4])
+                          emprise=(9, 9, 14), variant=(0, 1, 2, 1)[k % 4], taille=(1.25, 1.35, 1.2, 1.3)[k % 4])
                     k += 1
                 z -= 10
         # lampadaires, bancs, poubelles
         for i, z in enumerate((-152, -184, -216, -248, -280)):
             x = s * 50
             place(b, "mobilier", "lampadaire_campus", (x, 0, z), yaw=face_couloir(x), group=f"Campus/Mobilier/Lampe{c_}{i}",
-                  variant=0)
+                  variant=0, hauteur=16)
         for i, z in enumerate((-200, -232, -262)):
             x = s * 52.5
             place(b, "mobilier", "banc", (x, 0, z), yaw=face_couloir(x), group=f"Campus/Mobilier/Banc{c_}{i}",
@@ -685,7 +704,7 @@ def avenue(b: Builder) -> None:
         for i, z in enumerate((-168, -208, -241, -272)):
             x = s * 51
             place(b, "mobilier", "banniere", (x, 0, z), yaw=face_couloir(x), group=f"Campus/Mobilier/Banniere{c_}{i}",
-                  variant=(i + (s > 0)) % 4, hauteur=12)
+                  variant=(i + (s > 0)) % 4, hauteur=16)
         place(b, "mobilier", "poubelle", (s * 53, 0, -237.5), yaw=face_couloir(s), group=f"Campus/Mobilier/Poubelle{c_}",
               variant=1)
         place(b, "mobilier", "totem", (s * 51.5, 0, Z_AVENUE - 8), yaw=face_couloir(s), group=f"Campus/Mobilier/Totem{c_}",
@@ -696,6 +715,8 @@ def avenue(b: Builder) -> None:
     for i, z in enumerate((-190, -240)):
         place(b, "vegetation", "parterre", (-67, 0, z), yaw=-90, group=f"Campus/Parterres/P{i}", emprise=(12, 3, 1),
               longueur=12, largeur=3, variant=i)
+    for i, z in enumerate((-175, -224, -256, -290)):
+        place(b, "mobilier", "guirlande_route", (0, 0, z), group=f"Campus/Guirlandes/G{i}", variant=(0, 2, 0, 2)[i])
     jardins(b)
 
 
@@ -775,9 +796,10 @@ R_DOME = 52
 
 FACTICES = [
     # (x, z, largeur, profondeur, hauteur, dégâts 0-2, variante)
-    (-75, -316, 20, 20, 26, 0, 0), (-75, -380, 20, 18, 18, 2, 1), (-107, -316, 22, 20, 34, 1, 2),
-    (-107, -348, 20, 20, 22, 0, 1), (-139, -316, 20, 18, 16, 2, 0), (-139, -380, 22, 20, 30, 0, 2),
-    (-107, -380, 18, 18, 14, 1, 0),
+    # première rangée (côté route) abîmée, immeubles intacts et hauts derrière
+    (-75, -316, 20, 20, 30, 1, 0), (-75, -380, 20, 18, 18, 2, 1), (-107, -316, 22, 20, 34, 0, 2),
+    (-107, -348, 20, 20, 26, 0, 1), (-139, -316, 20, 18, 30, 0, 0), (-139, -380, 22, 20, 34, 0, 2),
+    (-107, -380, 18, 18, 22, 0, 0), (-139, -348, 20, 18, 38, 0, 1),
 ]
 
 
@@ -787,13 +809,14 @@ def terrains(b: Builder) -> None:
     for i, (x, z, larg, prof, h, deg, v) in enumerate(FACTICES):
         place(b, "entrainement", "immeuble_factice", (x, 0, z), yaw=face_couloir(x), group=f"Entrainement/Ville/F{i}",
               emprise=(larg, prof, h), variant=v, largeur=larg, profondeur=prof, hauteur=h, degats=deg)
-    for i, (x, z, v) in enumerate(((-75, -348, 0), (-139, -348, 1), (-90, -394.5, 2), (-128, -300, 1))):
+    for i, (x, z, v) in enumerate(((-75, -348, 0), (-123, -332, 1), (-90, -394.5, 2), (-128, -300, 1))):
         place(b, "entrainement", "decombres", (x, 0, z), yaw=(i * 37) % 360, group=f"Entrainement/Decombres/D{i}",
               emprise=(10, 10, 3), variant=v)
-    for i, (x, z, v, yaw) in enumerate(((-60, -326, 0, -90), (-91, -340, 1, -60), (-60, -372, 3, -90),
-                                        (-123, -364, 2, -120), (-120, -395.5, 0, -30))):
+    # deux grands robots (≈ 14-17 studs) tournés vers la route, dans les rues de la ville factice
+    for i, (x, z, v, yaw, t) in enumerate(((-66, -332, 1, -90, 1.4), (-91, -340, 0, -60, 1.0), (-66, -364, 3, -90, 1.8),
+                                           (-123, -364, 2, -120, 1.0), (-120, -395.5, 0, -30, 1.0))):
         place(b, "entrainement", "robot_entrainement", (x, 0, z), yaw=yaw, group=f"Entrainement/Robots/R{i}",
-              emprise=(6, 6, 10), variant=v)
+              emprise=(6, 6, 10), variant=v, taille=t)
     for i, (x, z, v) in enumerate(((-66, -302, 0), (-66, -394, 1))):
         place(b, "entrainement", "cible", (x, 0, z), yaw=face_couloir(x), group=f"Entrainement/Cibles/C{i}",
               emprise=(4, 1, 6), variant=v)
@@ -802,11 +825,9 @@ def terrains(b: Builder) -> None:
         place(b, "mobilier", "cloture", (-56.5, 0, (za + zb) / 2), yaw=90, group=f"Entrainement/Grillage/G{i}",
               longueur=za - zb, variant=0)
     # bande de matériel entre la route et le dôme (x 57 → 70), l'allée du dôme (z -344 → -352) reste libre
-    bande = [("mobilier", "plots", 60, -301, {"nombre": 4}), ("mobilier", "pneus", 61, -309, {}),
-             ("mobilier", "haies_athletisme", 61, -318, {}), ("entrainement", "robot_entrainement", 62, -328, {"variant": 2}),
-             ("entrainement", "cible", 62, -337, {"variant": 2}), ("mobilier", "sac_frappe", 61, -360, {}),
-             ("vegetation", "rocher", 64, -370, {"variant": 0}), ("mobilier", "caisses", 61, -380, {"variant": 1}),
-             ("entrainement", "cible", 62, -390, {"variant": 0}), ("mobilier", "plots", 60, -394.5, {"variant": 1})]
+    bande = [("entrainement", "mur_obstacles", 64, -318, {}), ("entrainement", "mat_cibles", 62, -334, {}),
+             ("entrainement", "robot_entrainement", 62, -388, {"variant": 2, "taille": 1.8}),
+             ("mobilier", "plots", 60, -301, {"nombre": 4}), ("vegetation", "rocher", 64, -370, {"variant": 0})]
     for i, (mod, fn, x, z, kw) in enumerate(bande):
         place(b, mod, fn, (x, 0, z), yaw=face_couloir(x), group=f"Entrainement/Materiel/M{i:02d}", emprise=(5, 5, 6), **kw)
     for s in (-1, 1):
@@ -817,6 +838,8 @@ def terrains(b: Builder) -> None:
                   variant=2)
         place(b, "mobilier", "totem", (s * 51.5, 0, Z_FIN_AVENUE - 6), yaw=face_couloir(s),
               group=f"Entrainement/Totem{c_}", texte="ENTRAÎNEMENT", variant=1)
+    for i, z in enumerate((-322, -366)):
+        place(b, "mobilier", "guirlande_route", (0, 0, z), group=f"Entrainement/Guirlandes/G{i}", variant=i)
     place(b, "vegetation", "rocher", (-150, 0, -396), group="Entrainement/Rocher", emprise=(4, 4, 3), variant=1)
 
 
@@ -841,7 +864,7 @@ def stade(b: Builder) -> None:
         for i, z in enumerate((Z_STADE + 5, Z_FIN_STADE - 2.5)):
             x = s * 51
             place(b, "mobilier", "banniere", (x, 0, z), yaw=face_couloir(x), group=f"Place/Bannieres/B{'GD'[s > 0]}{i}",
-                  variant=i * 2 + (s > 0), hauteur=13)
+                  variant=i * 2 + (s > 0), hauteur=17)
 
 
 # ---------------------------------------------------------------------------
@@ -850,8 +873,8 @@ def stade(b: Builder) -> None:
 
 def tours(b: Builder) -> None:
     place(b, "campus", "tours_jumelles", (0, 0, Z_TOURS), group="Monuments/Tours",
-          attente=_attente_tours(PASSAGE_TOURS, 44, Z_TOURS - Z_SORTIE, (120, 134), Y_PASSERELLE),
-          passage=PASSAGE_TOURS, largeur_tour=44, profondeur=Z_TOURS - Z_SORTIE, hauteurs=(120, 134),
+          attente=_attente_tours(PASSAGE_TOURS, 54, Z_TOURS - Z_SORTIE, (168, 186), Y_PASSERELLE),
+          passage=PASSAGE_TOURS, largeur_tour=54, profondeur=Z_TOURS - Z_SORTIE, hauteurs=(168, 186),
           y_passerelle=Y_PASSERELLE)
     for s in (-1, 1):
         place(b, "mobilier", "totem", (s * 51.5, 0, Z_FIN_STADE - 8), yaw=face_couloir(s), group=f"Tours/Totem{'GD'[s > 0]}",
@@ -898,9 +921,9 @@ def bords(b: Builder) -> None:
     k = 0
     z_viaduc = (Z_VIADUC + 8, Z_VIADUC - 8)
     for s in (-1, 1):
-        z = Z_APPROCHE + 4
+        z = Z_ENTREE
         while True:
-            h = float(rng.choice([44, 56, 68, 82, 96, 110]))
+            h = float(rng.choice([56, 68, 82, 96] if z > Z_PORTAIL else [36, 44, 52, 60]))
             larg = float(rng.choice([20, 24, 28]))
             if z - larg < Z_SORTIE - 4:
                 break
@@ -912,13 +935,25 @@ def bords(b: Builder) -> None:
             k += 1
     # arbres : abords de l'entrée, flancs du stade, parvis des tours
     for s in (-1, 1):
-        pts = [(66, 18), (66, 2), (150, -424), (150, -464), (150, -504), (114, -546), (114, -566),
+        pts = [(70, -5), (150, -424), (150, -464), (150, -504), (122, -546), (122, -566),
                (131, -556), (147, -543), (148, -568)]
         for i, (x, z) in enumerate(pts):
             place(b, "vegetation", "arbre_rond", (s * x, 0, z), group=f"Abords/{'GD'[s > 0]}{i}", emprise=(9, 9, 14),
-                  variant=3 if i in (6, 7) else (i + (s > 0)) % 3, taille=0.9 + 0.1 * (i % 3))
+                  variant=3 if i in (5, 6) else (i + (s > 0)) % 3, taille=0.9 + 0.1 * (i % 3))
         place(b, "vegetation", "bosquet", (s * 168, 0, -554), yaw=face_couloir(s), group=f"Abords/Bosquet{'GD'[s > 0]}",
               emprise=(36, 18, 18), variant=1 if s < 0 else 2, largeur=36, profondeur=18)
+
+
+def limites(b: Builder) -> None:
+    """Murs invisibles solides aux bords du sol (|x| = 238,5) et barrière de fin de carte (z = -578, groupe à
+    supprimer si une autre zone suit)."""
+    inv = dict(transparency=1.0, collide=True, shadow=False)
+    with b.group("Enceinte/Limites"):
+        for s in (-1, 1):
+            xa, xb = sorted((s * (X_FOND - 1.0), s * X_FOND))
+            b.box((xa, 0, Z_SORTIE - 4), (xb, 40, Z_APPROCHE), "#ffffff", name="MurInvisible", **inv)
+    with b.group("Enceinte/LimiteFin"):
+        b.box((-X_FOND, 0, Z_SORTIE - 4), (X_FOND, 40, Z_SORTIE - 3), "#ffffff", name="BarriereFin", **inv)
 
 
 def reperes(b: Builder) -> None:
@@ -954,6 +989,7 @@ def build_zone(seed: int = 7) -> Builder:
     stade(b)
     tours(b)
     bords(b)
+    limites(b)
     reperes(b)
     decouper(b)
     return b
@@ -1008,6 +1044,8 @@ def chevauchements(b: Builder, tol: float = 0.05) -> list:
         owner[n0:n1] = k
     pseudo = {}
     for i, p in enumerate(b.parts):
+        if (getattr(p, "transparency", 0) or 0) >= 1.0:      # murs invisibles : ils peuvent traverser le décor
+            continue
         if owner[i] < 0 and not p.group.startswith(("Sol", "Reperes")):
             if p.group not in pseudo:
                 pseudo[p.group] = len(poses)
@@ -1061,7 +1099,7 @@ def hors_budget() -> list:
 
 def meta() -> dict:
     return {"nom": "ZoneMyHeroAcademia", "version": VERSION, "largeur_couloir": 2 * DEMI_COULOIR,
-            "longueur": -Z_SORTIE, "spawn": [0, 0, Z_ENTREE + 16]}
+            "longueur": -Z_SORTIE, "spawn": [0, 0, Z_ENTREE - 8]}
 
 
 def main() -> None:

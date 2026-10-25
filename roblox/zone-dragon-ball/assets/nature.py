@@ -369,10 +369,13 @@ def _touffe_ronde(b, ctr, R, rng, yaw0=0.0, haut=1.0, fleurs=0, tons=("feuillage
                  (-0.9, 0.5, 0.35)]
         cols = ("fleur_rose", "blanc", "fleur_rose", "fleur_jaune", "fleur_rose", "blanc")
         for i in range(min(fleurs, len(spots))):
-            x, y, z = spots[i]
-            x, z = x * k, z * k
+            fx, y, fz = spots[i]
+            # sur le bord d'un pavé (|f| = 0,9) : la fleur dépasse de 0,15 de sa face, quelle que soit la taille
+            x = math.copysign(k + 0.15 - 0.4, fx) if abs(fx) > 0.85 else fx * k
+            z = math.copysign(k + 0.15 - 0.4, fz) if abs(fz) > 0.85 else fz * k
             y = y * hk
-            b.box((x - 0.35, y - 0.1, z - 0.35), (x + 0.35, y + 0.45, z + 0.35), vary(cols[i], rng, 0.03), name="Fleur",
+            # la fleur dépasse d'au moins 0,1 des faces du pavé qui la porte (jamais coplanaire)
+            b.box((x - 0.4, y - 0.1, z - 0.4), (x + 0.4, y + 0.55, z + 0.4), vary(cols[i], rng, 0.03), name="Fleur",
                   **DETAIL)
     return ctr[1] + H_TOUFFE * hk
 
@@ -633,240 +636,208 @@ PLANS_MESA = [
 ]
 
 ROSE = "mesa_rose"
+# Bandes sombres communes à toutes les mesas (même « géologie » sur toute la plaine) : (bas, épaisseur)
+BANDES_NUIT = ((11.5, 1.5), (27.5, 2.0), (45.5, 2.0), (63.5, 2.0))
+EBOULIS = mix(c("mesa_violet_clair"), c("kaki_clair"), 0.35)       # éboulis clairs, lisibles de loin
 
 
 def _strates_mesa(H, rng):
-    """Strates horizontales communes à tous les lobes : (y0, y1, ton), du pied (mesa_nuit) au sommet."""
-    tons = ["mesa_violet_fonce", "mesa_violet", "mesa_violet_clair", "mesa_violet", "mesa_violet_fonce",
-            "mesa_violet_clair", "mesa_violet", "mesa_violet_clair"]
-    y = max(1.5, _q(0.08 * H))
-    out = [(0.0, y, "mesa_nuit")]
-    n = 5 if H < 32 else 6
-    w = rng.uniform(0.75, 1.25, n)
-    eps = (H - y) * w / w.sum()
-    for i in range(n):
-        y1 = H + 2 if i == n - 1 else _q(y + eps[i])
-        out.append((y, y1, tons[i]))
-        y = y1
-    if H >= 30:   # filet sombre (1 stud) au milieu d'une strate du haut : plus de contraste
-        i = n - 2
-        y0, y1, t = out[i]
-        ym = _q((y0 + y1) / 2)
-        if y1 - y0 >= 4:
-            out[i:i + 1] = [(y0, ym, t), (ym, ym + 1.0, "mesa_nuit"), (ym + 1.0, y1, t)]
+    """Strates horizontales communes à tous les lobes : (y0, y1, ton), du pied au sommet. Tons violets alternés
+    et bandes sombres (mesa_nuit) aux hauteurs fixes de BANDES_NUIT (si elles tombent sous le chapeau)."""
+    tons = ["mesa_violet_fonce", "mesa_violet", "mesa_violet_clair", "mesa_violet", "mesa_violet_clair",
+            "mesa_violet", "mesa_violet_clair", "mesa_violet"]
+    bornes = [0.0]
+    for (yb, e) in BANDES_NUIT:
+        if yb + e < H - 4.0:
+            bornes += [yb, yb + e]
+    bornes.append(H + 2)
+    out = []
+    k = 0
+    for y0, y1 in zip(bornes[:-1], bornes[1:]):
+        if any(abs(y0 - yb) < 1e-6 for yb, _ in BANDES_NUIT):
+            out.append((y0, y1, "mesa_nuit"))
+            continue
+        # les grands intervalles sont recoupés en deux tons
+        if y1 - y0 > 14:
+            ym = _q(y0 + (y1 - y0) * float(rng.uniform(0.4, 0.6)))
+            out += [(y0, ym, tons[k % len(tons)]), (ym, y1, tons[(k + 1) % len(tons)])]
+            k += 2
+        else:
+            out.append((y0, y1, tons[k % len(tons)]))
+            k += 1
     return out
 
 
 def mesa(b, variant: int = 0, largeur: float = 30, profondeur: float = 26, hauteur: float = 26) -> dict:
-    """Mesa (butte à sommet plat) des terres de combat. Emprise largeur (X local) × profondeur (Z local), débord ≤ 1 ;
-    l'avant (-Z) regarde le couloir.
+    """Mesa (butte à sommet plat) des terres de combat. Emprise largeur (X local) × profondeur (Z local), débord
+    du chapeau compris ; l'avant (-Z) regarde le couloir.
 
-    Plan : 4 ou 5 lobes verticaux qui se chevauchent, presque à la même hauteur (sommet plat au contour irrégulier),
-    plus un épaulement bas selon la variante. Flancs : strates violettes continues (pied mesa_nuit), une ou deux
-    strates roses en saillie, côtes rocheuses verticales en gradins qui reprennent les strates (rose compris), deux
-    fissures sombres ; filet sombre en haut des mesas de 30 et plus. Pied : éboulis en pente (en deux tas sur les
-    faces longues) sur les faces visibles, rochers aux angles avant. Dessus : chapeau d'herbe qui déborde de 0,6
-    (épaisseur 1,2, ou 1,6 au-delà de 34 de haut), plaque d'herbe claire, buissons ; coulures d'herbe sous les
-    chapeaux jusqu'au budget. v0 butte seule, v1 buttes jumelles et col, v2 tour étroite sur un épaulement bas
-    d'un côté, v3 large et basse à terrasse avant. ≤ 100 pièces."""
+    Plan : 3 à 5 lobes verticaux aux angles abattus (deux pavés croisés : plan en octogone à gradins), presque à la
+    même hauteur (sommet plat au contour irrégulier), plus un épaulement bas selon la variante. Flancs : strates
+    violettes continues et bandes sombres à hauteurs fixes (communes à toutes les mesas), une ou deux strates roses
+    en saillie, une fissure sombre. Pied : grands éboulis clairs en pente sur toutes les faces visibles et blocs
+    d'éboulis aux angles. Dessus : chapeau d'herbe épais (2 studs) qui déborde de 1, coulures dessous, plaque
+    d'herbe claire et buissons. v0 butte seule, v1 buttes jumelles et col, v2 tour étroite sur un épaulement bas
+    d'un côté, v3 large et basse à terrasse avant. ≤ 110 pièces."""
     v = variant % 4
     rng = b.rng
     n0 = len(b.parts)
-    BUDGET = 100
     W, D, H = float(largeur), float(profondeur), float(hauteur)
-    CAP = 1.2 if H < 34 else 1.6                         # chapeau plus épais sur les grandes mesas (lisible de loin)
-    TAL = min(3.0, max(2.0, 0.1 * min(W, D)))          # profondeur des éboulis
+    BUDGET = 110 if H < 50 else 135
+    CAP, DEB = 2.0, 1.0
+    TAL = _q(min(5.0, max(2.5, 0.14 * min(W, D))))      # profondeur des éboulis du pied
 
     def reste():
         return BUDGET - (len(b.parts) - n0)
 
-    # -- plan : surface utile (les éboulis prennent la marge), grille de 0,5, hauteurs distinctes -------------
+    # -- plan : surface utile (éboulis autour), grille de 0,5, plans de faces tous distincts ----------------
     ux0, ux1 = -W / 2 + TAL, W / 2 - TAL
-    uz0, uz1 = -D / 2 + TAL + 0.5, D / 2 - 1.0
+    uz0, uz1 = -D / 2 + TAL, D / 2 - TAL
     blocs, hs = [], []
+    plans_x, plans_z = set(), set()
     for (fx0, fx1, fz0, fz1, fh) in PLANS_MESA[v]:
         X = lambda f: _q(ux0 + (f + 0.5) * (ux1 - ux0))  # noqa: E731
         Z = lambda f: _q(uz0 + (f + 0.5) * (uz1 - uz0))  # noqa: E731
         x0, x1, z0, z1 = X(fx0), X(fx1), Z(fz0), Z(fz1)
-        # deux lobes ne partagent jamais un plan de face : on rentre d'un cran jusqu'à un plan libre
-        xs_pris = {q for o in blocs for q in (o["x0"], o["x1"])}
-        zs_pris = {q for o in blocs for q in (o["z0"], o["z1"])}
-        while x0 in xs_pris:
+        while x0 in plans_x:
             x0 += 0.5
-        while x1 in xs_pris or x1 == x0:
+        while x1 in plans_x or x1 <= x0 + 1:
             x1 -= 0.5
-        while z0 in zs_pris:
+        while z0 in plans_z:
             z0 += 0.5
-        while z1 in zs_pris or z1 == z0:
+        while z1 in plans_z or z1 <= z0 + 1:
             z1 -= 0.5
+        if x1 - x0 < 3 or z1 - z0 < 3:
+            continue
+        # angles abattus : chanfrein c (plans x0 + c, x1 - c, z0 + c, z1 - c distincts eux aussi)
+        cf = _q(0.24 * min(x1 - x0, z1 - z0)) if min(x1 - x0, z1 - z0) >= 7 else 0.0
+        for _ in range(6):
+            if cf == 0 or not ({x0 + cf, x1 - cf} & plans_x or {z0 + cf, z1 - cf} & plans_z):
+                break
+            cf += 0.5
+        plans_x |= {x0, x1} | ({x0 + cf, x1 - cf} if cf else set())
+        plans_z |= {z0, z1} | ({z0 + cf, z1 - cf} if cf else set())
         h = H if fh >= 1 else _q(fh * H)
         while any(abs(h - o) < 0.49 for o in hs):
             h -= 0.5
         hs.append(h)
-        blocs.append(dict(x0=x0, x1=x1, z0=z0, z1=z1, h=h, top=h - CAP))
+        blocs.append(dict(x0=x0, x1=x1, z0=z0, z1=z1, c=cf, h=h, top=h - CAP))
+    # angles abattus seulement sur les deux plus hauts lobes (les autres restent d'un seul pavé : budget)
+    for B in sorted(blocs, key=lambda B: -B["h"])[2:]:
+        B["c"] = 0.0
     principal = max(blocs, key=lambda B: B["h"])
     strates = _strates_mesa(H, rng)
     ep_rose = 1.0 if H < 30 else 1.5
     roses = []
-    for f in (0.38, 0.64, 0.5, 0.74, 0.28):
+    for f in (0.38, 0.62, 0.5, 0.74, 0.28):
         yr = _q(f * H) + 0.25
-        if all(not (B["top"] - 1.5 < yr + ep_rose and yr < B["h"] + 0.5) for B in blocs) and \
-                all(abs(yr - r) > 4 for r in roses):
+        loin_nuit = all(yr + ep_rose < yb - 0.6 or yr > yb + e + 0.6 for yb, e in BANDES_NUIT)
+        if loin_nuit and all(not (B["top"] - 1.5 < yr + ep_rose and yr < B["h"] + 0.5) for B in blocs) and \
+                all(abs(yr - r) > 5 for r in roses):
             roses.append(yr)
-        if len(roses) == 2:
+        if len(roses) == (2 if H >= 34 else 1):
             break
-    # strates des côtes : les strates violettes recoupées par les bandes roses (rose affleurant)
-    bornes = sorted({y for st in strates for y in st[:2]} | {y for r in roses for y in (r, r + ep_rose)})
-    coupes = []
-    for a_, b_ in zip(bornes[:-1], bornes[1:]):
-        ym = (a_ + b_) / 2
-        if any(r <= ym <= r + ep_rose for r in roses):
-            coupes.append((a_, b_, ROSE))
-        else:
-            coupes.append((a_, b_, next(t for y0, y1, t in strates if y0 <= ym <= y1)))
 
-    def dedans(px, py, pz, sauf):
+    # retrait maximal : le plus petit lobe garde au moins 3 studs de large
+    r_max = max(0.0, min((min(B["x1"] - B["x0"], B["z1"] - B["z0"]) - 2 * B["c"]) / 2 - 1.5 for B in blocs))
+    r_max = 0.25 * math.floor(4 * r_max)
+
+    def retrait(y):
+        """Fruit des flancs : retrait (multiple de 0,25) des strates qui commencent à la hauteur y, le même pour
+        tous les lobes (leurs faces restent dans des plans distincts) ; petites corniches alternées."""
+        k = int(round(y / 3.0))
+        return min(r_max, 0.25 * round(4 * 0.045 * y) + (0.25 if k % 3 == 1 else 0.0))
+
+    def pavés(B, g=0.0):
+        """Les deux pavés croisés d'un lobe (élargis de g ; g < 0 : rentrés) : [(x0, x1, z0, z1)]."""
+        x0, x1, z0, z1, cf = B["x0"] - g, B["x1"] + g, B["z0"] - g, B["z1"] + g, B["c"]
+        if cf <= 0:
+            return [(x0, x1, z0, z1)]
+        return [(x0 + cf, x1 - cf, z0, z1), (x0, x1, z0 + cf, z1 - cf)]
+
+    def dedans(px, pz, py, sauf):
         """Le point est-il dans un autre lobe (corps et chapeau compris) ?"""
         for o in blocs:
             if o is sauf:
                 continue
-            if o["x0"] - 0.6 <= px <= o["x1"] + 0.6 and o["z0"] - 0.6 <= pz <= o["z1"] + 0.6 and py <= o["h"]:
+            if py <= o["h"] and any(a - DEB <= px <= b_ + DEB and c_ - DEB <= pz <= d + DEB for a, b_, c_, d in pavés(o)):
                 return True
         return False
 
-    def dehors(B, sens, u, y, d=0.3):
-        """Point juste devant la face `sens` du lobe B, à l'abscisse u le long de la face."""
-        if sens == "-z":
-            return u, y, B["z0"] - d
-        if sens == "+z":
-            return u, y, B["z1"] + d
-        if sens == "-x":
-            return B["x0"] - d, y, u
-        return B["x1"] + d, y, u
-
-    def face(B, sens):
-        """(u0, u1, plan) d'une face."""
-        return {"-z": (B["x0"], B["x1"], B["z0"]), "+z": (B["x0"], B["x1"], B["z1"]),
-                "-x": (B["z0"], B["z1"], B["x0"]), "+x": (B["z0"], B["z1"], B["x1"])}[sens]
-
-    def plaque(sens, n_, u0, u1, y0, y1, d_in, d_out, col, **kw):
-        """Bloc plaqué sur une face : de d_in derrière le plan à d_out devant."""
-        if sens == "-z":
-            return b.box((u0, y0, n_ - d_out), (u1, y1, n_ + d_in), col, **kw)
-        if sens == "+z":
-            return b.box((u0, y0, n_ - d_in), (u1, y1, n_ + d_out), col, **kw)
-        if sens == "-x":
-            return b.box((n_ - d_out, y0, u0), (n_ + d_in, y1, u1), col, **kw)
-        return b.box((n_ - d_in, y0, u0), (n_ + d_out, y1, u1), col, **kw)
-
-    occupe: dict = {}
-
-    def libre(cle, u0, u1, marge=0.25):
-        if any(u0 < b1 + marge and u1 > a1 - marge for a1, b1 in occupe.get(cle, ())):
-            return False
-        occupe.setdefault(cle, []).append((u0, u1))
-        return True
-
     with b.group("Mesa"):
-        # -- 1. corps en strates, chapeaux d'herbe, strates roses en saillie ---------------------------------
+        # -- 1. corps en strates (pavés croisés), chapeaux d'herbe épais, strates roses en saillie -------------
         for B in blocs:
+            r_haut = 0.0
             for y0, y1, ton in strates:
                 lo, hi = y0, min(y1, B["top"])
-                if hi - lo >= 0.1:
-                    b.box((B["x0"], lo, B["z0"]), (B["x1"], hi, B["z1"]), vary(ton, rng, 0.03), name="Strate")
-            b.box((B["x0"] - 0.6, B["top"], B["z0"] - 0.6), (B["x1"] + 0.6, B["h"], B["z1"] + 0.6),
-                  vary("herbe", rng, 0.02), studs="top", name="Herbe")
+                if hi - lo < 0.1:
+                    continue
+                col = vary(ton, rng, 0.03)
+                r_haut = retrait(y0)
+                for (a, b_, c_, d) in pavés(B, -r_haut):
+                    b.box((a, lo, c_), (b_, hi, d), col, name="Strate")
+            B["r"] = r_haut                      # retrait des flancs sous le chapeau
+            col = vary("herbe", rng, 0.02)
+            # chapeau : les deux pavés croisés ont des dessus décalés de 0,1 (jamais coplanaires)
+            for j, (a, b_, c_, d) in enumerate(pavés(B, DEB - r_haut)):
+                b.box((a, B["top"], c_), (b_, B["h"] - 0.1 * j, d), col, studs="top", name="Herbe")
             for yr in roses:
                 if yr + ep_rose < B["top"] - 0.6:
-                    b.box((B["x0"] - 0.3, yr, B["z0"] - 0.3), (B["x1"] + 0.3, yr + ep_rose, B["z1"] + 0.3),
-                          c(ROSE), collide=False, name="StrateRose")
-        # -- 2. éboulis en pente au pied des faces visibles, rochers aux angles avant ---------------------------
+                    ry = max(retrait(y0) for y0, _, _ in strates if y0 <= yr + 1e-6)
+                    for (a, b_, c_, d) in pavés(B, 0.3 - ry):
+                        b.box((a, yr, c_), (b_, yr + ep_rose, d), c(ROSE), collide=False, name="StrateRose")
+        # -- 2. grands éboulis clairs au pied des faces visibles, blocs aux angles abattus ----------------------
         for B in sorted(blocs, key=lambda B: -B["h"]):
-            ht = min(0.2 * H, 0.32 * B["h"], 7.0)
-            for sens in ("-z", "-x", "+x"):
-                u0, u1, n_ = face(B, sens)
-                if u1 - u0 < 3:
+            ht = _q(min(0.3 * H, 0.34 * B["h"], 10.0))
+            cf = B["c"]
+            faces = (("-z", B["x0"] + cf, B["x1"] - cf, B["z0"]), ("+z", B["x0"] + cf, B["x1"] - cf, B["z1"]),
+                     ("-x", B["z0"] + cf, B["z1"] - cf, B["x0"]), ("+x", B["z0"] + cf, B["z1"] - cf, B["x1"]))
+            for sens, u0, u1, n_ in faces:
+                if u1 - u0 < 2.5:
                     continue
-                vis = [not dedans(*dehors(B, sens, u0 + (u1 - u0) * f, 1.0), B) for f in (0.2, 0.5, 0.8)]
-                if not any(vis):
+                um = (u0 + u1) / 2
+                px, pz = {"-z": (um, n_ - 1.0), "+z": (um, n_ + 1.0), "-x": (n_ - 1.0, um), "+x": (n_ + 1.0, um)}[sens]
+                if dedans(px, pz, 1.0, B):
                     continue
-                dep = (n_ + D / 2) if sens == "-z" else (n_ + W / 2) if sens == "-x" else (W / 2 - n_)
-                dep = min(TAL, dep - 0.2)
-                if dep < 1.2:
+                lim = {"-z": n_ + D / 2, "+z": D / 2 - n_, "-x": n_ + W / 2, "+x": W / 2 - n_}[sens]
+                dd = min(TAL, lim - 0.2)
+                if dd < 1.2:
                     continue
-                tas = [(u0 + 0.5, u1 - 0.5, ht, dep)]
-                if u1 - u0 >= 12:
-                    um = _q(u0 + (u1 - u0) * float(rng.uniform(0.38, 0.62))) + 0.25
-                    tas = [(u0 + 0.5, um, ht * float(rng.uniform(0.85, 1.0)), dep),
-                           (um, u1 - 0.5, ht * float(rng.uniform(0.5, 0.72)), dep * 0.8)]
-                for ta, tb, hh, dd in tas:
-                    col = vary(mix(c("mesa_violet_fonce"), c("mesa_nuit"), 0.4), rng, 0.05)
-                    if sens == "-z":
-                        b.wedge((ta, 0, n_ - dd), (tb, hh, n_ + 0.2), col, down="-z", name="Eboulis")
-                    elif sens == "-x":
-                        b.wedge((n_ - dd, 0, ta), (n_ + 0.2, hh, tb), col, down="-x", name="Eboulis")
-                    else:
-                        b.wedge((n_ - 0.2, 0, ta), (n_ + dd, hh, tb), col, down="+x", name="Eboulis")
-        for B in (principal, max((B for B in blocs if B is not principal), key=lambda B: B["x1"] - B["x0"])):
+                hh = ht * float(rng.uniform(0.8, 1.0))
+                col = vary(EBOULIS, rng, 0.05)
+                if sens == "-z":
+                    b.wedge((u0 + 0.3, 0, n_ - dd), (u1 - 0.3, hh, n_ + 0.2), col, down="-z", studs="top", name="Eboulis")
+                elif sens == "+z":
+                    b.wedge((u0 + 0.3, 0, n_ - 0.2), (u1 - 0.3, hh, n_ + dd), col, down="+z", studs="top", name="Eboulis")
+                elif sens == "-x":
+                    b.wedge((n_ - dd, 0, u0 + 0.3), (n_ + 0.2, hh, u1 - 0.3), col, down="-x", studs="top", name="Eboulis")
+                else:
+                    b.wedge((n_ - 0.2, 0, u0 + 0.3), (n_ + dd, hh, u1 - 0.3), col, down="+x", studs="top", name="Eboulis")
+            # blocs d'éboulis aux quatre angles abattus (lavande clair, ocre)
             for sx in (-1, 1):
-                x = B["x0"] - 0.2 if sx < 0 else B["x1"] + 0.2
-                z = B["z0"] - 0.4
-                if dedans(x, 1.0, z, B):
-                    continue
-                sz = float(rng.uniform(1.8, 2.8))
-                b.boxc((x, sz * 0.38, z), (sz, sz * 0.8, sz * 0.9),
-                       vary(("mesa_violet_fonce", "mesa_violet", "mesa_nuit")[int(rng.integers(3))], rng, 0.04),
-                       yaw=float(rng.uniform(15, 50)), studs="top", name="Rocher")
-        # -- 3. côtes rocheuses verticales sur les faces visibles des deux plus hauts lobes ----------------------
-        hauts = sorted(blocs, key=lambda B: -B["h"])[:2]
-        for tour in range(3):
-            for B in hauts:
-                for sens in ("-z", "-x", "+x"):
-                    if reste() < 26:
+                for sz in (-1, 1):
+                    if reste() < 12 or (cf == 0 and B is not principal):
                         break
-                    u0, u1, n_ = face(B, sens)
-                    larg = float(rng.choice([2.6, 3.0, 3.6]))
-                    if u1 - u0 < larg + 3:
+                    x = (B["x0"] if sx < 0 else B["x1"]) - sx * cf * 0.5
+                    z = (B["z0"] if sz < 0 else B["z1"]) - sz * cf * 0.5
+                    if dedans(x + sx * 1.0, z + sz * 1.0, 1.0, B):
                         continue
-                    uc = _q(float(rng.uniform(u0 + larg / 2 + 1, u1 - larg / 2 - 1))) + 0.25
-                    ya = min(0.2 * H, 0.32 * B["h"]) - 0.6
-                    yb = B["top"] if rng.uniform() < 0.5 else B["top"] - float(rng.choice([1.6, 2.4, 3.4]))
-                    # la côte ne traverse pas un autre lobe : au-dessus d'un lobe plus bas, sinon on renonce
-                    rx0, rx1, rz0, rz1 = {"-z": (uc - larg / 2, uc + larg / 2, n_ - 1.2, n_),
-                                          "-x": (n_ - 1.2, n_, uc - larg / 2, uc + larg / 2),
-                                          "+x": (n_, n_ + 1.2, uc - larg / 2, uc + larg / 2)}[sens]
-                    bloque = False
-                    for o in blocs:
-                        if o is B or rx1 <= o["x0"] - 0.6 or rx0 >= o["x1"] + 0.6 or rz1 <= o["z0"] - 0.6 or rz0 >= o["z1"] + 0.6:
-                            continue
-                        if o["h"] >= yb - 4:
-                            bloque = True
-                        ya = max(ya, o["h"] + 0.3)
-                    if bloque or yb - ya < 4 or dedans(*dehors(B, sens, uc, (ya + yb) / 2, 1.2), B):
-                        continue
-                    if not libre((sens, n_), uc - larg / 2, uc + larg / 2, marge=1.0):
-                        continue
-                    ya -= float(rng.choice([0.0, 0.3, 0.6]))
-                    sa = float(rng.choice([0.9, 1.2]))
-                    ys = [y for y, _, _ in coupes if ya + 0.35 * (yb - ya) < y < ya + 0.7 * (yb - ya)]
-                    ys = float(rng.choice(ys)) if ys else yb
-                    for y0, y1, ton in coupes:
-                        lo, hi = max(y0, ya), min(y1, yb)
-                        if hi - lo >= 0.1:
-                            col = c(ROSE) if ton == ROSE else vary(shade(c(ton), 0.95), rng, 0.03)
-                            # au-dessus de la marche, la côte rentre (et reste sous le débord du chapeau)
-                            plaque(sens, n_, uc - larg / 2, uc + larg / 2, lo, hi, 0.3, sa if lo < ys - 1e-6 else 0.45,
-                                   col, name="Cote")
-        # -- 4. dessus : plaque d'herbe claire, buissons ------------------------------------------------------
+                    if abs(x) > W / 2 - 1.8 or abs(z) > D / 2 - 1.8:
+                        x, z = x - sx * 0.8, z - sz * 0.8
+                    s_ = float(rng.uniform(2.6, 3.6))
+                    b.boxc((x, s_ * 0.36, z), (s_, s_ * 0.72, s_ * 0.85),
+                           vary(("mesa_violet_clair", "ocre", "kaki_clair")[int(rng.integers(3))], rng, 0.04),
+                           yaw=45 + float(rng.uniform(-12, 12)), studs="top", name="Rocher")
+        # -- 3. dessus : plaque d'herbe claire, buissons ---------------------------------------------------------
         top = principal
         for k in range(3):
-            if reste() < 8:
+            if reste() < 14:
                 break
             sx, sz = float(rng.choice([3.0, 4.0, 5.0])), float(rng.choice([3.0, 4.0]))
-            if top["x1"] - top["x0"] < sx + 3 or top["z1"] - top["z0"] < sz + 3:
+            if top["x1"] - top["x0"] < sx + 4 or top["z1"] - top["z0"] < sz + 4:
                 continue
-            x = _q(float(rng.uniform(top["x0"] + sx / 2 + 1, top["x1"] - sx / 2 - 1)))
-            z = _q(float(rng.uniform(top["z0"] + sz / 2 + 1, top["z1"] - sz / 2 - 1)))
+            x = _q(float(rng.uniform(top["x0"] + sx / 2 + 2, top["x1"] - sx / 2 - 2)))
+            z = _q(float(rng.uniform(top["z0"] + sz / 2 + 2, top["z1"] - sz / 2 - 2)))
             if k == 0:
                 b.box((x - sx / 2 + 0.25, top["h"], z - sz / 2 + 0.25), (x + sx / 2 + 0.25, top["h"] + 0.3, z + sz / 2 + 0.25),
                       vary("herbe_claire", rng, 0.03), studs="top", name="Herbe", **DETAIL)
@@ -876,41 +847,56 @@ def mesa(b, variant: int = 0, largeur: float = 30, profondeur: float = 26, haute
                        collide=False, name="Buisson")
                 b.boxc((x + 0.2, top["h"] + 1.65, z - 0.1), (1.5, 0.5, 1.3), vary("feuillage", rng, 0.04), yaw=yaw + 30,
                        studs="top", collide=False, name="Buisson")
-        # -- 5. fissures sombres ---------------------------------------------------------------------------------
-        for sens in ("-z", "-x" if rng.uniform() < 0.5 else "+x"):
-            if reste() < 6:
-                break
-            u0, u1, n_ = face(principal, sens)
-            if u1 - u0 < 6:
-                continue
+        # -- 4. une fissure sombre sur la face avant du lobe principal -------------------------------------------
+        cf = principal["c"]
+        u0, u1, n_ = principal["x0"] + cf, principal["x1"] - cf, principal["z0"]
+        if u1 - u0 >= 6 and reste() > 8:
             uc = _q(float(rng.uniform(u0 + 2, u1 - 2))) + 0.25
-            if not libre((sens, n_), uc - 0.4, uc + 0.4, marge=0.6):
-                continue
-            ya = min(0.2 * H, 0.32 * principal["h"]) + 0.5
-            yb = principal["top"] - float(rng.uniform(1.5, 3.0))
+            ya = min(0.3 * H, 0.34 * principal["h"]) + 0.5
+            yb = min(principal["top"] - float(rng.uniform(1.5, 3.0)), ya + 0.5 * H)
+            # la fissure suit le fruit des flancs : un tronçon par palier de retrait
+            ys = sorted({ya, yb} | {y0 for y0, _, _ in strates if ya < y0 < yb})
             col = vary(mix(c("mesa_nuit"), c("mesa_violet_fonce"), 0.3), rng, 0.03)
-            plaque(sens, n_, uc - 0.4, uc + 0.4, ya, yb, 0.1, 0.2, col, name="Fissure", **DETAIL)
-        # -- 6. coulures d'herbe sous les chapeaux, jusqu'au budget ---------------------------------------------
+            for y_a, y_b in zip(ys[:-1], ys[1:]):
+                r_ = retrait(max(y0 for y0, _, _ in strates if y0 <= y_a + 1e-6))
+                if y_b - y_a >= 0.3:
+                    b.box((uc - 0.4, y_a, n_ + r_ - 0.2), (uc + 0.4, y_b, n_ + r_ + 0.1), col, name="Fissure", **DETAIL)
+        # -- 5. coulures d'herbe sous les chapeaux débordants, jusqu'au budget ------------------------------------
         cands = []
         for B in blocs:
-            for sens in ("-z", "-x", "+x", "+z"):
-                u0, u1, n_ = face(B, sens)
+            cf, r_ = B["c"], B.get("r", 0.0)
+            for sens, u0, u1, n_ in (("-z", B["x0"] + cf, B["x1"] - cf, B["z0"] + r_),
+                                     ("-x", B["z0"] + cf, B["z1"] - cf, B["x0"] + r_),
+                                     ("+x", B["z0"] + cf, B["z1"] - cf, B["x1"] - r_),
+                                     ("+z", B["x0"] + cf, B["x1"] - cf, B["z1"] - r_)):
                 for _ in range(max(1, int((u1 - u0) / 4))):
-                    cands.append((float(rng.uniform(0, 1)) + (0.6 if sens == "+z" else 0.0), B, sens))
+                    cands.append((float(rng.uniform(0, 1)) + (0.6 if sens == "+z" else 0.0), B, sens, u0, u1, n_))
         cands.sort(key=lambda t: t[0])
-        for _, B, sens in cands:
+        pris: dict = {}
+        for _, B, sens, u0, u1, n_ in cands:
             if reste() < 1:
                 break
-            u0, u1, n_ = face(B, sens)
             wd = float(rng.choice([1.0, 1.4, 2.0, 2.4]))
             if u1 - u0 < wd + 2:
                 continue
-            uc = min(u1 - wd / 2 - 0.15, max(u0 + wd / 2 + 0.15, _q(float(rng.uniform(u0 + wd / 2 + 0.75, u1 - wd / 2 - 0.75))) + 0.25))
-            ld = float(rng.choice([0.8, 1.2, 1.6, 2.2, 2.8, 3.4])) * (1.0 if H < 34 else 1.4)
-            if dedans(*dehors(B, sens, uc, B["top"] - 0.5, 0.4), B) or not libre((sens, n_), uc - wd / 2, uc + wd / 2):
+            uc = _q(float(rng.uniform(u0 + wd / 2 + 0.75, u1 - wd / 2 - 0.75))) + 0.25
+            if any(abs(uc - o) < (wd + w2) / 2 + 0.6 for o, w2 in pris.get((id(B), sens), ())):
                 continue
-            plaque(sens, n_, uc - wd / 2, uc + wd / 2, B["top"] - ld, B["top"] + 0.1, 0.1, 0.4, c("herbe"),
-                   name="Coulure", **DETAIL)
+            px, pz = {"-z": (uc, n_ - 1.4), "+z": (uc, n_ + 1.4), "-x": (n_ - 1.4, uc), "+x": (n_ + 1.4, uc)}[sens]
+            if dedans(px, pz, B["top"] - 0.5, B):
+                continue
+            pris.setdefault((id(B), sens), []).append((uc, wd))
+            ld = float(rng.choice([1.2, 1.8, 2.4, 3.0, 3.6])) * (1.0 if H < 34 else 1.4)
+            y0, y1 = B["top"] - ld, B["top"] + 0.1
+            a_, b_ = uc - wd / 2, uc + wd / 2
+            if sens == "-z":
+                b.box((a_, y0, n_ - DEB + 0.2), (b_, y1, n_ + 0.1), c("herbe"), name="Coulure", **DETAIL)
+            elif sens == "+z":
+                b.box((a_, y0, n_ - 0.1), (b_, y1, n_ + DEB - 0.2), c("herbe"), name="Coulure", **DETAIL)
+            elif sens == "-x":
+                b.box((n_ - DEB + 0.2, y0, a_), (n_ + 0.1, y1, b_), c("herbe"), name="Coulure", **DETAIL)
+            else:
+                b.box((n_ - 0.1, y0, a_), (n_ + DEB - 0.2, y1, b_), c("herbe"), name="Coulure", **DETAIL)
     return _infos(b, n0)
 
 

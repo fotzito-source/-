@@ -388,6 +388,19 @@ def portail_securite(b, variant: int = 0, ouverture: float = 100.0, hauteur: flo
             p = b.box((-14.2, y_lin + 1.3, za5), (14.2, y_cour - 0.3, zb5), c("violet"), material="Neon", name="Plaque")
             if sz > 0:
                 _label(p, "ACADÉMIE", face="Back", couleur=(255, 255, 255), fond=c("violet"), glow=1.5)
+            else:
+                # côté campus : trois chevrons en pixels blancs lumineux (sans texte), saillie 0,15
+                ya_, yb_ = y_lin + 1.3, y_cour - 0.3
+                cel = 0.9
+                n_ = 5
+                y_top = (ya_ + yb_) / 2 + (n_ * cel + cel) / 2
+                for xc in (-8.5, 0.0, 8.5):
+                    for k in range(n_):
+                        y_ = y_top - k * cel
+                        for sx_ in ((0,) if k == 0 else (-1, 1)):
+                            x_ = xc + sx_ * k * cel
+                            _neon(b, (x_ - cel / 2, y_ - 2 * cel, -zd - 0.15), (x_ + cel / 2, y_, -zd), "neon_blanc",
+                                  name="Chevron")
         # dessous du linteau : bande vitrée et filet lumineux blanc, capteurs
         _verre(b, (-(xi - 8.5), y_lin - 0.4, -4.0), (xi - 8.5, y_lin, 4.0), "vitre_claire", 0.25, collide=False, name="VitreSousFace")
         _neon(b, (-(xi - 9.0), y_lin - 0.6, -0.6), (xi - 9.0, y_lin - 0.4, 0.6), "neon_blanc", name="FiletSousFace")
@@ -1091,48 +1104,48 @@ def mur_campus(b, variant: int = 0, longueur: float = 31.0, hauteur: float = 12.
 
 
 def silhouette_lointaine(b, variant: int = 0, largeur: float = 24.0, profondeur: float = 18.0, hauteur: float = 60.0) -> dict:
-    """Immeuble lointain de la métropole (≤ 8 pièces), avant vers -Z (la route) : volume principal, 2 à 4
-    bandeaux de fenêtres en saillie de 0,2, couronne stud. Couleurs pâles.
-    v0 blanc à grande vitre bleue rayée de blanc ; v1 verre bleu ciel, nez de dalle blancs, couronne blanche ;
-    v2 lavande pâle à bandeaux blancs ; v3 à gradin (deux volumes) blanc et gris clair."""
+    """Immeuble lointain de la métropole (≤ 8 pièces), avant vers -Z (la route) : volume principal, bandes de
+    vitrage verticales plus sombres en saillie de 0,2, couronne stud. Tons moyens et brumeux (mélangés de 30 %
+    de violet foncé) pour rester à l'arrière-plan.
+    v0 blanc brumeux à deux bandes vitrées verticales ; v1 verre bleu ciel à nez de dalle ; v2 lavande à deux
+    bandes verticales ; v3 à gradin (deux volumes)."""
     rng = b.rng
     v = variant % 4
     W, D, h = float(largeur), float(profondeur), float(hauteur)
     x0, x1, zf, zb = -W / 2, W / 2, -D / 2, D / 2
     n0 = len(b.parts)
     yc = h - 3.0
+    fond = c("vitre_violette_fonce")
+
+    def br(nom, t=0.3):
+        return mix(c(nom), fond, t)
+
     if v == 3:
         hb = round(0.55 * h)
-        b.box((x0, 0, zf), (x1, hb, zb), c("facade_blanche"), studs="top", name="Base")
+        b.box((x0, 0, zf), (x1, hb, zb), br("facade_blanche"), studs="top", name="Base")
         xa, xb, za, zb2 = x0 + 3.0, x1 - 3.0, zf + 3.0, zb - 2.0
-        b.box((xa, hb, za), (xb, yc, zb2), c("beton_clair"), name="Haut")
+        b.box((xa, hb, za), (xb, yc, zb2), br("beton_clair"), name="Haut")
         for t in (0.35, 0.7):
             y = hb * t
-            b.box((x0 + 1.5, y, zf - 0.2), (x1 - 1.5, y + 3.0, zf), c("vitre_bleue"), name="Bandeau")
+            b.box((x0 + 1.5, y, zf - 0.2), (x1 - 1.5, y + 3.0, zf), br("vitre_bleue", 0.4), name="Bandeau")
         for t in (0.3, 0.65):
             y = hb + (yc - hb) * t
-            b.box((xa + 1.5, y, za - 0.2), (xb - 1.5, y + 3.0, za), c("vitre_ciel"), name="Bandeau")
-        b.box((xa - 0.4, yc, za - 0.4), (xb + 0.4, h, zb2 + 0.4), c("blanc"), studs="top", name="Couronne")
+            b.box((xa + 1.5, y, za - 0.2), (xb - 1.5, y + 3.0, za), br("vitre_ciel", 0.4), name="Bandeau")
+        b.box((xa - 0.4, yc, za - 0.4), (xb + 0.4, h, zb2 + 0.4), br("blanc", 0.25), studs="top", name="Couronne")
     else:
-        corps = (c("facade_blanche"), c("vitre_ciel"), c("lavande_pale"))[v]
+        corps = (br("facade_blanche"), br("vitre_ciel"), br("lavande_pale"))[v]
         b.box((x0, 0, zf), (x1, yc, zb), vary(corps, rng, 0.02), name="Corps")
-        if v == 0:
-            b.box((x0 + 2.0, 4.0, zf - 0.2), (x1 - 2.0, yc - 3.0, zf), c("vitre_bleue"), name="Vitre")
-            for t in (0.25, 0.5, 0.75):
-                y = 4.0 + (yc - 7.0) * t
-                b.box((x0 + 1.6, y - 0.5, zf - 0.4), (x1 - 1.6, y + 0.5, zf), c("blanc"), name="Bandeau")
-        elif v == 1:
+        if v in (0, 2):
+            vit = br("vitre_bleue", 0.45) if v == 0 else br("vitre_violette", 0.45)
+            for xa_, xb_ in ((x0 + 2.0, -1.0), (1.0, x1 - 2.0)):
+                b.box((xa_, 4.0, zf - 0.2), (xb_, yc - 3.0, zf), vit, name="Vitrage")
+        else:
             for t in (0.25, 0.5, 0.75):
                 y = yc * t
-                b.box((x0 - 0.2, y - 0.4, zf - 0.2), (x1 + 0.2, y + 0.4, zb + 0.2), c("blanc"), name="Bandeau")
-            b.box((x0 + 3.0, 3.0, zf - 0.1), (x0 + 3.0 + W * 0.25, yc - 3.0, zf), c("vitre_claire"), name="Reflet")
-        else:
-            n = 4
-            for k in range(n):
-                y = yc * (k + 0.6) / (n + 0.4)
-                b.box((x0 - 0.2, y - 1.0, zf - 0.2), (x1 + 0.2, y + 1.0, zb + 0.2), c("blanc"), name="Bandeau")
-        b.box((x0 - 0.4, yc, zf - 0.4), (x1 + 0.4, h, zb + 0.4), c("blanc") if v != 2 else c("lavande"), studs="top",
-              name="Couronne")
+                b.box((x0 - 0.2, y - 0.4, zf - 0.2), (x1 + 0.2, y + 0.4, zb + 0.2), br("blanc", 0.25), name="Bandeau")
+            b.box((x0 + 3.0, 3.0, zf - 0.1), (x0 + 3.0 + W * 0.25, yc - 3.0, zf), br("vitre_claire"), name="Reflet")
+        b.box((x0 - 0.4, yc, zf - 0.4), (x1 + 0.4, h, zb + 0.4), br("blanc", 0.25) if v != 2 else br("lavande"),
+              studs="top", name="Couronne")
     return {"emprise": (W, D), "hauteur": h, "pieces": len(b.parts) - n0}
 
 

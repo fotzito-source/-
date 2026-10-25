@@ -29,8 +29,8 @@ P = {
     "guidage": "#F5CD45",           # bande podotactile jaune
 
     # --- Sol du campus ---------------------------------------------------------------
-    "pave_campus": "#D9D4E4",       # avenue du campus : dalles gris-lavande pâle (référence 2)
-    "pave_campus_clair": "#E8E4F0",
+    "pave_campus": "#CDC6DE",       # avenue du campus : dalles gris-lavande pâle (référence 2)
+    "pave_campus_clair": "#DCD6EA",
     "pave_campus_fonce": "#C4BDD4",
     "dalle": "#CDD0D7",             # dalles de béton (parvis, terrains)
     "dalle_claire": "#E1E3E8",
