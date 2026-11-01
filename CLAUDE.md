@@ -61,7 +61,7 @@ python3 render.py --voix voix        # → video-voix-off.mp4 + sous-titres-voix
 - Voix de l'épisode 03 : Cartesia « Garrett – Enthusiastic Pal », émotion `excited`, vitesse 1,0.
   - Elle remplace « Carson », qui chuchotait et faisait tomber des mots de 20 à 40 dB.
   - Elle se génère par petits groupes de phrases ; pour chaque groupe on garde la meilleure de plusieurs prises (voir `VENDORED.md`).
-  - `voice_fr.py <slug> --offline` la refait à partir des prises déjà payées (`.cache/voice/`).
+  - `voice_fr.py <slug> --offline` la refait à partir des prises déjà payées, sans clé ni crédit. Les prises retenues sont versionnées dans `src/episodes/<slug>/takes/` (FLAC) : la voix se refait aussi sur un clone neuf.
   - Après `sfx.py`, lancer `duck.py` (la voix d'abord), puis `mixcheck.py`.
 - Clé Cartesia : la session lit `CARTESIA_API_KEY` à son démarrage. Une clé changée dans les réglages de l'environnement ne sert qu'à partir d'une nouvelle session.
   - Crédit épuisé : l'API répond HTTP 402.

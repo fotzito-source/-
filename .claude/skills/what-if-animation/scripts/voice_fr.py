@@ -26,6 +26,8 @@ episode.json "voice": {"backend": "auto",
   emotion: a Cartesia emotion ("excited", "happy", "content"...); takes: tries per chunk; chunk: characters per request;
   chunking: "beat" (chunks never cross a beat, a beat may set its own "emotion") or "text" (the whole script, run on)
   --offline builds the take from .cache/voice/<slug>/ only: every take is kept there, named by its text and sound settings
+  The takes the voice is built from are also copied (FLAC, lossless) to src/episodes/<slug>/takes/, which is versioned:
+  on a fresh clone, --offline rebuilds the same voice from them without the cache and without credits.
 Speech check (optional, for the cartesia takes): a NeMo Parakeet model through sherpa-onnx in .cache/asr/ of the studio:
   pip install sherpa-onnx; then from the studio folder
   curl -L https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2 | tar xj -C .cache/asr
@@ -53,7 +55,7 @@ LOCAL = {'model': 'fr_FR-tom-medium', 'length_scale': 0.92, 'noise_scale': 0.62,
 CART = {'model': 'sonic-3', 'id': None, 'language': 'fr', 'speed': None, 'emotion': None, 'volume': None, 'takes': 3, 'chunk': 180, 'chunking': 'beat', **V.get('cartesia', {})}
 backend = args.backend or V.get('backend', 'auto')
 if backend == 'auto':
-    backend = 'cartesia' if os.environ.get('CARTESIA_API_KEY', '').strip() else 'local'
+    backend = 'cartesia' if args.offline or os.environ.get('CARTESIA_API_KEY', '').strip() else 'local'
 
 shown = ' '.join(b['text'].strip() for b in ep['script'])
 spoken = ' '.join(b.get('tts', b['text']).strip() for b in ep['script'])
@@ -329,6 +331,34 @@ def take_files(cache, chunk, voice_id, emo, k):
     return cache / f'{key}.wav', cache / f'{key}.json'
 
 
+KEPT = ep_dir(slug) / 'takes'
+
+
+def kept_files(chunk, voice_id, emo, k):
+    """The versioned copy of a take the voice is built from (src/episodes/<slug>/takes/, FLAC): .cache is not."""
+    wav, js = take_files(KEPT, chunk, voice_id, emo, k)
+    return wav.with_suffix('.flac'), js
+
+
+def keep_takes(todo, report, voice_id):
+    """Copy the chosen takes next to episode.json and drop the copies no chunk uses any more."""
+    import subprocess
+    cache = STUDIO / '.cache' / 'voice' / slug
+    KEPT.mkdir(exist_ok=True)
+    used = set()
+    for (chunk, emo), r in zip(todo, report):
+        k = r['take'] - 1
+        wav, js = take_files(cache, chunk, voice_id, emo, k)
+        kf, kj = kept_files(chunk, voice_id, emo, k)
+        used |= {kf.name, kj.name}
+        if not (kf.exists() and kj.exists()):
+            subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(wav), '-c:a', 'flac', '-compression_level', '8', str(kf)], check=True)
+            save_json(kj, load_json(js))
+    for f in KEPT.iterdir():
+        if f.name not in used:
+            f.unlink()
+
+
 def cart_story(voice_id):
     """The whole script, beat by beat and a few sentences at a time, best of CART['takes'] takes each (a beat may
     set its own "emotion"); cached per chunk and take."""
@@ -343,8 +373,11 @@ def cart_story(voice_id):
         best, new_takes = None, 0
         for k in range(int(CART['takes'])):
             wav, js = take_files(cache, chunk, voice_id, emo, k)
+            kf, kj = kept_files(chunk, voice_id, emo, k)
             if js.exists() and wav.exists() and not args.force:
                 x, w = decode(wav), load_json(js)
+            elif kf.exists() and kj.exists() and not args.force:
+                x, w = decode(kf), load_json(kj)
             elif args.offline:
                 continue
             else:
@@ -368,6 +401,7 @@ def cart_story(voice_id):
         words += [{**q, 's': q['s'] + at, 'e': q['e'] + at} for q in w]
         at += len(x) / SR + 0.6
     save_json(out_dir(slug) / 'voice_takes.json', report)
+    keep_takes(todo, report, voice_id)
     x = np.concatenate(parts[:-1])
     x = level_words(x, SR, words)
     x = compress(x, SR)

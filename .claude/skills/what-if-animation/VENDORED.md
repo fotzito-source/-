@@ -23,8 +23,11 @@ Ce qui diffère de l'original :
     docstring) ;
   - ensuite, les mots sont égalisés un à un, puis passés dans un compresseur doux.
 
-  Chaque prise reste dans `.cache/voice/<slug>/`. Son nom ne dépend que du texte et des réglages qui changent le son.
-  `--offline` refait la voix à partir de ces prises seulement, sans appel ni crédit. Il sert aussi pour l'anglais : la langue se règle dans `episode.json`. `--from-audio prise.wav`
+  Chaque prise reste dans `.cache/voice/<slug>/`, qui n'est pas versionné. Son nom ne dépend que du texte et des
+  réglages qui changent le son. Les prises retenues sont aussi copiées en FLAC (sans perte) dans
+  `src/episodes/<slug>/takes/`, qui est versionné. `--offline` refait la voix à partir de ces prises seulement, sans
+  appel ni crédit : sur un clone neuf et sans clé, il redonne la même voix au bit près. Le script sert aussi pour
+  l'anglais : la langue se règle dans `episode.json`. `--from-audio prise.wav`
   reprend une prise faite ailleurs (le site de Cartesia, par exemple) : les horaires des mots viennent d'un alignement
   DTW sur la voix locale. Les mots qu'espeak fusionne (« of the ») sont redécoupés.
 - **`scripts/sfx_local.py` (ajouté)** : synthétise en numpy les bruitages marqués `procedural:` dans `episode.json`. Il
