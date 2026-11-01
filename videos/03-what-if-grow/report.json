@@ -1,5 +1,8 @@
 {
- "video": "grow-full-youtube.mp4",
+ "video": [
+  "grow-full-youtube.mp4",
+  "grow-full-tiktok.mp4"
+ ],
  "parts": [
   "grow (Part 1, 1892 frames)",
   "grow2 (Part 2, 1852 frames)"
@@ -12,5 +15,12 @@
  "lufs": -14.1,
  "true_peak_dbtp": -1.87,
  "shots": 62,
- "voice": "Cartesia sonic-3, Carson - Curious Conversationalist, speed 0.9"
+ "voice": "Cartesia sonic-3, Carson - Curious Conversationalist, speed 0.9",
+ "tiktok": {
+  "width": 1080,
+  "height": 1920,
+  "video_kbps": 5753,
+  "lufs": -14.1,
+  "true_peak_dbtp": -1.87
+ }
 }

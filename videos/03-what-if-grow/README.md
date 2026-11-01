@@ -84,7 +84,7 @@ Pour les sous-titres, active les sous-titres automatiques de TikTok : ils s'affi
     GitHub ;
   - YouTube réencode le 1440p en VP9, ce qui donne une meilleure image à la diffusion qu'un envoi en 1080p.
 - **TikTok :** rendu vectoriel direct en 1080 × 1920 (pas un agrandissement), puis H.264 High en 2 passes,
-  5,6 Mbit/s (environ 90 Mo).
+  5,8 Mbit/s (90 Mo).
 - **Son :** les deux versions sont à −14,1 LUFS intégrés, crête vraie −1,9 dBTP.
 
 ## Refaire les rendus
