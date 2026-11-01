@@ -5,9 +5,10 @@ La version anglaise et longue de l'épisode 02, faite avec le même skill
 
 - **Format :** 2560 × 1440 (1440p), 30 i/s, 16/9.
   - Rendu à 2880 × 1620, puis réduit en Lanczos : contours plus nets.
-  - H.264 High en CRF 14, preset « slow ».
+  - Fichier livré : H.264 High en 2 passes à 11,3 Mbit/s (91 Mo), dans ce que YouTube recommande pour le 1440p. Le
+    master en CRF 14 (336 Mo) dépasse la limite de 100 Mo de GitHub et reste dans `what-if-studio/out/grow/`.
   - YouTube réencode le 1440p en VP9, ce qui donne une bien meilleure image à la diffusion qu'un envoi en 1080p.
-- **Durée :** {DUREE} s, avec un carton de fin « PART 1 / WHAT WOULD YOU DO? ».
+- **Durée :** 64,5 s, avec un carton de fin « PART 1 / WHAT WOULD YOU DO? ».
 - **Structure :** 32 plans sur les 7 temps de la formule What If, dont 8 nouveaux plans par rapport à la version
   française :
   - Pip grandit dans le bureau ;
@@ -17,7 +18,7 @@ La version anglaise et longue de l'épisode 02, faite avec le même skill
   - deux schémas de plus (la charge ×10 par pouce carré, puis le fémur qui casse vers ×10 le poids du corps) ;
   - la nuit où Pip rétrécit sur le toit ;
   - le carton de fin.
-- **Son :** {LUFS} LUFS intégrés, crête vraie {TP} dBTP.
+- **Son :** −14,0 LUFS intégrés, crête vraie −1,46 dBTP.
 
 | Fichier | Contenu |
 |---|---|

@@ -1,0 +1,18 @@
+{
+ "episode": "Grow",
+ "file": "grow-final.mp4",
+ "seconds": 64.5,
+ "lufs": -14.0,
+ "true_peak_dbtp": -1.46,
+ "segments": 32,
+ "cuts_per_min": 28.9,
+ "elevenlabs_credits": 0,
+ "cost_lines": [
+  {
+   "step": "voice (local Piper)",
+   "credits": 0,
+   "note": "provisional offline voice, no API"
+  }
+ ],
+ "video": "2560x1440, 30 fps, H.264 High, 11.3 Mbit/s (two-pass), from a 2880x1620 render downscaled with Lanczos"
+}
