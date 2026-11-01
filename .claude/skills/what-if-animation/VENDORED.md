@@ -12,11 +12,16 @@ Ce qui diffère de l'original :
   - Piper en local (`pip install piper-tts onnx`), voix provisoire.
 
   Dans les deux cas, il écrit les mêmes fichiers que `voice.py` (`voice.wav`, `words.json`) avec le même resserrage
-  des pauses.
+  des pauses. Il sert aussi pour l'anglais : la langue se règle dans `episode.json`. `--from-audio prise.wav`
+  reprend une prise faite ailleurs (le site de Cartesia, par exemple) : les horaires des mots viennent d'un alignement
+  DTW sur la voix locale. Les mots qu'espeak fusionne (« of the ») sont redécoupés.
 - **`scripts/sfx_local.py` (ajouté)** : synthétise en numpy les bruitages marqués `procedural:` dans `episode.json`. Il
   les range dans `library/sfx/` sous le nom que `sfx.py` attend : `sfx.py` les trouve et n'appelle pas l'API.
+- **Recette `music_loop`** dans `sfx_local.py` : la musique de la bibliothèque, bouclée en fondu enchaîné pour les
+  ouvertures plus longues que ses 17 s.
 - **`scripts/srt.py` (ajouté)** : sous-titres SRT pour l'import sur YouTube (jamais incrustés, comme le veut le style).
 - **Moteur** (`what-if-studio/src/engine/sets/rooftop.tsx`) : `Rooftop` accepte `between`, un calque placé entre la
-  ville et notre toit. C'est là que se tient un géant debout dans la rue derrière l'immeuble.
+  ville et notre toit. C'est là que se tient un géant debout dans la rue derrière l'immeuble. `strings={false}`
+  retire les guirlandes.
 
 Le reste (`SKILL.md`, `references/`, les autres scripts) est inchangé.

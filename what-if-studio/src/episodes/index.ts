@@ -2,5 +2,6 @@
 import { rewind } from './rewind';
 import { copyPaste } from './copy-paste';
 import { grandir } from './grandir';
+import { growEp } from './grow';
 
-export const EPISODES = [rewind, copyPaste, grandir];
+export const EPISODES = [rewind, copyPaste, grandir, growEp];

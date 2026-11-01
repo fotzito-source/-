@@ -187,7 +187,25 @@ def flaps(secs):
     return fade(norm(out, 0.8), 0.01, 0.05)
 
 
-RECIPES = {f.__name__: f for f in [grow, creak, tick, rumble, slide, bone_snap, giant_step, flaps]}
+def music_loop(secs):
+    """The library's music bed, looped to `secs` with a two-second crossfade (it was generated at 17 s)."""
+    from wi import decode
+    src = clip_path('music', 'playful quirky cartoon background music, pizzicato strings, glockenspiel and soft bass, light and curious, 110 bpm, no vocals', 17.0)
+    if not src.exists():
+        raise SystemExit('music_loop needs the library clip music-*.mp3 (the skill ships it)')
+    x = decode(src)
+    n, xf = int(secs * SR), int(2.0 * SR)
+    out = x[: min(len(x), n)].copy()
+    while len(out) < n:
+        k = min(xf, len(out))
+        ramp = np.linspace(0, 1, k)
+        nxt = x.copy()
+        out[-k:] = out[-k:] * (1 - ramp) + nxt[:k] * ramp
+        out = np.concatenate([out, nxt[k:]])
+    return fade(norm(out[:n], 0.9), 0.01, 1.0)
+
+
+RECIPES = {f.__name__: f for f in [grow, creak, tick, rumble, slide, bone_snap, giant_step, flaps, music_loop]}
 
 
 def write_mp3(path, x):
@@ -205,7 +223,7 @@ for name, (prompt, secs) in ep['sound']['clips'].items():
     if p.exists() and not force:
         kept.append(name)
         continue
-    base = name.split('_v')[0]
+    base = name if name in RECIPES else name.split('_v')[0]
     if base not in RECIPES:
         raise SystemExit(f'No recipe for the procedural clip "{name}": recipes are {", ".join(RECIPES)}')
     write_mp3(p, RECIPES[base](float(secs)))

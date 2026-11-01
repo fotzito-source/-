@@ -7,8 +7,10 @@ Two engines, so the pipeline runs with or without a TTS account (voice.py stays 
             phoneme durations. Good enough to time the edit and the sound; a provisional voice, not the final one.
   auto      cartesia when CARTESIA_API_KEY is set, local otherwise.
 
-python <skill>/scripts/voice_fr.py <slug> [--backend auto|cartesia|local] [--force] [--list]
-  --list   French Cartesia voices, male first (needs the key)
+python <skill>/scripts/voice_fr.py <slug> [--backend auto|cartesia|local] [--force] [--list] [--from-audio take.wav]
+  --list         Cartesia voices in the episode's language, male first (needs the key)
+  --from-audio   use a finished take (exported from Cartesia's site, recorded...): its word timings come from aligning
+                 it (DTW on MFCCs, librosa) on the local Piper reading of the same text
 Reads  src/episodes/<slug>/episode.json: script (each beat's "text", or "tts" for a phonetic spelling with the same
        number of words), voice, gaps
 Writes public/<slug>/voice_raw.wav, public/<slug>/voice.wav (tightened), src/episodes/<slug>/words.json,
@@ -31,6 +33,7 @@ ap.add_argument('slug')
 ap.add_argument('--backend', choices=['auto', 'cartesia', 'local'])
 ap.add_argument('--force', action='store_true')
 ap.add_argument('--list', action='store_true')
+ap.add_argument('--from-audio', help='a take recorded elsewhere (the Cartesia site, a microphone): word timings by aligning it on the local voice')
 args = ap.parse_args()
 slug = args.slug
 ep = load_episode(slug)
@@ -197,17 +200,76 @@ def local_take(text):
                     cur = None
             else:
                 if cur is None:
-                    cur = [n, n]
+                    cur = [n, n, '']
                 cur[1] = n + int(al.num_samples)
+                cur[2] += ph
             n += int(al.num_samples)
         if cur is not None:
             groups.append(cur)
-        for s, e in groups:
-            words.append({'s': (at + s) / sr, 'e': (at + e) / sr})
+        for s, e, ph in groups:
+            words.append({'s': (at + s) / sr, 'e': (at + e) / sr, 'ph': ph})
         parts += [ch.audio_float_array.astype(np.float64), gap]
         at += len(ch.audio_float_array) + len(gap)
     x = np.concatenate(parts)
-    return x, sr, words
+    return x, sr, split_merged(voice, text, words)
+
+
+def plen(voice, word):
+    ph = ''.join(''.join(p) for p in voice.phonemize(word))
+    return max(1, len(re.sub(r"[ˈˌː.,:;!?…\s-]", '', ph)))
+
+
+def split_merged(voice, text, groups):
+    """espeak joins some words into one phoneme group ("of the", "in the", "her… or"): give each script word its own
+    span, splitting a joined group in proportion to the words' own phoneme lengths."""
+    names = [w['w'] for w in tokens(text)]
+    if len(names) == len(groups):
+        return groups
+    L = [plen(voice, w) for w in names]
+    G = [max(1, len(re.sub(r"[ˈˌː-]", '', g['ph']))) for g in groups]
+    out, i = [], 0
+    for j, g in enumerate(groups):
+        k, tot = 1, L[i]
+        while i + k < len(names) and len(names) - (i + k) > len(groups) - (j + 1) and abs(tot + L[i + k] - G[j]) < abs(tot - G[j]):
+            tot += L[i + k]
+            k += 1
+        if j == len(groups) - 1:
+            k = len(names) - i
+            tot = sum(L[i:i + k])
+        at = g['s']
+        for m in range(k):
+            d = (g['e'] - g['s']) * L[i + m] / tot
+            out.append({'s': at, 'e': at + d})
+            at += d
+        i += k
+    return out
+
+
+def file_take(path, text):
+    """A take made elsewhere: read it, trim its silences at both ends, then find each word in it by aligning it on the
+    local voice reading the same text (whose word timings we know), with DTW over MFCCs."""
+    try:
+        import librosa
+    except ImportError:
+        raise SystemExit('--from-audio needs librosa: pip install librosa')
+    y = decode(path)
+    env = np.convolve(np.abs(y), np.ones(441) / 441, mode='same')
+    loud = np.nonzero(env > max(1e-4, env.max() * 0.02))[0]
+    y = y[max(0, loud[0] - 2205): loud[-1] + 2205]
+    ref, rsr, rwords = local_take(text)
+    hop, sr = 256, 22050
+    def feats(x, xsr):
+        x = librosa.resample(np.asarray(x, dtype=np.float32), orig_sr=xsr, target_sr=sr)
+        m = librosa.feature.mfcc(y=x, sr=sr, n_mfcc=20, hop_length=hop)
+        return (m - m.mean(axis=1, keepdims=True)) / (m.std(axis=1, keepdims=True) + 1e-6)
+    A, B = feats(ref, rsr), feats(y, SR)
+    _, wp = librosa.sequence.dtw(X=A, Y=B, metric='cosine')
+    wp = wp[::-1]
+    ta, tb = wp[:, 0] * hop / sr, wp[:, 1] * hop / sr
+    ua, idx = np.unique(ta, return_index=True)
+    m = lambda t: float(np.interp(t, ua, tb[idx]))
+    words = [{'s': m(w['s']), 'e': max(m(w['s']) + 0.03, m(w['e']))} for w in rwords]
+    return y, SR, words
 
 
 # ---------------------------------------------------------------- the take
@@ -218,13 +280,19 @@ if args.list:
 
 meta = load_json(out_dir(slug) / 'voice_meta.json', {}) or {}
 settings = LOCAL if backend == 'local' else CART
-sig = hashlib.sha1(json.dumps([spoken, backend, settings], sort_keys=True).encode()).hexdigest()[:12]
+src_sig = hashlib.sha1(open(args.from_audio, 'rb').read()).hexdigest() if args.from_audio else ''
+sig = hashlib.sha1(json.dumps([spoken, backend, settings, src_sig], sort_keys=True).encode()).hexdigest()[:12]
 raw_wav = pub_dir(slug) / 'voice_raw.wav'
 raw_words = out_dir(slug) / 'words_raw.json'
 
 if args.force or meta.get('sig') != sig or not raw_wav.exists() or not raw_words.exists():
     t0 = time.time()
-    if backend == 'cartesia':
+    if args.from_audio:
+        print(f'aligning {args.from_audio} on the local voice ({LOCAL["model"]})')
+        x, sr, timed = file_take(args.from_audio, spoken)
+        info = {'backend': 'file', 'file': str(args.from_audio)}
+        cost = {'step': 'voice (take from a file)', 'credits': 0, 'note': f'{args.from_audio}, made outside the pipeline'}
+    elif backend == 'cartesia':
         vid = CART.get('id') or (meta.get('voice_id') if meta.get('backend') == 'cartesia' else None)
         name = ''
         if not vid:

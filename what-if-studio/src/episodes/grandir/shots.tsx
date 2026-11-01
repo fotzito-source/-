@@ -19,7 +19,7 @@ export const GOLD = '#FFC94A';
 
 // ---------- the power, shared by every growth ----------
 /** A growth from `from` to `to`: a crouch before, the push up with an overshoot, a settle. Feet stay where they are. */
-const growth = (t: number, t0: number, from: number, to: number, dur = 8) => {
+export const growth = (t: number, t0: number, from: number, to: number, dur = 8) => {
   const u = clamp((t - t0) / dur);
   const scale = from + (to - from) * backOut(u);
   const crouch = clamp((t - (t0 - 5)) / 5) * (1 - clamp((t - t0) / 2));
@@ -28,10 +28,10 @@ const growth = (t: number, t0: number, from: number, to: number, dur = 8) => {
   return { scale, squash, glint };
 };
 /** The hip point for someone whose feet are on `floor` at this scale. */
-const feetAt = (floor: number, scale: number) => floor - LEG_LEN * scale;
+export const feetAt = (floor: number, scale: number) => floor - LEG_LEN * scale;
 
 /** The power's mark on the world: a gold ring opening on the floor round the feet, sparks rising, a glow. */
-const GrowFx: React.FC<{ x: number; y: number; t: number; s?: number; h?: number }> = ({ x, y, t, s = 1, h = 420 }) => {
+export const GrowFx: React.FC<{ x: number; y: number; t: number; s?: number; h?: number }> = ({ x, y, t, s = 1, h = 420 }) => {
   if (t < 0 || t > 22) return null;
   const k = easeOut(clamp(t / 16));
   return (
@@ -49,7 +49,7 @@ const GrowFx: React.FC<{ x: number; y: number; t: number; s?: number; h?: number
 };
 
 /** A glass jar of cookies with a wooden lid; x, y is the middle of its base. */
-const CookieJar: React.FC<{ x: number; y: number; s?: number; lid?: number; n?: number }> = ({ x, y, s = 1, lid = 0, n = 6 }) => (
+export const CookieJar: React.FC<{ x: number; y: number; s?: number; lid?: number; n?: number }> = ({ x, y, s = 1, lid = 0, n = 6 }) => (
   <g transform={`translate(${x} ${y}) scale(${s})`}>
     <ellipse cx={2} cy={1} rx={44} ry={8} fill="#000" opacity={0.4} />
     {Array.from({ length: n }).map((_, i) => (
@@ -68,11 +68,11 @@ const CookieJar: React.FC<{ x: number; y: number; s?: number; lid?: number; n?: 
 );
 
 // ---------- the kitchen: Pip in front of the fridge; the jar on top of it ----------
-const KF = stand(KITCHEN, 0.86, 0.3); // Pip at the fridge: hips and scale at u 0.86, w 0.3
-const K_FLOOR = KF.y + LEG_LEN * KF.scale;
-const JAR = KITCHEN.P(0.885, 0.16, 0.11); // on top of the fridge
-const K_CEIL = KITCHEN.P(0.86, 0, 0.3).y; // the ceiling line at Pip's depth
-const K_BIG = (K_FLOOR - K_CEIL) / 396; // the scale at which his hood touches the ceiling
+export const KF = stand(KITCHEN, 0.86, 0.3); // Pip at the fridge: hips and scale at u 0.86, w 0.3
+export const K_FLOOR = KF.y + LEG_LEN * KF.scale;
+export const JAR = KITCHEN.P(0.885, 0.16, 0.11); // on top of the fridge
+export const K_CEIL = KITCHEN.P(0.86, 0, 0.3).y; // the ceiling line at Pip's depth
+export const K_BIG = (K_FLOOR - K_CEIL) / 396; // the scale at which his hood touches the ceiling
 
 const reachPose = (t: number): Pose =>
   poseAt(t, [
@@ -179,7 +179,7 @@ const SW_CEIL = -150; // the stairwell's ceiling, drawn by these shots (the set 
 const SW_BIG = 1.45;
 
 /** A school wall clock showing a time in minutes past midnight. */
-const SchoolClock: React.FC<{ x: number; y: number; r: number; min: number }> = ({ x, y, r, min }) => {
+export const SchoolClock: React.FC<{ x: number; y: number; r: number; min: number }> = ({ x, y, r, min }) => {
   const h = ((min / 60) % 12) * 30;
   const m = (min % 60) * 6;
   return (
@@ -198,7 +198,7 @@ const SchoolClock: React.FC<{ x: number; y: number; r: number; min: number }> = 
 };
 
 /** The stairwell's ceiling and cornice, so a giant has something to stoop under. */
-const SwCeiling: React.FC = () => (
+export const SwCeiling: React.FC = () => (
   <g>
     <rect x={-400} y={-600} width={2800} height={600 + SW_CEIL} fill="#1A1420" />
     <rect x={-400} y={SW_CEIL - 18} width={2800} height={18} fill="#2B2432" />
@@ -280,16 +280,16 @@ export const S7: React.FC<ShotProps> = ({ t, len }) => {
 };
 
 // ---------- the rooftop: Mo looks for Pip; Pip grows in the street behind the building ----------
-const ROOF = 840; // feet on our roof deck
-const STREET = 2780; // the street behind our building, far below the parapet (in the rooftop's own coordinates)
+export const ROOF = 840; // feet on our roof deck
+export const STREET = 2780; // the street behind our building, far below the parapet (in the rooftop's own coordinates)
 
 /** Giant Pip standing in the street behind our roof: drawn in the rooftop's `between` layer. */
-const Giant: React.FC<{ x: number; feet: number; s: number; extra?: Partial<Pose>; rim?: string }> = ({ x, feet, s, extra = {}, rim = 'rimL' }) => (
+export const Giant: React.FC<{ x: number; feet: number; s: number; extra?: Partial<Pose>; rim?: string }> = ({ x, feet, s, extra = {}, rim = 'rimL' }) => (
   <Hero look={PIP} pose={{ ...basePose, x, y: feetAt(feet, s), scale: s, ...extra }} rimId={rim} shadow={0} />
 );
 
 /** Mo's head and shoulders as a dark, soft over-the-shoulder shape, about a third of the frame. */
-const MoBack: React.FC<{ x: number; y: number; s: number }> = ({ x, y, s }) => (
+export const MoBack: React.FC<{ x: number; y: number; s: number }> = ({ x, y, s }) => (
   <Foreground blur={16}>
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <path d="M -150 240 Q -140 70 -40 40 Q 40 30 120 60 Q 190 110 200 240 Z" fill="#120D16" />
@@ -360,7 +360,7 @@ export const S10: React.FC<ShotProps> = ({ t, len }) => {
 };
 
 /** The street far below, seen from high above: dark blocks, lit windows, street lights, a car or two. */
-const StreetBelow: React.FC<{ t: number }> = ({ t }) => (
+export const StreetBelow: React.FC<{ t: number }> = ({ t }) => (
   <g>
     <rect x={-1000} y={-800} width={3920} height={2700} fill="#120E1A" />
     <g filter="url(#blur6)">
@@ -387,7 +387,7 @@ const StreetBelow: React.FC<{ t: number }> = ({ t }) => (
 
 // S11: high angle, from up where his head is now: « Encore. » The roof far below, Mo tiny, looking up into Pip's shadow
 /** POV from his head, looking down: the hood's edge and the two drawstrings hanging into the top of frame. */
-const HoodPOV: React.FC<{ t: number }> = ({ t }) => {
+export const HoodPOV: React.FC<{ t: number }> = ({ t }) => {
   const sw = Math.sin(t / 5) * 18;
   return (
     <g>
@@ -501,7 +501,7 @@ export const S13: React.FC<ShotProps> = ({ t, len }) => {
 };
 
 /** Pigeons circling a point, flapping. */
-const Pigeons: React.FC<{ x: number; y: number; t: number; rx: number; ry: number; n?: number }> = ({ x, y, t, rx, ry, n = 5 }) => (
+export const Pigeons: React.FC<{ x: number; y: number; t: number; rx: number; ry: number; n?: number }> = ({ x, y, t, rx, ry, n = 5 }) => (
   <g>
     {Array.from({ length: n }).map((_, i) => {
       const a = t / 7 + (i * Math.PI * 2) / n;
@@ -584,10 +584,10 @@ export const S15: React.FC<ShotProps> = ({ t, len }) => {
   );
 };
 // ---------- the turn: the schematic, then the step ----------
-const fr = (v: number) => Math.round(v).toLocaleString('en-US').replace(/,/g, ' ');
+export const fr = (v: number) => Math.round(v).toLocaleString('en-US').replace(/,/g, ' ');
 
 /** A cube in oblique projection: front face at (x, y) (top-left), side `a`; `grid` subdivisions on each face. */
-const Cube: React.FC<{ x: number; y: number; a: number; t: number; grid?: number; color?: string }> = ({ x, y, a, t, grid = 0, color = SCH.line }) => {
+export const Cube: React.FC<{ x: number; y: number; a: number; t: number; grid?: number; color?: string }> = ({ x, y, a, t, grid = 0, color = SCH.line }) => {
   const d = a * 0.38;
   const outline = `M ${x} ${y} L ${x + a} ${y} L ${x + a} ${y + a} L ${x} ${y + a} Z M ${x} ${y} L ${x + d} ${y - d} L ${x + a + d} ${y - d} L ${x + a} ${y} M ${x + a + d} ${y - d} L ${x + a + d} ${y + a - d} L ${x + a} ${y + a}`;
   const g = clamp((t - 10) / 10);
@@ -608,7 +608,7 @@ const Cube: React.FC<{ x: number; y: number; a: number; t: number; grid?: number
 };
 
 /** Pip as a line drawing (the schematic's figure): hood, head, body, legs. x, y is between the feet; h his height. */
-const Figure: React.FC<{ x: number; y: number; h: number; t: number; color?: string }> = ({ x, y, h, t, color = SCH.line }) => {
+export const Figure: React.FC<{ x: number; y: number; h: number; t: number; color?: string }> = ({ x, y, h, t, color = SCH.line }) => {
   const k = h / 400;
   const d = `M ${x - 30 * k} ${y} L ${x - 12 * k} ${y - 140 * k} L ${x + 12 * k} ${y - 140 * k} L ${x + 30 * k} ${y} M ${x - 40 * k} ${y - 140 * k} L ${x - 44 * k} ${y - 252 * k} Q ${x} ${y - 262 * k} ${x + 44 * k} ${y - 252 * k} L ${x + 40 * k} ${y - 140 * k} Z M ${x - 44 * k} ${y - 248 * k} L ${x - 60 * k} ${y - 150 * k} M ${x + 44 * k} ${y - 248 * k} L ${x + 60 * k} ${y - 150 * k}`;
   return (
@@ -686,7 +686,7 @@ export const S17: React.FC<ShotProps> = ({ t, len }) => {
 };
 
 /** A street of buildings at dusk with room for a giant: sky, sun, the far skyline, a row of houses he can stride over. */
-const StreetSet: React.FC<{ t: number; id: string; red?: number; sunX?: number; sunY?: number; children?: React.ReactNode; front?: React.ReactNode }> = ({ t, id, red = 0, sunX = 1300, sunY = 600, children, front }) => (
+export const StreetSet: React.FC<{ t: number; id: string; red?: number; sunX?: number; sunY?: number; children?: React.ReactNode; front?: React.ReactNode }> = ({ t, id, red = 0, sunX = 1300, sunY = 600, children, front }) => (
   <g>
     <DuskSky id={`${id}sky`} horizonY={900} red={red} />
     <Sun x={sunX} y={sunY} r={150} t={t} red={red} />
@@ -780,7 +780,7 @@ export const S19: React.FC<ShotProps> = ({ t, len }) => {
 
 // ---------- the next day: the kitchen ----------
 /** A plaster cast from the knee to the foot, drawn over the rig's near leg. */
-const LegCast: React.FC<{ pose: Pose; leg: 'legL' | 'legR' }> = ({ pose, leg }) => {
+export const LegCast: React.FC<{ pose: Pose; leg: 'legL' | 'legR' }> = ({ pose, leg }) => {
   const j = joints(pose)[leg];
   const a = toWorld(pose, j.mid);
   const b = toWorld(pose, j.end);
@@ -796,7 +796,7 @@ const LegCast: React.FC<{ pose: Pose; leg: 'legL' | 'legR' }> = ({ pose, leg }) 
 };
 
 /** A crutch from under the near arm to the floor. */
-const Crutch: React.FC<{ pose: Pose; floor: number; dx?: number }> = ({ pose, floor, dx = 40 }) => {
+export const Crutch: React.FC<{ pose: Pose; floor: number; dx?: number }> = ({ pose, floor, dx = 40 }) => {
   const j = joints(pose);
   const top = toWorld(pose, { x: j.armR.root.x + 6, y: j.armR.root.y + 18 });
   const foot = { x: top.x + dx * pose.scale, y: floor };
@@ -812,9 +812,9 @@ const Crutch: React.FC<{ pose: Pose; floor: number; dx?: number }> = ({ pose, fl
   );
 };
 
-const SUIT_AT = stand(KITCHEN, 0.6, 0.4);
-const MOM_AT = stand(KITCHEN, 0.84, 0.3);
-const PIP_IN = stand(KITCHEN, 0.14, 0.66);
+export const SUIT_AT = stand(KITCHEN, 0.6, 0.4);
+export const MOM_AT = stand(KITCHEN, 0.84, 0.3);
+export const PIP_IN = stand(KITCHEN, 0.14, 0.66);
 
 // S20: wide: « Le lendemain, un homme en... » Pip hobbles in on a crutch, his leg in plaster; a man in a suit is waiting
 export const S20: React.FC<ShotProps> = ({ t, len }) => {
