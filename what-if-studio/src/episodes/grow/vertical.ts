@@ -30,7 +30,7 @@ export const VERTICAL: Record<string, Reframe> = {
   S19: { cx: 1000, w: 700 },
   S31: { cx: 1000, w: 700 },
   S20: { fit: true, cx: 820, w: 1350 },
-  S21: { cx: 1150, w: 960 },
+  S21: { cx: 1000, w: 900 },
   S22: { cx: 940, w: 640 },
   S23: { cx: 890, w: 640 },
   S24: { cx: 1080, w: 700 },
