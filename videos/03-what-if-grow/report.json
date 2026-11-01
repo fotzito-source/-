@@ -1,18 +1,16 @@
 {
- "episode": "Grow",
- "file": "grow-final.mp4",
- "seconds": 64.5,
- "lufs": -14.0,
- "true_peak_dbtp": -1.46,
- "segments": 32,
- "cuts_per_min": 28.9,
- "elevenlabs_credits": 0,
- "cost_lines": [
-  {
-   "step": "voice (local Piper)",
-   "credits": 0,
-   "note": "provisional offline voice, no API"
-  }
+ "video": "grow-full-youtube.mp4",
+ "parts": [
+  "grow (Part 1, 1892 frames)",
+  "grow2 (Part 2, 1852 frames)"
  ],
- "video": "2560x1440, 30 fps, H.264 High, 11.3 Mbit/s (two-pass), from a 2880x1620 render downscaled with Lanczos"
+ "seconds": 124.8,
+ "width": 2560,
+ "height": 1440,
+ "fps": 30,
+ "video_kbps": 5860,
+ "lufs": -14.1,
+ "true_peak_dbtp": -1.87,
+ "shots": 62,
+ "voice": "Cartesia sonic-3, Carson - Curious Conversationalist, speed 0.9"
 }
