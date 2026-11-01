@@ -1,0 +1,36 @@
+import { Reframe } from '../../engine';
+
+// The 9:16 cut (TikTok): each shot's window on the 16:9 frame, measured on its motion grid;
+// fit = the whole frame over its own blur (titles, diagrams, wide shots that hold several characters).
+export const VERTICAL: Record<string, Reframe> = {
+  S1: { fit: true, cx: 900, w: 1300 },
+  S2: { cx: 960, w: 700 },
+  S3: { cx: 1000, w: 640 },
+  S4: { cx: 960, w: 700 },
+  S5: { cx: 950, w: 760 },
+  S6: { cx: 950, w: 760 },
+  S7: { cx: 960, w: 760 },
+  S8: { cx: 1100, w: 700 },
+  S9: { fit: true, cx: 946, w: 1400 },
+  S10: { cx: 960, w: 760 },
+  S11: { cx: 980, w: 700 },
+  S12: { cx: 950, w: 760 },
+  S13: { fit: true },
+  S14: { fit: true, cx: 920, w: 1150 },
+  S15: { fit: true, cx: 930, w: 1300 },
+  S16: { cx: 950, w: 760 },
+  S17: { cx: 1190, w: 860 },
+  S18: { cx: 1000, w: 700 },
+  S19: { cx: 1100, w: 760 },
+  S20: { cx: 960, w: 700 },
+  S21: { cx: 1050, w: 760 },
+  S22: { cx: 1150, w: 760 },
+  S23: { cx: 1000, w: 760 },
+  S24: { cx: 900, w: 760 },
+  S25: { cx: 920, w: 640 },
+  S26: { cx: 960, w: 860 },
+  S27: { cx: 820, w: 700 },
+  S28: { cx: 980, w: 700 },
+  S29: { cx: 1150, w: 700 },
+  S30: { fit: true, cx: 960, w: 1560 },
+};

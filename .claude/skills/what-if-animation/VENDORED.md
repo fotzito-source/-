@@ -23,5 +23,15 @@ Ce qui diffère de l'original :
 - **Moteur** (`what-if-studio/src/engine/sets/rooftop.tsx`) : `Rooftop` accepte `between`, un calque placé entre la
   ville et notre toit. C'est là que se tient un géant debout dans la rue derrière l'immeuble. `strings={false}`
   retire les guirlandes.
+- **Recette `heartbeat`** dans `sfx_local.py` (partie 2 de `grow`).
+- **Version verticale 9:16** (`what-if-studio/src/engine/episode.tsx`) : un épisode qui passe `vertical` à
+  `defineEpisode` gagne deux compositions de 1080 × 1920, `<Id>Vertical` et `<Id>VerticalBoard` (déclarées dans
+  `src/Root.tsx`). `vertical` donne, plan par plan, la fenêtre 9:16 sur l'image 16:9 :
+  - `{ cx, w }` : centre et largeur de la fenêtre, en unités 1920 × 1080 (608 = toute la hauteur, sans bandes) ;
+  - `cx2` et `span` : un panoramique vers `cx2` entre deux fractions du plan ;
+  - `{ fit: true, cx, w }` : une bande nette de toute la hauteur, posée sur une copie floue du même plan (titres,
+    schémas, plans larges à plusieurs personnages).
+
+  Les surcouches des looks (le compteur GROW) sont redessinées sur toute la largeur verticale.
 
 Le reste (`SKILL.md`, `references/`, les autres scripts) est inchangé.

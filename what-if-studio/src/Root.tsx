@@ -17,6 +17,8 @@ export const Root: React.FC = () => {
         <React.Fragment key={e.id}>
           <Composition id={e.id} component={e.Main} durationInFrames={Math.max(1, e.total)} {...common} />
           <Composition id={`${e.id}Board`} component={e.Board} durationInFrames={Math.max(1, e.shotCount)} {...common} />
+          {e.Vertical ? <Composition id={`${e.id}Vertical`} component={e.Vertical} durationInFrames={Math.max(1, e.total)} width={1080} height={1920} fps={STUDIO.fps} /> : null}
+          {e.VerticalBoard ? <Composition id={`${e.id}VerticalBoard`} component={e.VerticalBoard} durationInFrames={Math.max(1, e.shotCount)} width={1080} height={1920} fps={STUDIO.fps} /> : null}
         </React.Fragment>
       ))}
       <Composition id="Cast" component={CastSheet} durationInFrames={1} {...common} />

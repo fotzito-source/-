@@ -90,15 +90,17 @@
   },
   "cartesia": {
    "model": "sonic-3",
-   "id": null,
-   "language": "en"
+   "id": "86e30c1d-714b-4074-a1f2-1cb6b552fb49",
+   "language": "en",
+   "name": "Carson - Curious Conversationalist",
+   "speed": 0.9
   }
  },
  "gaps": {
   "word": 0.12,
-  "comma": 0.26,
-  "sentence": 0.42,
-  "question": 0.55,
+  "comma": 0.3,
+  "sentence": 0.5,
+  "question": 0.62,
   "pairs": {
    "terrifying|What": 0.65,
    "wanted|One": 0.4,
@@ -212,7 +214,7 @@
   },
   {
    "shot": "S18",
-   "at": "Your"
+   "at": "Your#2"
   },
   {
    "shot": "S19",

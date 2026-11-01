@@ -205,7 +205,20 @@ def music_loop(secs):
     return fade(norm(out[:n], 0.9), 0.01, 1.0)
 
 
-RECIPES = {f.__name__: f for f in [grow, creak, tick, rumble, slide, bone_snap, giant_step, flaps, music_loop]}
+def heartbeat(secs):
+    """One heartbeat, lub-dub: two low thumps a fifth of a second apart."""
+    t = tt(secs)
+    out = np.zeros(len(t))
+    for at, g, f0 in [(0.02, 1.0, 58), (0.24, 0.7, 66)]:
+        p = tt(0.25)
+        f = f0 * (0.8 + 0.2 * np.exp(-p / 0.05))
+        out_k = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-p / 0.07) * g
+        out_k += 0.3 * filt(noise(len(p), int(at * 100) + 91), 'low', 180) * np.exp(-p / 0.03) * g
+        place(out, out_k, at)
+    return fade(norm(out), 0.002, 0.05)
+
+
+RECIPES = {f.__name__: f for f in [grow, creak, tick, rumble, slide, bone_snap, giant_step, flaps, music_loop, heartbeat]}
 
 
 def write_mp3(path, x):

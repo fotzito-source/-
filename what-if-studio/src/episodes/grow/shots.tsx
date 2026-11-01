@@ -383,7 +383,9 @@ export const S31: React.FC<ShotProps> = ({ t, len }) => {
           <g>
             <rect x={-400} y={-400} width={2720} height={1900} fill="#070B22" opacity={0.6 * k} />
             <Stars seed={7} x0={-200} y0={-200} w={2320} h={700} t={t} n={60} o={0.9 * k} />
-            <Moon x={420} y={240} r={60} bloom={k} />
+            <g opacity={k}>
+              <Moon x={420} y={240} r={60} bloom={k} />
+            </g>
             <rect x={seat.x - 140} y={seat.y} width={520} height={600} fill="#120A16" />
             <rect x={seat.x - 140} y={seat.y} width={520} height={14} fill="#241826" />
             <Hero look={PIP} pose={{ ...pose, ...faceAt(t, [[0, 'worried'], [Math.round(len * 0.6), 'tired']]) }} rimId={k > 0.5 ? 'rimBlue' : 'rimRed'} shadow={0} />

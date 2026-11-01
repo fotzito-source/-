@@ -22,10 +22,11 @@ python3 render.py              # → animatic.mp4 + sous-titres.srt
 python3 render.py --stills 2,24,38   # images de contrôle dans stills/
 ```
 
-## Vidéos « What If » (YouTube, 16/9)
+## Vidéos « What If » (YouTube 16/9, TikTok 9:16)
 
 | Fichier | Contenu |
 |---|---|
 | [`videos/02-what-if-grandir/`](videos/02-what-if-grandir/) | Vidéo 02 : « Et si tu pouvais grandir à volonté ? ». Vidéo finale, storyboard, sous-titres, README (analyse du skill, commandes) |
-| `what-if-studio/` | Le studio Remotion du skill What If : moteur, décors, personnages, et l'épisode `src/episodes/grandir/` |
+| [`videos/03-what-if-grow/`](videos/03-what-if-grow/) | Vidéo 03, en anglais : « What if you could grow at will? », parties 1 et 2 à la suite (2 min 05). Version YouTube 1440p, version TikTok 9:16, sous-titres, README |
+| `what-if-studio/` | Le studio Remotion du skill What If : moteur, décors, personnages, et les épisodes `src/episodes/grandir/`, `grow/` et `grow2/` |
 | `.claude/skills/what-if-animation/` | Le skill What If (FreshStack, MIT), avec les scripts ajoutés pour le français (voir `VENDORED.md`) |

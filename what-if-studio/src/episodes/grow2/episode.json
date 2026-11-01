@@ -1,0 +1,944 @@
+{
+ "id": "Grow2",
+ "slug": "grow2",
+ "topic": "What if you could grow at will? Part 2",
+ "title": [
+  "PART 2",
+  "THE WORD"
+ ],
+ "accent": "WORD",
+ "power": {
+  "word": "Grow.",
+  "rule": "one word, and you get bigger, as big as you like",
+  "look": "a gold pulse from the feet, eyes lit gold, a height ruler climbing to ×10, a GROW chip; a low swell snapping up into a springy overshoot"
+ },
+ "cast": [
+  "pipHood",
+  "mo",
+  "mom",
+  "suit",
+  "sis"
+ ],
+ "language": "en",
+ "length_note": "Part 2 of the long cut, continuing from Part 1's cliffhanger; Parts 1 and 2 play back to back (about 2 min 20 s).",
+ "script": [
+  {
+   "beat": "1 cold open: the run up the stairs",
+   "text": "You run. Crutch first, every stair. Her door won't open. Because her room isn't a room anymore."
+  },
+  {
+   "beat": "1 cold open: the reveal",
+   "text": "Your little sister is the size of the house. And she loves it. She laughs, and every window on the street rattles."
+  },
+  {
+   "beat": "2 the rule, turned",
+   "text": "Here's what you didn't know: the word works for anyone who hears it."
+  },
+  {
+   "beat": "3 the fun part, hers",
+   "text": "She waves at the whole street. Mum faints. Twice. She picks up the cat, very gently."
+  },
+  {
+   "beat": "4 the turn: a new cost, one real fact, worked out",
+   "text": "Then she sways. Blood is heavy. At ten times her height, her heart has to push it ten times higher. That takes about three times the pressure her heart can make. And without blood, a brain switches off in about ten seconds. That's real."
+  },
+  {
+   "beat": "5 the countdown and the choice",
+   "text": "Ten seconds. There's only one way to catch her. You say the word. Your leg isn't healed. You do it anyway."
+  },
+  {
+   "beat": "5 the catch",
+   "text": "Nine. Eight. You catch her. Then you both sit down, and wait. Slowly, the street gets bigger again."
+  },
+  {
+   "beat": "6 someone powerful is watching",
+   "text": "Across the street, the man in the suit isn't calling for help. He's filming. Everything."
+  },
+  {
+   "beat": "7 cliffhanger, a question for the comments",
+   "text": "The next morning, there's a card on your pillow. One word on it. And it isn't grow."
+  }
+ ],
+ "science": [
+  {
+   "claim": "At ten times her height, her heart has to push blood ten times higher; that takes about three times the pressure her heart can make.",
+   "working": "The pressure needed to lift a column of blood is rho g h. Her brain sits about 0.3 m above her heart; at x10 that is 3 m: 1,060 kg/m3 x 9.81 m/s2 x 3 m = 31 kPa = about 235 mmHg, just to get blood up to her brain. A child's mean arterial pressure is about 75 to 85 mmHg: roughly a third of what she would need, so 'about three times the pressure her heart can make'.",
+   "source": "Hydrostatic pressure (rho g h); blood density about 1,060 kg/m3; paediatric blood pressure norms. For scale: a giraffe, built for it, runs at about twice our pressure to lift blood some 2 m."
+  },
+  {
+   "claim": "Without blood, a brain switches off in about ten seconds.",
+   "working": "When blood flow to the brain stops, consciousness is lost within about 5 to 10 seconds.",
+   "source": "R. Rossen, H. Kabat, J. P. Anderson, 'Acute arrest of cerebral circulation in man', Archives of Neurology and Psychiatry, 1943 (loss of consciousness after a mean of about 6.8 s)."
+  }
+ ],
+ "voice": {
+  "backend": "auto",
+  "local": {
+   "model": "en_US-ryan-high",
+   "length_scale": 1.08,
+   "noise_scale": 0.62,
+   "noise_w_scale": 0.8
+  },
+  "cartesia": {
+   "model": "sonic-3",
+   "id": "86e30c1d-714b-4074-a1f2-1cb6b552fb49",
+   "language": "en",
+   "name": "Carson - Curious Conversationalist",
+   "speed": 0.9
+  }
+ },
+ "gaps": {
+  "word": 0.12,
+  "comma": 0.3,
+  "sentence": 0.5,
+  "question": 0.62,
+  "pairs": {
+   "anymore|Your": 0.55,
+   "gently|Then": 0.55,
+   "real|Ten": 0.6,
+   "seconds|There's": 0.45,
+   "anyway|Nine": 0.5,
+   "rattles|Here's": 0.55,
+   "again|Across": 0.65,
+   "Everything|The": 0.65
+  }
+ },
+ "shots": [
+  {
+   "id": "S1",
+   "size": "",
+   "set": "",
+   "key": 26,
+   "note": "the stairwell: Pip hobbles up on his crutch, cast on; PART 2"
+  },
+  {
+   "id": "S2",
+   "size": "",
+   "set": "",
+   "key": 28,
+   "note": "insert: crutch tip, then the cast, step by step"
+  },
+  {
+   "id": "S3",
+   "size": "",
+   "set": "",
+   "key": 21,
+   "note": "the landing: he shoulders her door; gold light round its edges"
+  },
+  {
+   "id": "S4",
+   "size": "",
+   "set": "",
+   "key": 59,
+   "note": "from the street: the roof bursts, a giant head of bunches rises"
+  },
+  {
+   "id": "S5",
+   "size": "",
+   "set": "",
+   "key": 33,
+   "note": "wide: she leans on the roof, delighted; pigeons"
+  },
+  {
+   "id": "S6",
+   "size": "",
+   "set": "",
+   "key": 14,
+   "note": "close-up: the giant face laughing"
+  },
+  {
+   "id": "S7",
+   "size": "",
+   "set": "",
+   "key": 37,
+   "note": "the house across the road: every window rattles"
+  },
+  {
+   "id": "S8",
+   "size": "",
+   "set": "",
+   "key": 36,
+   "note": "close-up: Pip below, looking up; gold rings"
+  },
+  {
+   "id": "S9",
+   "size": "",
+   "set": "",
+   "key": 17,
+   "note": "wide: she waves; tiny Mo and Mum wave back"
+  },
+  {
+   "id": "S10",
+   "size": "",
+   "set": "",
+   "key": 53,
+   "note": "the doorstep: Mum faints, gets up, faints again"
+  },
+  {
+   "id": "S11",
+   "size": "",
+   "set": "",
+   "key": 36,
+   "note": "insert: the cat on her giant palm"
+  },
+  {
+   "id": "S12",
+   "size": "",
+   "set": "",
+   "key": 22,
+   "note": "wide: she sways, stars round her head"
+  },
+  {
+   "id": "S13",
+   "size": "",
+   "set": "",
+   "key": 138,
+   "note": "schematic: heart to brain 0.3 m, at ×10 3 m; blood is heavy"
+  },
+  {
+   "id": "S14",
+   "size": "",
+   "set": "",
+   "key": 89,
+   "note": "schematic: what her heart makes (~80) vs what 3 m needs (~235): ×3"
+  },
+  {
+   "id": "S15",
+   "size": "",
+   "set": "",
+   "key": 75,
+   "note": "schematic: no blood to the brain, a 10 s countdown"
+  },
+  {
+   "id": "S16",
+   "size": "",
+   "set": "",
+   "key": 15,
+   "note": "extreme close-up: her eyes going, red rim"
+  },
+  {
+   "id": "S17",
+   "size": "",
+   "set": "",
+   "key": 17,
+   "note": "wide: the dial 00:10 over the street, Pip small below"
+  },
+  {
+   "id": "S18",
+   "size": "",
+   "set": "",
+   "key": 45,
+   "note": "close-up: Pip decides; gold comes into his eyes"
+  },
+  {
+   "id": "S19",
+   "size": "",
+   "set": "",
+   "key": 35,
+   "note": "wide: GROW: he grows in the street, cast and all"
+  },
+  {
+   "id": "S20",
+   "size": "",
+   "set": "",
+   "key": 37,
+   "note": "insert: the cast, huge, cracking along its length"
+  },
+  {
+   "id": "S21",
+   "size": "",
+   "set": "",
+   "key": 18,
+   "note": "wide: one limping giant step toward the house"
+  },
+  {
+   "id": "S22",
+   "size": "",
+   "set": "",
+   "key": 41,
+   "note": "wide: she topples out of the roof; 9, 8"
+  },
+  {
+   "id": "S23",
+   "size": "",
+   "set": "",
+   "key": 29,
+   "note": "wide: he catches her; the gold flares"
+  },
+  {
+   "id": "S24",
+   "size": "",
+   "set": "",
+   "key": 113,
+   "note": "night: both sit on the street and shrink back"
+  },
+  {
+   "id": "S25",
+   "size": "",
+   "set": "",
+   "key": 52,
+   "note": "the man in the suit, phone up, filming"
+  },
+  {
+   "id": "S26",
+   "size": "",
+   "set": "",
+   "key": 32,
+   "note": "insert: his phone screen: the two giants, REC"
+  },
+  {
+   "id": "S27",
+   "size": "",
+   "set": "",
+   "key": 31,
+   "note": "the bedroom next morning: a card on the pillow"
+  },
+  {
+   "id": "S28",
+   "size": "",
+   "set": "",
+   "key": 19,
+   "note": "insert, top-down: the card, one word, too blurred to read"
+  },
+  {
+   "id": "S29",
+   "size": "",
+   "set": "",
+   "key": 30,
+   "note": "close-up: Pip, wide awake"
+  },
+  {
+   "id": "S30",
+   "size": "",
+   "set": "",
+   "key": 40,
+   "note": "end card: PART 2 / WHAT DO YOU THINK IT SAYS?"
+  }
+ ],
+ "edit": [
+  {
+   "shot": "S1",
+   "at": "You"
+  },
+  {
+   "shot": "S2",
+   "at": "Crutch"
+  },
+  {
+   "shot": "S3",
+   "at": "Her"
+  },
+  {
+   "shot": "S4",
+   "at": "Because"
+  },
+  {
+   "shot": "S5",
+   "at": "Your"
+  },
+  {
+   "shot": "S6",
+   "at": "And"
+  },
+  {
+   "shot": "S7",
+   "at": "She#2"
+  },
+  {
+   "shot": "S8",
+   "at": "Here's"
+  },
+  {
+   "shot": "S9",
+   "at": "She"
+  },
+  {
+   "shot": "S10",
+   "at": "Mum"
+  },
+  {
+   "shot": "S11",
+   "at": "She"
+  },
+  {
+   "shot": "S12",
+   "at": "Then"
+  },
+  {
+   "shot": "S13",
+   "at": "Blood"
+  },
+  {
+   "shot": "S14",
+   "at": "That"
+  },
+  {
+   "shot": "S15",
+   "at": "And"
+  },
+  {
+   "shot": "S16",
+   "at": "That's"
+  },
+  {
+   "shot": "S17",
+   "at": "Ten"
+  },
+  {
+   "shot": "S18",
+   "at": "There's"
+  },
+  {
+   "shot": "S19",
+   "at": "You",
+   "look": "grow"
+  },
+  {
+   "shot": "S20",
+   "at": "Your"
+  },
+  {
+   "shot": "S21",
+   "at": "You"
+  },
+  {
+   "shot": "S22",
+   "at": "Nine"
+  },
+  {
+   "shot": "S23",
+   "at": "You"
+  },
+  {
+   "shot": "S24",
+   "at": "Then"
+  },
+  {
+   "shot": "S25",
+   "at": "Across"
+  },
+  {
+   "shot": "S26",
+   "at": "He's"
+  },
+  {
+   "shot": "S27",
+   "at": "The"
+  },
+  {
+   "shot": "S28",
+   "at": "One"
+  },
+  {
+   "shot": "S29",
+   "at": "And"
+  },
+  {
+   "shot": "S30",
+   "at": "grow+20"
+  }
+ ],
+ "tail": 4.2,
+ "fx": [
+  {
+   "at": "S5",
+   "kind": "shake",
+   "len": 10,
+   "amp": 10
+  },
+  {
+   "at": "S7+6",
+   "kind": "shake",
+   "len": 14,
+   "amp": 6
+  },
+  {
+   "at": "S20-4",
+   "kind": "shake",
+   "len": 8,
+   "amp": 6
+  },
+  {
+   "at": "S21+6",
+   "kind": "flash",
+   "color": "#FF3344",
+   "o": 0.35
+  },
+  {
+   "at": "S24-12",
+   "kind": "shake",
+   "len": 10,
+   "amp": 10
+  },
+  {
+   "at": "S24-12",
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.35
+  },
+  {
+   "at": "S30",
+   "kind": "flash",
+   "color": "#FFF3DC",
+   "o": 0.3
+  }
+ ],
+ "sound": {
+  "note": "Same library and procedural clips as Part 1, plus a few more from the skill's library and a procedural heartbeat. Cues count from shot starts or back from the next shot.",
+  "clips": {
+   "room_tone": [
+    "quiet indoor room tone in the evening, faint distant city hum, no voices",
+    12.5
+   ],
+   "roof_wind": [
+    "a gentle evening breeze on a city rooftop, distant traffic",
+    7.0
+   ],
+   "title_boom": [
+    "a cinematic whoosh rising into a deep boom impact",
+    1.6
+   ],
+   "drone_hit": [
+    "a dark ominous low drone hit, deep cinematic horror sting",
+    2.6
+   ],
+   "cookie_crunch": [
+    "one crunchy bite into a chocolate chip cookie, close up",
+    0.6
+   ],
+   "land": [
+    "a heavy body landing flat on a wooden floor, cartoon thud",
+    0.6
+   ],
+   "step": [
+    "a single sneaker footstep on a wooden stair, close",
+    0.5
+   ],
+   "gulp": [
+    "a nervous cartoon gulp, short",
+    0.5
+   ],
+   "shades": [
+    "cool sunglasses sliding on with a swoosh and a bright metallic glint",
+    0.9
+   ],
+   "sparkle": [
+    "a short bright magical sparkle twinkle, cartoon",
+    0.8
+   ],
+   "counter_tick": [
+    "a fast mechanical counter ticking up rapidly, digits rolling over, getting faster",
+    1.6
+   ],
+   "crack": [
+    "glass cracking sharply, the crack spreading across a pane",
+    1.1
+   ],
+   "bulb_pop": [
+    "a small light bulb popping out, a tiny glass tink and fizz",
+    0.5
+   ],
+   "switch_off": [
+    "a heavy electrical breaker switching off with a dull clunk",
+    0.5
+   ],
+   "grow": [
+    "procedural: the power, a short low swell snapping up into a springy overshoot, a whoosh with it, a gold shimmer at the top",
+    0.75
+   ],
+   "creak": [
+    "procedural: a wooden creak, stick-slip pulses through narrow resonances",
+    0.8
+   ],
+   "tick": [
+    "procedural: one wall clock tick, a hard click and a short metal ping",
+    0.25
+   ],
+   "rumble": [
+    "procedural: a building groaning, low brown noise swelling with a creak and grit trickling down",
+    2.4
+   ],
+   "slide": [
+    "procedural: a photo slid across a stone worktop, a dry hiss stopping with a soft tap",
+    0.7
+   ],
+   "bone_snap": [
+    "procedural: a dry bone snap, hard cracks, a woody body, a low thump, splinters",
+    0.6
+   ],
+   "giant_step": [
+    "procedural: a giant footstep, a deep boom falling in pitch, a wooden thud, things rattling",
+    1.2
+   ],
+   "flaps": [
+    "procedural: pigeons' wings flapping, soft feathery bursts",
+    1.4
+   ],
+   "music_loop": [
+    "procedural: the library's music bed (pizzicato, glockenspiel, soft bass, 110 bpm) looped with a crossfade to cover the long opening",
+    26.0
+   ],
+   "laugh": [
+    "a small classroom of kids bursting out laughing",
+    1.6
+   ],
+   "cat_chirp": [
+    "a cat making a short curious chirp meow",
+    0.6
+   ],
+   "dizzy": [
+    "cartoon dizzy birds tweeting in a circle after a bonk",
+    1.4
+   ],
+   "catch": [
+    "a hand catching a ceramic mug mid-air, soft slap and thud",
+    0.5
+   ],
+   "fall_whoosh": [
+    "a small object falling fast through the air, short soft whoosh",
+    0.6
+   ],
+   "clink": [
+    "a ceramic coffee mug knocked by a hand on a wooden desk, short clink and scrape",
+    0.7
+   ],
+   "paper_land": [
+    "a thick stack of paper sheets dropped flat on a wooden desk, a soft slap and rustle",
+    0.7
+   ],
+   "select_draw": [
+    "a quick digital selection sound, a soft rising electronic shimmer as a box is drawn on screen, short",
+    0.6
+   ],
+   "copy_click": [
+    "a crisp satisfying computer copy click with a tiny soft digital chime, short",
+    0.5
+   ],
+   "heartbeat": [
+    "procedural: one heartbeat, lub-dub, two low thumps",
+    0.6
+   ]
+  },
+  "events": [
+   [
+    "S1",
+    "room_tone",
+    0.12,
+    "onset",
+    "S4"
+   ],
+   [
+    "S5-12",
+    "giant_step",
+    0.4,
+    "onset",
+    "S5+4"
+   ],
+   [
+    "S5-11",
+    "crack",
+    0.2,
+    "onset",
+    "S5+6"
+   ],
+   [
+    "S5",
+    "roof_wind",
+    0.12,
+    "onset",
+    "S13"
+   ],
+   [
+    "S5",
+    "flaps",
+    0.06
+   ],
+   [
+    "S6+6",
+    "sparkle",
+    0.18
+   ],
+   [
+    "S7-12",
+    "laugh",
+    0.14,
+    "onset",
+    "S7-1"
+   ],
+   [
+    "S7+6",
+    "rumble",
+    0.06,
+    "onset",
+    "S8"
+   ],
+   [
+    "S8+4",
+    "sparkle",
+    0.14
+   ],
+   [
+    "S9",
+    "flaps",
+    0.06
+   ],
+   [
+    "S10+10",
+    "land",
+    0.28
+   ],
+   [
+    "S10+12",
+    "dizzy",
+    0.07,
+    "onset",
+    "S11-8"
+   ],
+   [
+    "S11-4",
+    "land",
+    0.28
+   ],
+   [
+    "S11+10",
+    "cat_chirp",
+    0.3
+   ],
+   [
+    "S12+2",
+    "dizzy",
+    0.07,
+    "onset",
+    "S13"
+   ],
+   [
+    "S13",
+    "drone_hit",
+    0.1,
+    "onset",
+    "S14"
+   ],
+   [
+    "S16",
+    "drone_hit",
+    0.22,
+    "onset",
+    "S17+10"
+   ],
+   [
+    "S19-8",
+    "sparkle",
+    0.2
+   ],
+   [
+    "S20-6",
+    "grow",
+    0.45,
+    "peak",
+    "S20+1"
+   ],
+   [
+    "S20+6",
+    "bone_snap",
+    0.32
+   ],
+   [
+    "S20+6",
+    "crack",
+    0.18,
+    "onset",
+    "S21"
+   ],
+   [
+    "S22-14",
+    "giant_step",
+    0.34,
+    "onset",
+    "S22+3"
+   ],
+   [
+    "S23-2",
+    "fall_whoosh",
+    0.22,
+    "peak"
+   ],
+   [
+    "S23+6",
+    "catch",
+    0.45
+   ],
+   [
+    "S23+6",
+    "giant_step",
+    0.28,
+    "onset",
+    "S24"
+   ],
+   [
+    "S23+10",
+    "sparkle",
+    0.28
+   ],
+   [
+    "S24",
+    "roof_wind",
+    0.08,
+    "onset",
+    "S27"
+   ],
+   [
+    "S25+6",
+    "select_draw",
+    0.12
+   ],
+   [
+    "S26+2",
+    "copy_click",
+    0.2
+   ],
+   [
+    "S27",
+    "room_tone",
+    0.1,
+    "onset",
+    "S30"
+   ],
+   [
+    "S28+2",
+    "paper_land",
+    0.2
+   ],
+   [
+    "S30",
+    "drone_hit",
+    0.26
+   ]
+  ],
+  "repeats": [
+   {
+    "at": "S1+2",
+    "clip": "step",
+    "n": 5,
+    "every": 7,
+    "gain": [
+     0.08,
+     0.12
+    ],
+    "pitch": [
+     1.15,
+     1.4
+    ],
+    "note": "crutch and cast on the stairs"
+   },
+   {
+    "at": "S2+2",
+    "clip": "step",
+    "n": 6,
+    "every": 9,
+    "gain": [
+     0.08,
+     0.12
+    ],
+    "pitch": [
+     1.05,
+     1.3
+    ]
+   },
+   {
+    "at": "S4-14",
+    "clip": "catch",
+    "n": 2,
+    "every": 6,
+    "gain": [
+     0.1,
+     0.14
+    ],
+    "pitch": [
+     0.7,
+     0.85
+    ],
+    "note": "shouldering the door"
+   },
+   {
+    "at": "S7+6",
+    "clip": "clink",
+    "n": 14,
+    "every": 3,
+    "gain": [
+     0.04,
+     0.07
+    ],
+    "pitch": [
+     1.2,
+     1.7
+    ],
+    "note": "windows rattling"
+   },
+   {
+    "at": "S13+4",
+    "clip": "heartbeat",
+    "n": 6,
+    "every": 24,
+    "gain": [
+     0.11,
+     0.13
+    ],
+    "pitch": [
+     1,
+     1
+    ]
+   },
+   {
+    "at": "S15+6",
+    "clip": "tick",
+    "n": 10,
+    "every": 9,
+    "gain": [
+     0.1,
+     0.14
+    ],
+    "pitch": [
+     1,
+     1.1
+    ],
+    "note": "the countdown"
+   },
+   {
+    "at": "S17+2",
+    "clip": "tick",
+    "n": 3,
+    "every": 12,
+    "gain": [
+     0.18,
+     0.2
+    ],
+    "pitch": [
+     1,
+     1
+    ]
+   },
+   {
+    "at": "S22+2",
+    "clip": "tick",
+    "n": 2,
+    "every": 22,
+    "gain": [
+     0.3,
+     0.3
+    ],
+    "pitch": [
+     1,
+     1
+    ]
+   }
+  ],
+  "music": {
+   "clip": "music_loop",
+   "until": "S12"
+  },
+  "levels": {
+   "sfx_lu": -3.5,
+   "music_lu": -12
+  }
+ }
+}

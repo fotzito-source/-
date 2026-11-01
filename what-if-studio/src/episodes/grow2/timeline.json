@@ -1,0 +1,573 @@
+{
+ "slug": "grow2",
+ "title": "PART 2 THE WORD",
+ "fps": 30,
+ "total": 1852,
+ "segments": [
+  {
+   "shot": "S1",
+   "a": 0,
+   "b": 33,
+   "t0": 0,
+   "t1": 33,
+   "line": "You run."
+  },
+  {
+   "shot": "S2",
+   "a": 33,
+   "b": 89,
+   "t0": 0,
+   "t1": 56,
+   "line": "Crutch first, every stair."
+  },
+  {
+   "shot": "S3",
+   "a": 89,
+   "b": 131,
+   "t0": 0,
+   "t1": 42,
+   "line": "Her door won't open."
+  },
+  {
+   "shot": "S4",
+   "a": 131,
+   "b": 196,
+   "t0": 0,
+   "t1": 65,
+   "line": "Because her room isn't a room anymore."
+  },
+  {
+   "shot": "S5",
+   "a": 196,
+   "b": 262,
+   "t0": 0,
+   "t1": 66,
+   "line": "Your little sister is the size of the house."
+  },
+  {
+   "shot": "S6",
+   "a": 262,
+   "b": 290,
+   "t0": 0,
+   "t1": 28,
+   "line": "And she loves it."
+  },
+  {
+   "shot": "S7",
+   "a": 290,
+   "b": 364,
+   "t0": 0,
+   "t1": 74,
+   "line": "She laughs, and every window on the street rattles."
+  },
+  {
+   "shot": "S8",
+   "a": 364,
+   "b": 436,
+   "t0": 0,
+   "t1": 72,
+   "line": "Here's what you didn't know: the word works for anyone who hears it."
+  },
+  {
+   "shot": "S9",
+   "a": 436,
+   "b": 471,
+   "t0": 0,
+   "t1": 35,
+   "line": "She waves at the whole street."
+  },
+  {
+   "shot": "S10",
+   "a": 471,
+   "b": 530,
+   "t0": 0,
+   "t1": 59,
+   "line": "Mum faints. Twice."
+  },
+  {
+   "shot": "S11",
+   "a": 530,
+   "b": 602,
+   "t0": 0,
+   "t1": 72,
+   "line": "She picks up the cat, very gently."
+  },
+  {
+   "shot": "S12",
+   "a": 602,
+   "b": 626,
+   "t0": 0,
+   "t1": 24,
+   "line": "Then she sways."
+  },
+  {
+   "shot": "S13",
+   "a": 626,
+   "b": 774,
+   "t0": 0,
+   "t1": 148,
+   "line": "Blood is heavy. At ten times her height, her heart has to push it ten times higher."
+  },
+  {
+   "shot": "S14",
+   "a": 774,
+   "b": 869,
+   "t0": 0,
+   "t1": 95,
+   "line": "That takes about three times the pressure her heart can make."
+  },
+  {
+   "shot": "S15",
+   "a": 869,
+   "b": 974,
+   "t0": 0,
+   "t1": 105,
+   "line": "And without blood, a brain switches off in about ten seconds."
+  },
+  {
+   "shot": "S16",
+   "a": 974,
+   "b": 1005,
+   "t0": 0,
+   "t1": 31,
+   "line": "That's real."
+  },
+  {
+   "shot": "S17",
+   "a": 1005,
+   "b": 1040,
+   "t0": 0,
+   "t1": 35,
+   "line": "Ten seconds."
+  },
+  {
+   "shot": "S18",
+   "a": 1040,
+   "b": 1088,
+   "t0": 0,
+   "t1": 48,
+   "line": "There's only one way to catch her."
+  },
+  {
+   "shot": "S19",
+   "a": 1088,
+   "b": 1125,
+   "t0": 0,
+   "t1": 37,
+   "line": "You say the word.",
+   "look": "grow"
+  },
+  {
+   "shot": "S20",
+   "a": 1125,
+   "b": 1168,
+   "t0": 0,
+   "t1": 43,
+   "line": "Your leg isn't healed."
+  },
+  {
+   "shot": "S21",
+   "a": 1168,
+   "b": 1205,
+   "t0": 0,
+   "t1": 37,
+   "line": "You do it anyway."
+  },
+  {
+   "shot": "S22",
+   "a": 1205,
+   "b": 1252,
+   "t0": 0,
+   "t1": 47,
+   "line": "Nine. Eight."
+  },
+  {
+   "shot": "S23",
+   "a": 1252,
+   "b": 1285,
+   "t0": 0,
+   "t1": 33,
+   "line": "You catch her."
+  },
+  {
+   "shot": "S24",
+   "a": 1285,
+   "b": 1428,
+   "t0": 0,
+   "t1": 143,
+   "line": "Then you both sit down, and wait. Slowly, the street gets bigger again."
+  },
+  {
+   "shot": "S25",
+   "a": 1428,
+   "b": 1533,
+   "t0": 0,
+   "t1": 105,
+   "line": "Across the street, the man in the suit isn't calling for help."
+  },
+  {
+   "shot": "S26",
+   "a": 1533,
+   "b": 1598,
+   "t0": 0,
+   "t1": 65,
+   "line": "He's filming. Everything."
+  },
+  {
+   "shot": "S27",
+   "a": 1598,
+   "b": 1660,
+   "t0": 0,
+   "t1": 62,
+   "line": "The next morning, there's a card on your pillow."
+  },
+  {
+   "shot": "S28",
+   "a": 1660,
+   "b": 1699,
+   "t0": 0,
+   "t1": 39,
+   "line": "One word on it."
+  },
+  {
+   "shot": "S29",
+   "a": 1699,
+   "b": 1733,
+   "t0": 0,
+   "t1": 34,
+   "line": "And it isn't grow."
+  },
+  {
+   "shot": "S30",
+   "a": 1733,
+   "b": 1852,
+   "t0": 0,
+   "t1": 119,
+   "line": ""
+  }
+ ],
+ "shots": [
+  {
+   "id": "S1",
+   "size": "",
+   "key": 26,
+   "len": 33,
+   "first": 0,
+   "line": "You run.",
+   "note": "the stairwell: Pip hobbles up on his crutch, cast on; PART 2"
+  },
+  {
+   "id": "S2",
+   "size": "",
+   "key": 28,
+   "len": 56,
+   "first": 33,
+   "line": "Crutch first, every stair.",
+   "note": "insert: crutch tip, then the cast, step by step"
+  },
+  {
+   "id": "S3",
+   "size": "",
+   "key": 21,
+   "len": 42,
+   "first": 89,
+   "line": "Her door won't open.",
+   "note": "the landing: he shoulders her door; gold light round its edges"
+  },
+  {
+   "id": "S4",
+   "size": "",
+   "key": 59,
+   "len": 65,
+   "first": 131,
+   "line": "Because her room isn't a room anymore.",
+   "note": "from the street: the roof bursts, a giant head of bunches rises"
+  },
+  {
+   "id": "S5",
+   "size": "",
+   "key": 33,
+   "len": 66,
+   "first": 196,
+   "line": "Your little sister is the size of the house.",
+   "note": "wide: she leans on the roof, delighted; pigeons"
+  },
+  {
+   "id": "S6",
+   "size": "",
+   "key": 14,
+   "len": 28,
+   "first": 262,
+   "line": "And she loves it.",
+   "note": "close-up: the giant face laughing"
+  },
+  {
+   "id": "S7",
+   "size": "",
+   "key": 37,
+   "len": 74,
+   "first": 290,
+   "line": "She laughs, and every window on the street rattles.",
+   "note": "the house across the road: every window rattles"
+  },
+  {
+   "id": "S8",
+   "size": "",
+   "key": 36,
+   "len": 72,
+   "first": 364,
+   "line": "Here's what you didn't know: the word works for anyone who hears it.",
+   "note": "close-up: Pip below, looking up; gold rings"
+  },
+  {
+   "id": "S9",
+   "size": "",
+   "key": 17,
+   "len": 35,
+   "first": 436,
+   "line": "She waves at the whole street.",
+   "note": "wide: she waves; tiny Mo and Mum wave back"
+  },
+  {
+   "id": "S10",
+   "size": "",
+   "key": 53,
+   "len": 59,
+   "first": 471,
+   "line": "Mum faints. Twice.",
+   "note": "the doorstep: Mum faints, gets up, faints again"
+  },
+  {
+   "id": "S11",
+   "size": "",
+   "key": 36,
+   "len": 72,
+   "first": 530,
+   "line": "She picks up the cat, very gently.",
+   "note": "insert: the cat on her giant palm"
+  },
+  {
+   "id": "S12",
+   "size": "",
+   "key": 22,
+   "len": 24,
+   "first": 602,
+   "line": "Then she sways.",
+   "note": "wide: she sways, stars round her head"
+  },
+  {
+   "id": "S13",
+   "size": "",
+   "key": 138,
+   "len": 148,
+   "first": 626,
+   "line": "Blood is heavy. At ten times her height, her heart has to push it ten times higher.",
+   "note": "schematic: heart to brain 0.3 m, at ×10 3 m; blood is heavy"
+  },
+  {
+   "id": "S14",
+   "size": "",
+   "key": 89,
+   "len": 95,
+   "first": 774,
+   "line": "That takes about three times the pressure her heart can make.",
+   "note": "schematic: what her heart makes (~80) vs what 3 m needs (~235): ×3"
+  },
+  {
+   "id": "S15",
+   "size": "",
+   "key": 75,
+   "len": 105,
+   "first": 869,
+   "line": "And without blood, a brain switches off in about ten seconds.",
+   "note": "schematic: no blood to the brain, a 10 s countdown"
+  },
+  {
+   "id": "S16",
+   "size": "",
+   "key": 15,
+   "len": 31,
+   "first": 974,
+   "line": "That's real.",
+   "note": "extreme close-up: her eyes going, red rim"
+  },
+  {
+   "id": "S17",
+   "size": "",
+   "key": 17,
+   "len": 35,
+   "first": 1005,
+   "line": "Ten seconds.",
+   "note": "wide: the dial 00:10 over the street, Pip small below"
+  },
+  {
+   "id": "S18",
+   "size": "",
+   "key": 45,
+   "len": 48,
+   "first": 1040,
+   "line": "There's only one way to catch her.",
+   "note": "close-up: Pip decides; gold comes into his eyes"
+  },
+  {
+   "id": "S19",
+   "size": "",
+   "key": 35,
+   "len": 37,
+   "first": 1088,
+   "line": "You say the word.",
+   "note": "wide: GROW: he grows in the street, cast and all"
+  },
+  {
+   "id": "S20",
+   "size": "",
+   "key": 37,
+   "len": 43,
+   "first": 1125,
+   "line": "Your leg isn't healed.",
+   "note": "insert: the cast, huge, cracking along its length"
+  },
+  {
+   "id": "S21",
+   "size": "",
+   "key": 18,
+   "len": 37,
+   "first": 1168,
+   "line": "You do it anyway.",
+   "note": "wide: one limping giant step toward the house"
+  },
+  {
+   "id": "S22",
+   "size": "",
+   "key": 41,
+   "len": 47,
+   "first": 1205,
+   "line": "Nine. Eight.",
+   "note": "wide: she topples out of the roof; 9, 8"
+  },
+  {
+   "id": "S23",
+   "size": "",
+   "key": 29,
+   "len": 33,
+   "first": 1252,
+   "line": "You catch her.",
+   "note": "wide: he catches her; the gold flares"
+  },
+  {
+   "id": "S24",
+   "size": "",
+   "key": 113,
+   "len": 143,
+   "first": 1285,
+   "line": "Then you both sit down, and wait. Slowly, the street gets bigger again.",
+   "note": "night: both sit on the street and shrink back"
+  },
+  {
+   "id": "S25",
+   "size": "",
+   "key": 52,
+   "len": 105,
+   "first": 1428,
+   "line": "Across the street, the man in the suit isn't calling for help.",
+   "note": "the man in the suit, phone up, filming"
+  },
+  {
+   "id": "S26",
+   "size": "",
+   "key": 32,
+   "len": 65,
+   "first": 1533,
+   "line": "He's filming. Everything.",
+   "note": "insert: his phone screen: the two giants, REC"
+  },
+  {
+   "id": "S27",
+   "size": "",
+   "key": 31,
+   "len": 62,
+   "first": 1598,
+   "line": "The next morning, there's a card on your pillow.",
+   "note": "the bedroom next morning: a card on the pillow"
+  },
+  {
+   "id": "S28",
+   "size": "",
+   "key": 19,
+   "len": 39,
+   "first": 1660,
+   "line": "One word on it.",
+   "note": "insert, top-down: the card, one word, too blurred to read"
+  },
+  {
+   "id": "S29",
+   "size": "",
+   "key": 30,
+   "len": 34,
+   "first": 1699,
+   "line": "And it isn't grow.",
+   "note": "close-up: Pip, wide awake"
+  },
+  {
+   "id": "S30",
+   "size": "",
+   "key": 40,
+   "len": 119,
+   "first": 1733,
+   "line": "",
+   "note": "end card: PART 2 / WHAT DO YOU THINK IT SAYS?"
+  }
+ ],
+ "fx": [
+  {
+   "kind": "shake",
+   "len": 10,
+   "amp": 10,
+   "f": 196
+  },
+  {
+   "kind": "shake",
+   "len": 14,
+   "amp": 6,
+   "f": 296
+  },
+  {
+   "kind": "shake",
+   "len": 8,
+   "amp": 6,
+   "f": 1121
+  },
+  {
+   "kind": "flash",
+   "color": "#FF3344",
+   "o": 0.35,
+   "f": 1174
+  },
+  {
+   "kind": "shake",
+   "len": 10,
+   "amp": 10,
+   "f": 1273
+  },
+  {
+   "kind": "flash",
+   "color": "#FFE7A0",
+   "o": 0.35,
+   "f": 1273
+  },
+  {
+   "kind": "flash",
+   "color": "#FFF3DC",
+   "o": 0.3,
+   "f": 1733
+  }
+ ],
+ "audio": {
+  "voice": "grow2/voice.wav",
+  "sfx": "grow2/sfx.wav",
+  "voiceVol": 0.5471,
+  "sfxVol": 0.8,
+  "music": "grow2/music.wav",
+  "musicVol": 0.0887
+ }
+}

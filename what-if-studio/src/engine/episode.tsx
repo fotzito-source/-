@@ -108,7 +108,16 @@ export const ShotFrame: React.FC<{ children: React.ReactNode }> = ({ children })
   </svg>
 );
 
-export type EpisodeProps = { timeline: Timeline; shots: ShotMap; looks?: Record<string, LookDef>; grain?: boolean; vignette?: boolean; bg?: string };
+/**
+ * How a shot is reframed for a vertical (9:16) cut. Crop: a 9:16 window of the 16:9 world, centred on (cx, cy), `w` world
+ * units wide (608 shows the full height). Fit: the whole 16:9 frame in the middle, the same shot blurred behind it (titles,
+ * schematics, anything wide).
+ */
+/** The 9:16 window on a 16:9 shot: centre (cx, cy) and width w in 1920 x 1080 units (608 = full height, no bars),
+ *  panning to cx2 between the fractions span[0] and span[1] of the shot.
+ *  fit: a sharp full-height band of the frame (x from cx - w/2 to cx + w/2, the whole width by default) over its own blur. */
+export type Reframe = { cx?: number; cy?: number; w?: number; fit?: boolean; cx2?: number; span?: [number, number] };
+export type EpisodeProps = { timeline: Timeline; shots: ShotMap; looks?: Record<string, LookDef>; grain?: boolean; vignette?: boolean; bg?: string; vertical?: Record<string, Reframe> };
 
 export const Episode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {}, grain = true, vignette = true, bg = '#0E0C1E' }) => {
   const f = useCurrentFrame();
@@ -153,12 +162,141 @@ export const Board: React.FC<{ timeline: Timeline; shots: ShotMap; grain?: boole
   );
 };
 
-/** Bundle an episode for the registry: the main composition and its storyboard. */
+
+// ---------------------------------------------------------------- the vertical cut (9:16, 1080 x 1920)
+const VW = 1080;
+const VH = 1920;
+
+const VGrade: React.FC<{ f: number; grain: boolean; vignette: boolean }> = ({ f, grain, vignette }) => (
+  <svg width={VW} height={VH} viewBox={`0 0 ${VW} ${VH}`} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+    <defs>
+      <radialGradient id="vVig" cx="50%" cy="50%" r="75%">
+        <stop offset="55%" stopColor="#000" stopOpacity={0} />
+        <stop offset="100%" stopColor="#000" stopOpacity={0.55} />
+      </radialGradient>
+      <filter id="vGrain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={Math.floor(f / 2) % 97} />
+        <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0" />
+      </filter>
+    </defs>
+    {vignette ? <rect width={VW} height={VH} fill="url(#vVig)" /> : null}
+    {grain ? <rect width={VW} height={VH} filter="url(#vGrain)" /> : null}
+  </svg>
+);
+
+/** One shot drawn through a 9:16 window of the world. */
+const VShot: React.FC<{ r: Reframe; p?: number; children: React.ReactNode; blur?: number }> = ({ r, p = 0, children, blur = 0 }) => {
+  const w = r.w ?? 608;
+  const h = (w * VH) / VW;
+  const [a, b] = r.span ?? [0, 1];
+  const k = clamp((p - a) / Math.max(1e-6, b - a));
+  const e = k * k * (3 - 2 * k);
+  const cx = r.cx2 === undefined ? r.cx ?? 960 : (r.cx ?? 960) + (r.cx2 - (r.cx ?? 960)) * e;
+  const cy = r.cy ?? 540;
+  return (
+    <svg width={VW} height={VH} viewBox={`${cx - w / 2} ${cy - h / 2} ${w} ${h}`} preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, filter: blur ? `blur(${blur}px) brightness(0.55)` : undefined }}>
+      <KitDefs />
+      <SetDefs />
+      {children}
+    </svg>
+  );
+};
+
+export const VerticalEpisode: React.FC<EpisodeProps> = ({ timeline: tl, shots, looks = {}, grain = true, vignette = true, bg = '#0E0C1E', vertical = {} }) => {
+  const f = useCurrentFrame();
+  const seg = segAt(tl, f);
+  const Shot = shots[seg.shot];
+  const info = tl.shots.find((s) => s.id === seg.shot);
+  const run = lookRuns(tl).find((r) => f >= r.a && f < r.b);
+  const def = run ? looks[run.look] : undefined;
+  const lv = run ? Math.min(clamp((f - run.a + 1) / 2), clamp((run.b - f) / 2)) : 0;
+  const jitter = def?.jitter && lv > 0 ? Math.sin(f * 13.7) * def.jitter * lv : 0;
+  const { flash, x, y } = fxAt(tl, f);
+  const A = tl.audio;
+  const r = vertical[seg.shot] ?? {};
+  const len = info?.len ?? seg.b - seg.a;
+  const tt = clockAt(seg, f);
+  const shot = Shot ? <Shot t={tt} len={len} f={f} /> : null;
+  const fw = r.fit ? r.w ?? 1920 : 1920;
+  const fitH = (VW * 1080) / fw;
+  const band = `${(r.cx ?? 960) - fw / 2} 0 ${fw} 1080`;
+  return (
+    <AbsoluteFill style={{ backgroundColor: bg }}>
+      <AbsoluteFill style={{ transform: `translate(${x + jitter}px, ${y}px) scale(${x || y ? 1.02 : 1})`, filter: def?.grade && lv > 0 ? def.grade(lv) : undefined }}>
+        {r.fit ? (
+          <>
+            <VShot r={{ cx: 960, cy: 540, w: 700 }} blur={28}>
+              {shot}
+            </VShot>
+            <svg width={VW} height={fitH} viewBox={band} style={{ position: 'absolute', left: 0, top: (VH - fitH) / 2, boxShadow: '0 0 60px rgba(0,0,0,0.6)' }}>
+              <KitDefs />
+              <SetDefs />
+              {shot}
+            </svg>
+          </>
+        ) : (
+          <VShot r={r} p={tt / Math.max(1, len)}>
+            {shot}
+          </VShot>
+        )}
+      </AbsoluteFill>
+      <VGrade f={f} grain={grain} vignette={vignette} />
+      {def?.Overlay && run ? (
+        <svg width={VW} height={VH} viewBox={`0 0 1920 ${(1920 * VH) / VW}`} style={{ position: 'absolute', inset: 0, opacity: lv }}>
+          <g transform="translate(0 260)">
+            <def.Overlay f={f} lv={lv} p={clamp((f - run.a) / (run.b - run.a))} n={run.n} />
+          </g>
+        </svg>
+      ) : null}
+      {flash ? <AbsoluteFill style={{ backgroundColor: flash.color, opacity: flash.o }} /> : null}
+      {A.voice ? <Audio src={staticFile(A.voice)} volume={A.voiceVol ?? 1} /> : null}
+      {A.sfx ? <Audio src={staticFile(A.sfx)} volume={A.sfxVol ?? 1} /> : null}
+      {A.music ? <Audio src={staticFile(A.music)} volume={A.musicVol ?? 1} /> : null}
+    </AbsoluteFill>
+  );
+};
+
+/** The vertical storyboard: frame i is shot i at its key frame, reframed. */
+export const VerticalBoard: React.FC<{ timeline: Timeline; shots: ShotMap; vertical?: Record<string, Reframe> }> = ({ timeline: tl, shots, vertical = {} }) => {
+  const f = useCurrentFrame();
+  const info = tl.shots[Math.min(f, tl.shots.length - 1)];
+  const Shot = shots[info.id];
+  const r = vertical[info.id] ?? {};
+  const shot = Shot ? <Shot t={info.key} len={info.len} f={info.first + info.key} /> : null;
+  const fw = r.fit ? r.w ?? 1920 : 1920;
+  const fitH = (VW * 1080) / fw;
+  const band = `${(r.cx ?? 960) - fw / 2} 0 ${fw} 1080`;
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#0E0C1E' }}>
+      {r.fit ? (
+        <>
+          <VShot r={{ cx: 960, cy: 540, w: 700 }} blur={28}>
+            {shot}
+          </VShot>
+          <svg width={VW} height={fitH} viewBox={band} style={{ position: 'absolute', left: 0, top: (VH - fitH) / 2, boxShadow: '0 0 60px rgba(0,0,0,0.6)' }}>
+            <KitDefs />
+            <SetDefs />
+            {shot}
+          </svg>
+        </>
+      ) : (
+        <VShot r={r} p={info.key / Math.max(1, info.len)}>
+          {shot}
+        </VShot>
+      )}
+      <VGrade f={info.key} grain vignette />
+    </AbsoluteFill>
+  );
+};
+
+/** Bundle an episode for the registry: the main composition and its storyboard (and the vertical cut when it has one). */
 export const defineEpisode = (id: string, p: EpisodeProps) => ({
   id,
   total: p.timeline.total,
   shotCount: p.timeline.shots.length,
   Main: () => <Episode {...p} />,
   Board: () => <Board timeline={p.timeline} shots={p.shots} grain={p.grain} vignette={p.vignette} bg={p.bg} />,
+  Vertical: p.vertical ? () => <VerticalEpisode {...p} /> : null,
+  VerticalBoard: p.vertical ? () => <VerticalBoard timeline={p.timeline} shots={p.shots} vertical={p.vertical} /> : null,
 });
 export type EpisodeDef = ReturnType<typeof defineEpisode>;
