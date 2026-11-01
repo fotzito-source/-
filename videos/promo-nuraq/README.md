@@ -28,7 +28,7 @@ Tout est fabriqué à partir de l'app : vrais écrans (reconstitués avec les to
 
 | Temps | Scène | Légende |
 |---|---|---|
-| 0:00 – 2:24 | Le fil dessine le symbole, le nom apparaît | — |
+| 0:00 – 2:24 | L'étoile du logo scintille, la lumière dessine le symbole, anneau au remplissage, « NURAQ » lettre par lettre, puis le slogan | — |
 | 2:24 – 4:48 | Carte des îles : Coran, Prière, Piliers, le fil suit le chemin | « Apprends l'islam / de façon claire et progressive » |
 | 4:48 – 9:36 | Téléphone : « Combien de piliers l'Islam compte-t-il ? » → 5 → « Bien joué ! » + explication | « Des exercices courts / et une explication à chaque réponse » |
 | 9:36 – 12:36 | Bibliothèque du Coran → reprise de la lecture → Al-Fatiha, verset 1 | « Le Coran / lis et reprends ta lecture » |
@@ -63,6 +63,15 @@ Tout est fabriqué à partir de l'app : vrais écrans (reconstitués avec les to
 | Icônes Feather | `feather-icons` | MIT (`spot/assets/LICENSE-feather.txt`) |
 | Texte arabe du Coran | Tanzil Project | CC BY 3.0, copie à l'identique |
 | Son | Synthétisé (`son/son.py`) | Libre, aucune musique |
+
+## Voix off
+
+- **Texte** : dans `voix-off.txt`. Il compte 12 courtes répliques, une version prête pour un générateur de voix et le temps d'entrée de chacune.
+- **Pose sur la vidéo** : `python3 mix-voix.py <dossier ou fichier>` produit `nuraq-spot-9x16-voix.mp4` et `nuraq-spot-16x9-voix.mp4`.
+  - Avec un fichier par réplique (01…12), chacune est placée à son temps.
+  - Avec un fichier unique, il est découpé aux silences.
+  - Avec `--tel-quel`, un fichier déjà calé sur la vidéo est posé à 0:00.
+- **Mixage** : les effets baissent de 8 dB sous la voix, et le niveau final vise −16 LUFS.
 
 ## Son
 

@@ -123,6 +123,23 @@ def ding():
     return norm(x * e)
 
 
+def tink():
+    """Étincelle de l'étoile : très bref, aigu, doux."""
+    n = int(0.5 * SR)
+    t = np.arange(n) / SR
+    e = np.exp(-t * 9) * np.minimum(1, t / 0.003)
+    x = np.sin(2 * np.pi * 2637 * t) + 0.5 * np.sin(2 * np.pi * 3951 * t) + 0.25 * np.sin(2 * np.pi * 5274 * t)
+    air = band(noise(n), 6000, 14000) * np.exp(-t * 22) * 0.5
+    return norm(x * e + air)
+
+
+def tick():
+    """Petit déclic doux pour chaque lettre."""
+    n = int(0.03 * SR)
+    t = np.arange(n) / SR
+    return norm(band(noise(n), 2500, 7000) * np.exp(-t * 220))
+
+
 def pop(f0=680, f1=340, dur=0.11):
     n = int(dur * SR)
     t = np.arange(n) / SR
@@ -153,11 +170,14 @@ bed = air_bed() * 10 ** (-42 / 20)
 buf[0] += bed
 buf[1] += np.roll(bed, 977)
 
-# 1. Logo : le fil dessine le symbole, puis le remplissage
-put(0.10, shimmer(1.1), -20, -0.1)
-put(0.12, whoosh(1.0, 300, 2400, 0.85), -24)
+# 1. Logo : l'étoile scintille, le fil dessine le symbole, remplissage, lettres
+put(0.08, tink(), -17, 0.15)
+put(0.30, shimmer(0.9), -21, -0.1)
+put(0.32, whoosh(0.85, 300, 2400, 0.85), -24)
 put(1.00, bloom(), -9)
-put(1.30, whoosh(0.55, 1200, 5000, 0.5), -24, -0.5)
+for i in range(5):
+    put(1.28 + i * 0.075, tick(), -27, -0.5 + i * 0.25)
+put(1.24, whoosh(0.6, 1200, 5000, 0.5), -25, -0.4)
 put(1.95, whoosh(0.5, 2600, 400, 0.4), -18)
 
 # 2. Monde des parcours : le fil parcourt la carte
@@ -205,12 +225,15 @@ put(19.40, whoosh(0.45, 3000, 600, 0.6), -19)
 put(19.85, pop(560, 280, 0.16), -15, -0.3)
 for i in range(3):
     put(20.05 + i * 0.6, thump(0.3), -17 - i * 0.5)
-put(22.40, whoosh(0.5, 500, 2600, 0.8), -17)
+put(22.38, whoosh(0.5, 500, 2600, 0.8), -17)
 
 # 9. Logo final
-put(22.70, shimmer(0.8), -21)
-put(23.30, bloom(2.2), -8)
-put(23.55, whoosh(0.55, 1200, 5000, 0.5), -24, 0.5)
+put(22.78, tink(), -18, 0.15)
+put(22.90, shimmer(0.6), -22)
+put(23.36, bloom(2.2), -8)
+for i in range(5):
+    put(23.58 + i * 0.075, tick(), -28, -0.5 + i * 0.25)
+put(23.54, whoosh(0.55, 1200, 5000, 0.5), -25, 0.4)
 
 # fondu final, gain vers ≈ −16 LUFS, limiteur doux (crête ≈ −1 dBFS)
 t = np.arange(buf.shape[1]) / SR

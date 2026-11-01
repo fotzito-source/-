@@ -247,58 +247,96 @@
     const L = LAY.logo;
     const [, , mw, mh] = vb(LOGO.mark.viewBox);
     const markW = (L.markH * mw) / mh;
+    const u = mw / markW; // unités du tracé par pixel d'écran
     const glow = h("div", "glow-blob", root);
     const gs = L.markH * 1.9;
     css(glow, { width: `${gs}px`, height: `${gs}px`, left: `${W / 2 - gs / 2}px`, top: `${L.markCy - gs / 2}px` });
+    // anneau de lumière qui marque le remplissage
+    const ring = h("div", "abs", root);
+    css(ring, {
+      borderRadius: "50%",
+      border: `${2.5 * LAY.line}px solid rgba(221, 217, 255, 0.9)`,
+      boxShadow: "0 0 26px rgba(129, 121, 251, 0.55), inset 0 0 26px rgba(129, 121, 251, 0.35)",
+    });
     const svg = sv("svg", { viewBox: LOGO.mark.viewBox, width: markW, height: L.markH, class: "abs" }, root);
     css(svg, { left: `${W / 2 - markW / 2}px`, top: `${L.markCy - L.markH / 2}px` });
     const ldefs = sv("defs", {}, svg);
     ldefs.innerHTML = `<filter id="lgBlur${uid}" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>`;
     const blurId = `lgBlur${uid++}`;
+    addDefs(sv("defs", {}, svg));
     const fill = sv("path", { d: LOGO.mark.d, fill: "#F7F5FA", "fill-rule": "evenodd" }, svg);
-    const subs = LOGO.mark.d.split(/(?=M)/).map((s) => s.trim()).filter(Boolean);
+    const subs = LOGO.mark.d.split(/(?=M)/).map((x) => x.trim()).filter(Boolean);
+    // l'étoile = le plus petit sous-tracé du symbole
+    const boxes = subs.map((d) => {
+      const tmp = sv("path", { d }, svg);
+      const b = tmp.getBBox();
+      tmp.remove();
+      return b;
+    });
+    const starIdx = boxes.reduce((best, b, i) => (b.width * b.height < boxes[best].width * boxes[best].height ? i : best), 0);
+    const sb = boxes[starIdx];
+    const scx = sb.x + sb.width / 2;
+    const scy = sb.y + sb.height / 2;
     const outlines = [];
-    const sw = (mw / markW) * 2.6 * LAY.line;
-    for (const d of subs) {
+    const sw = u * 2.6 * LAY.line;
+    subs.forEach((d, i) => {
+      if (i === starIdx) return;
       const gl = sv("path", { d, fill: "none", stroke: "#8179FB", "stroke-width": sw * 5, filter: `url(#${blurId})`, pathLength: 1, "stroke-linecap": "round" }, svg);
       const co = sv("path", { d, fill: "none", stroke: "#EFECFD", "stroke-width": sw, pathLength: 1, "stroke-linecap": "round" }, svg);
       outlines.push(gl, co);
-    }
-    // tête lumineuse sur le contour extérieur (premier sous-tracé)
+    });
+    // scintillement de l'étoile (premier geste du spot)
+    const starG = sv("g", {}, svg);
+    const starGlow = sv("path", { d: subs[starIdx], fill: "#BBB7FD", filter: `url(#${blurId})` }, starG);
+    const starFill = sv("path", { d: subs[starIdx], fill: "#F7F5FA" }, starG);
+    const glint = sv("g", {}, svg);
+    const gl1 = sv("line", { stroke: "#FFFFFF", "stroke-width": u * 2.2, "stroke-linecap": "round" }, glint);
+    const gl2 = sv("line", { stroke: "#FFFFFF", "stroke-width": u * 2.2, "stroke-linecap": "round" }, glint);
+    const glintHalo = sv("circle", { cx: scx, cy: scy, r: sb.width * 0.9, fill: "url(#headGrad)" }, glint);
+    // tête lumineuse sur le contour extérieur
     const probe = sv("path", { d: subs[0], fill: "none", stroke: "none" }, svg);
     const probeLen = probe.getTotalLength();
-    const headHalo = sv("circle", { r: (mw / markW) * 34 * LAY.line, fill: "url(#headGrad)" }, svg);
-    const headDot = sv("circle", { r: (mw / markW) * 5 * LAY.line, fill: "#FFFFFF" }, svg);
-    // headGrad doit exister dans ce SVG aussi
-    const hdefs = sv("defs", {}, svg);
-    addDefs(hdefs);
+    const headHalo = sv("circle", { r: u * 34 * LAY.line, fill: "url(#headGrad)" }, svg);
+    const headDot = sv("circle", { r: u * 5 * LAY.line, fill: "#FFFFFF" }, svg);
 
+    // nom « NURAQ » : une lettre par groupe ; les contreformes (trous du A et du Q) restent creuses
     const [, , ww, wh] = vb(LOGO.wordmark.viewBox);
     const wordH = (L.wordW * wh) / ww;
     const word = sv("svg", { viewBox: LOGO.wordmark.viewBox, width: L.wordW, height: wordH, class: "abs" }, root);
     css(word, { left: `${W / 2 - L.wordW / 2}px`, top: `${L.wordY - wordH / 2}px` });
-    const wmaskId = `wmask${uid++}`;
-    const wdefs = sv("defs", {}, word);
-    const wgrad = sv("linearGradient", { id: `${wmaskId}g`, gradientUnits: "userSpaceOnUse", x1: 0, x2: ww * 0.18, y1: 0, y2: 0 }, wdefs);
-    sv("stop", { offset: 0, "stop-color": "#fff" }, wgrad);
-    sv("stop", { offset: 1, "stop-color": "#000" }, wgrad);
-    const wmask = sv("mask", { id: wmaskId, maskUnits: "userSpaceOnUse", x: -ww, y: -100, width: ww * 3, height: wh + 200 }, wdefs);
-    const wrect = sv("rect", { x: -ww * 1.2, y: -100, width: ww * 1.2, height: wh + 200, fill: "#fff" }, wmask);
-    const wedge = sv("rect", { x: 0, y: -100, width: ww * 0.18, height: wh + 200, fill: `url(#${wmaskId}g)` }, wmask);
-    sv("path", { d: LOGO.wordmark.d, fill: "#F7F5FA", mask: `url(#${wmaskId})` }, word);
+    const wsubs = LOGO.wordmark.d.split(/(?=M)/).map((x) => x.trim()).filter(Boolean);
+    const wboxes = wsubs.map((d) => {
+      const tmp = sv("path", { d }, word);
+      const b = tmp.getBBox();
+      tmp.remove();
+      return b;
+    });
+    const inside = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height && a !== b;
+    const letters = [];
+    wsubs.forEach((d, i) => {
+      if (wboxes.some((b) => inside(wboxes[i], b))) return; // contreforme : rattachée à sa lettre
+      const parts = [d, ...wsubs.filter((_, j) => j !== i && inside(wboxes[j], wboxes[i]))];
+      letters.push({ x: wboxes[i].x, d: parts.join(" ") });
+    });
+    letters.sort((a, b) => a.x - b.x);
+    const letterEls = letters.map((l) => {
+      const g = sv("g", {}, word);
+      sv("path", { d: l.d, fill: "#F7F5FA", "fill-rule": "evenodd" }, g);
+      return g;
+    });
     const [, , tw, th] = vb(LOGO.tagline.viewBox);
     const tagH = (L.tagW * th) / tw;
     const tag = sv("svg", { viewBox: LOGO.tagline.viewBox, width: L.tagW, height: tagH, class: "abs" }, root);
     css(tag, { left: `${W / 2 - L.tagW / 2}px`, top: `${L.tagY - tagH / 2}px` });
-    sv("path", { d: LOGO.tagline.d, fill: "#BBB7FD" }, tag);
+    sv("path", { d: LOGO.tagline.d, fill: "#BBB7FD", "fill-rule": "evenodd" }, tag);
     // balayage lumineux sous le nom
     const sweep = new Light(lineSvg);
-    const sweepY = L.wordY + wordH / 2 + (LAND ? 26 : 32);
+    const sweepY = L.wordY + wordH / 2 + (LAND ? 9 : 12);
     sweep.path(`M ${W / 2 - L.wordW / 2 - 20} ${sweepY} L ${W / 2 + L.wordW / 2 + 20} ${sweepY}`);
 
     return {
       root,
-      /** Révèle le logo : dessin du contour (d0→d1), remplissage, nom, slogan. */
+      /** k : g0 étoile, d0→d1 dessin du contour, f0 remplissage, w0 lettres, t0 slogan. */
       update(t, k) {
         const on = k.show;
         vis(root, on);
@@ -306,6 +344,21 @@
           sweep.draw(0, 0, 0);
           return;
         }
+        // 1. l'étoile s'allume
+        const gk = t >= k.g0 ? spring(t - k.g0, 1.5, 6) : 0;
+        starG.setAttribute("transform", `translate(${scx} ${scy}) scale(${gk}) translate(${-scx} ${-scy})`);
+        starGlow.style.opacity = 0.85 * (1 - ramp(t, k.g0 + 0.3, k.g0 + 1.1)) + 0.15;
+        const gl = E.outCubic(ramp(t, k.g0, k.g0 + 0.22)) * (1 - E.inCubic(ramp(t, k.g0 + 0.25, k.g0 + 0.65)));
+        const ang = (8 + 22 * ramp(t, k.g0, k.g0 + 0.65)) * (Math.PI / 180);
+        const len = sb.width * 1.7 * gl;
+        const [c, s2] = [Math.cos(ang), Math.sin(ang)];
+        gl1.setAttribute("x1", scx - c * len); gl1.setAttribute("y1", scy - s2 * len);
+        gl1.setAttribute("x2", scx + c * len); gl1.setAttribute("y2", scy + s2 * len);
+        gl2.setAttribute("x1", scx + s2 * len * 0.7); gl2.setAttribute("y1", scy - c * len * 0.7);
+        gl2.setAttribute("x2", scx - s2 * len * 0.7); gl2.setAttribute("y2", scy + c * len * 0.7);
+        glint.style.opacity = gl;
+        glintHalo.setAttribute("r", sb.width * (0.6 + 0.8 * gl));
+        // 2. la lumière dessine le reste du symbole
         const draw = E.inOutCubic(ramp(t, k.d0, k.d1));
         const fillK = E.outCubic(ramp(t, k.f0, k.f0 + 0.45));
         const outK = 1 - ramp(t, k.f0 + 0.15, k.f0 + 0.6);
@@ -317,22 +370,35 @@
         fill.style.opacity = fillK;
         const pt = probe.getPointAtLength(draw * probeLen);
         const ho = draw > 0 && draw < 1 ? 1 : draw >= 1 ? outK : 0;
-        for (const c of [headHalo, headDot]) {
-          c.setAttribute("cx", pt.x);
-          c.setAttribute("cy", pt.y);
-          c.style.opacity = ho;
+        for (const el of [headHalo, headDot]) {
+          el.setAttribute("cx", pt.x);
+          el.setAttribute("cy", pt.y);
+          el.style.opacity = ho;
         }
-        glow.style.opacity = 0.22 * ramp(t, k.d0, k.f0 + 0.4) + 0.06 * Math.sin(t * 2.2) * ramp(t, k.f0, k.f0 + 1);
-        const wk = E.inOutCubic(ramp(t, k.w0, k.w0 + 0.5));
-        const edgeX = lerp(-ww * 0.2, ww * 1.05, wk);
-        wrect.setAttribute("x", edgeX - ww * 1.2);
-        wedge.setAttribute("transform", `translate(${edgeX} 0)`);
-        word.style.opacity = wk > 0 ? 1 : 0;
-        sweep.draw(Math.max(0, wk - 0.35), wk, (wk > 0 ? 1 : 0) * (1 - ramp(t, k.w0 + 0.45, k.w0 + 0.75)));
-        const tk = E.outCubic(ramp(t, k.t0, k.t0 + 0.5));
+        // 3. remplissage : léger rebond et anneau de lumière
+        const dt = t - k.f0;
+        const punch = dt > 0 ? 0.045 * Math.exp(-5.5 * dt) * Math.sin(2 * Math.PI * 1.4 * dt) : 0;
+        css(svg, { transform: `scale(${1 + punch})` });
+        const rk = E.outCubic(ramp(t, k.f0 + 0.02, k.f0 + 0.85));
+        const rr = lerp(L.markH * 0.42, L.markH * 1.02, rk);
+        css(ring, {
+          width: `${rr * 2}px`, height: `${rr * 2}px`, left: `${W / 2 - rr}px`, top: `${L.markCy - rr}px`,
+          opacity: dt > 0 ? 0.6 * (1 - rk) : 0,
+        });
+        glow.style.opacity = 0.2 * ramp(t, k.g0, k.f0 + 0.4) + (dt > 0 ? 0.14 * Math.exp(-2.5 * dt) : 0) + 0.05 * Math.sin(t * 2.2) * ramp(t, k.f0, k.f0 + 1);
+        // 4. les lettres montent une à une, soulignées par la lumière
+        letterEls.forEach((g, i) => {
+          const li = k.w0 + i * 0.075;
+          const lk = E.outQuint(ramp(t, li, li + 0.5));
+          g.setAttribute("transform", `translate(0 ${(1 - lk) * wh * 0.42})`);
+          g.style.opacity = lk;
+        });
+        const sk = E.inOutCubic(ramp(t, k.w0 - 0.05, k.w0 + 0.55));
+        sweep.draw(Math.max(0, sk - 0.4), sk, (sk > 0 ? 1 : 0) * (1 - ramp(t, k.w0 + 0.4, k.w0 + 0.62)));
+        // 5. slogan
+        const tk = E.outCubic(ramp(t, k.t0, k.t0 + 0.55));
         css(tag, { opacity: tk, transform: `translateY(${(1 - tk) * 14}px)` });
-        const sc = k.scale ?? 1;
-        css(root, { opacity: k.alpha ?? 1, transform: `translateY(${k.dy ?? 0}px) scale(${sc})`, transformOrigin: `${W / 2}px ${L.markCy}px` });
+        css(root, { opacity: k.alpha ?? 1, transform: `translateY(${k.dy ?? 0}px) scale(${k.scale ?? 1})`, transformOrigin: `${W / 2}px ${L.markCy}px` });
       },
     };
   }
@@ -858,7 +924,7 @@
         const on = t > 19.6 && t < 22.95;
         vis(root, on);
         if (!on) return;
-        const exit = E.inCubic(ramp(t, 22.4, 22.8));
+        const exit = E.inCubic(ramp(t, 22.38, 22.74));
         const pop = spring(t - 19.85, 1.6, 6.5);
         const bob = Math.sin(t * 1.7) * 10;
         css(mascot, {
@@ -900,7 +966,7 @@
     updateBackground(t);
     // Scène 1 : logo d'ouverture
     const s1exit = E.inCubic(ramp(t, 1.95, 2.4));
-    LOGO1.update(t, { show: t < 2.45, d0: 0.12, d1: 1.15, f0: 1.0, w0: 1.3, t0: 1.62, alpha: 1 - s1exit, dy: -s1exit * (LAND ? 160 : 260), scale: 1 - 0.06 * s1exit });
+    LOGO1.update(t, { show: t < 2.45, g0: 0.08, d0: 0.32, d1: 1.12, f0: 1.0, w0: 1.28, t0: 1.74, alpha: 1 - s1exit, dy: -s1exit * (LAND ? 160 : 260), scale: 1 - 0.06 * s1exit });
     S2.update(t);
     PH.update(t);
     S5.update(t);
@@ -908,7 +974,7 @@
     S7.update(t);
     S8.update(t);
     // Scène 9 : logo final
-    LOGO9.update(t, { show: t > 22.6, d0: 22.72, d1: 23.45, f0: 23.3, w0: 23.55, t0: 23.85, alpha: E.outCubic(ramp(t, 22.6, 22.8)) });
+    LOGO9.update(t, { show: t > 22.7, g0: 22.78, d0: 22.92, d1: 23.46, f0: 23.36, w0: 23.58, t0: 24.0, alpha: E.outCubic(ramp(t, 22.72, 22.86)) });
     css(fine, { opacity: E.outCubic(ramp(t, 24.0, 24.5)) * 0.9 });
     updateCaptions(t);
     css(grain, { backgroundPosition: `${Math.floor(t * 30 * 37) % 256}px ${Math.floor(t * 30 * 59) % 256}px` });

@@ -1,0 +1,64 @@
+VOIX OFF – SPOT NURAQ (26 s)
+==========================================================
+
+Ton : chaleureux, calme, souriant. Une voix d'homme douce, comme pour la vidéo 01.
+Pas de ton « pub » agressif. Débit naturel, avec de petites pauses entre les phrases.
+Environ 45 mots en tout : il reste de l'air entre les répliques.
+
+
+----------------------------------------------------------
+A) TEXTE À COLLER DANS LE GÉNÉRATEUR DE VOIX
+   Une ligne = une réplique. Les mots sont écrits pour être bien prononcés.
+----------------------------------------------------------
+
+01  Nouraq.
+02  Apprends l'islam, pas à pas.
+03  Des exercices courts…
+04  et une explication à chaque réponse.
+05  Le Coran : lis, et reprends ta lecture.
+06  Garde le rythme, un jour après l'autre.
+07  Chaque niveau débloque le suivant.
+08  Douze parcours, des Piliers au Ramadan.
+09  Comprendre.
+10  Pratiquer.
+11  Progresser.
+12  Nouraq. Level up your iman.
+
+Prononciation :
+  - « Nouraq » = Nuraq (de « nour », la lumière). Si le générateur dit « Nu-rak », garde « Nouraq ».
+  - Réplique 12 : le slogan est en anglais. Si la voix française le prononce mal, génère
+    seulement « Nouraq. » ou fais cette réplique avec une voix réglée en anglais.
+
+
+----------------------------------------------------------
+B) QUAND CHAQUE RÉPLIQUE ARRIVE DANS LA VIDÉO
+----------------------------------------------------------
+
+  Temps    Réplique                                     À l'image
+  0:01,3   Nuraq.                                       les lettres du nom apparaissent
+  0:02,6   Apprends l'islam, pas à pas.                 la lumière parcourt les îles
+  0:05,1   Des exercices courts…                        le téléphone, la question
+  0:07,2   et une explication à chaque réponse.         « Bien joué ! » et l'explication
+  0:09,8   Le Coran : lis, et reprends ta lecture.      bibliothèque puis lecteur
+  0:12,9   Garde le rythme, un jour après l'autre.      les 7 jours de série
+  0:15,3   Chaque niveau débloque le suivant.           le parcours des Piliers
+  0:17,5   Douze parcours, des Piliers au Ramadan.      la lumière se ramifie vers les îles
+  0:20,1   Comprendre.                                  1er mot à l'écran
+  0:20,7   Pratiquer.                                   2e mot
+  0:21,3   Progresser.                                  3e mot
+  0:23,6   Nuraq. Level up your iman.                   logo final
+
+
+----------------------------------------------------------
+C) COMMENT M'ENVOYER L'AUDIO (WAV ou MP3)
+----------------------------------------------------------
+
+  1. Le plus précis : un fichier par réplique, nommés 01, 02… 12.
+     Je place chacun à son temps exact.
+  2. Plus simple : un seul fichier avec toutes les répliques dans l'ordre,
+     séparées par environ 1 seconde de silence. Je le découpe automatiquement.
+  3. Si tu l'enregistres en regardant la vidéo : un fichier qui démarre à 0:00.
+     Je le pose tel quel.
+
+Au mixage, les effets sonores baissent automatiquement sous la voix. Le niveau final
+est réglé pour les réseaux (environ −16 LUFS).
