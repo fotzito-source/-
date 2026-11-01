@@ -13,6 +13,7 @@ Ce ne sont **pas** des publicités : aucune démonstration de l'application, auc
 | `videos/01-heures-de-priere/animatic/render.py` | Générateur de l'animatic (Python, numpy, Pillow, ffmpeg) |
 | `videos/01-heures-de-priere/animatic/voix.py` | Génération de la voix off avec Cartesia (clé dans `CARTESIA_API_KEY`), puis `render.py --voix voix` |
 | `videos/01-heures-de-priere/images/` | Images clés du storyboard |
+| [`videos/promo-nuraq/`](videos/promo-nuraq/README.md) | Spot promotionnel de l'app (motion design, 26 s), en 9:16 et 16:9 |
 
 Régénérer l'animatic :
 

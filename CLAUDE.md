@@ -30,6 +30,12 @@ Ce ne sont **pas** des publicités : aucune démo de l'app, aucun appel à l'ins
 - **Son** : sobre, pas de musique par défaut, droits vérifiés pour tout son ajouté.
 - **Vidéo de référence** : s'inspirer des principes, ne pas copier ses plans, ses textes, ses images ou sa musique.
 
+## Spot promotionnel de l'app (`videos/promo-nuraq/`)
+Motion design de 26 s inspiré du spot Duolingo, en 9:16 et 16:9. Ici, et seulement ici, la vidéo présente l'app (c'est une pub). Détails dans `videos/promo-nuraq/README.md`.
+- **Animation** : `spot/spot.js` (HTML piloté par `seek(t)`). **Rendu** : `node render.mjs` (Playwright + ffmpeg). **Son** : `son/son.py`, sans musique.
+- **Ressources** : elles viennent du dépôt privé `fotzito-source/nuraq-app` (îles, mascotte, logo, contenus des exercices et du Coran). Ne rien inventer : tout texte affiché doit exister dans l'app.
+- **Charte de l'app** (`DESIGN.md` de nuraq-app) : pas de néon violet. Le fil lumineux reste une lueur douce.
+
 ## Voix off avec Cartesia (vidéo 01)
 La clé API se lit **uniquement** dans la variable d'environnement `CARTESIA_API_KEY`. Ne jamais l'écrire dans un fichier du dépôt ni la committer.
 
