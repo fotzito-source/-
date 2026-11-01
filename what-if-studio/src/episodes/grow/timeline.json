@@ -2,268 +2,268 @@
  "slug": "grow",
  "title": "WHAT IF YOU COULD GROW AT WILL?",
  "fps": 30,
- "total": 1892,
+ "total": 2048,
  "segments": [
   {
    "shot": "S1",
    "a": 0,
-   "b": 43,
+   "b": 26,
    "t0": 0,
-   "t1": 43,
+   "t1": 26,
    "line": "Mum hid the cookies"
   },
   {
    "shot": "S2",
-   "a": 43,
-   "b": 85,
+   "a": 26,
+   "b": 67,
    "t0": 0,
-   "t1": 42,
+   "t1": 41,
    "line": "on top of the fridge."
   },
   {
    "shot": "S3",
-   "a": 85,
-   "b": 104,
+   "a": 67,
+   "b": 99,
    "t0": 0,
-   "t1": 19,
+   "t1": 32,
    "line": "Grow.",
    "look": "grow"
   },
   {
    "shot": "S4",
-   "a": 104,
-   "b": 137,
+   "a": 99,
+   "b": 142,
    "t0": 0,
-   "t1": 33,
+   "t1": 43,
    "line": "Snack time."
   },
   {
    "shot": "S5",
-   "a": 137,
-   "b": 175,
+   "a": 142,
+   "b": 186,
    "t0": 0,
-   "t1": 38,
+   "t1": 44,
    "line": "Late for school?"
   },
   {
    "shot": "S6",
-   "a": 175,
-   "b": 198,
+   "a": 186,
+   "b": 203,
    "t0": 0,
-   "t1": 23,
+   "t1": 17,
    "line": "Grow.",
    "look": "grow"
   },
   {
    "shot": "S7",
-   "a": 198,
-   "b": 225,
+   "a": 203,
+   "b": 247,
    "t0": 0,
-   "t1": 27,
+   "t1": 44,
    "line": "One giant step."
   },
   {
    "shot": "S8",
-   "a": 225,
-   "b": 267,
+   "a": 247,
+   "b": 308,
    "t0": 0,
-   "t1": 42,
+   "t1": 61,
    "line": "Your best friend is looking for you."
   },
   {
    "shot": "S9",
-   "a": 267,
-   "b": 290,
+   "a": 308,
+   "b": 344,
    "t0": 0,
-   "t1": 23,
+   "t1": 36,
    "line": "Grow.",
    "look": "grow"
   },
   {
    "shot": "S10",
-   "a": 290,
-   "b": 318,
+   "a": 344,
+   "b": 383,
    "t0": 0,
-   "t1": 28,
+   "t1": 39,
    "line": "Again.",
    "look": "grow"
   },
   {
    "shot": "S11",
-   "a": 318,
-   "b": 335,
+   "a": 383,
+   "b": 422,
    "t0": 0,
-   "t1": 17,
+   "t1": 39,
    "line": "Again.",
    "look": "grow"
   },
   {
    "shot": "S12",
-   "a": 335,
-   "b": 375,
+   "a": 422,
+   "b": 497,
    "t0": 0,
-   "t1": 40,
+   "t1": 75,
    "line": "Okay, that's terrifying."
   },
   {
    "shot": "S13",
-   "a": 375,
-   "b": 438,
+   "a": 497,
+   "b": 576,
    "t0": 0,
-   "t1": 63,
+   "t1": 79,
    "line": "What if you could grow, any time you wanted?"
   },
   {
    "shot": "S25",
-   "a": 438,
-   "b": 493,
+   "a": 576,
+   "b": 644,
    "t0": 0,
-   "t1": 55,
+   "t1": 68,
    "line": "One word, and you get bigger.",
    "look": "grow"
   },
   {
    "shot": "S26",
-   "a": 493,
-   "b": 560,
+   "a": 644,
+   "b": 720,
    "t0": 0,
-   "t1": 67,
+   "t1": 76,
    "line": "As big as you like. Sounds amazing."
   },
   {
    "shot": "S27",
-   "a": 560,
-   "b": 604,
+   "a": 720,
+   "b": 758,
    "t0": 0,
-   "t1": 44,
+   "t1": 38,
    "line": "Pigeons think you're a building."
   },
   {
    "shot": "S28",
-   "a": 604,
-   "b": 673,
+   "a": 758,
+   "b": 821,
    "t0": 0,
-   "t1": 69,
+   "t1": 63,
    "line": "Your best friend gets the best seat in town."
   },
   {
    "shot": "S14",
-   "a": 673,
-   "b": 735,
+   "a": 821,
+   "b": 885,
    "t0": 0,
-   "t1": 62,
+   "t1": 64,
    "line": "And you're the coolest kid in the city."
   },
   {
    "shot": "S15",
-   "a": 735,
-   "b": 783,
+   "a": 885,
+   "b": 936,
    "t0": 0,
-   "t1": 48,
+   "t1": 51,
    "line": "But here's the catch."
   },
   {
    "shot": "S16",
-   "a": 783,
-   "b": 872,
+   "a": 936,
+   "b": 1023,
    "t0": 0,
-   "t1": 89,
+   "t1": 87,
    "line": "Ten times taller means a thousand times heavier."
   },
   {
    "shot": "S17",
-   "a": 872,
-   "b": 972,
+   "a": 1023,
+   "b": 1115,
    "t0": 0,
-   "t1": 100,
+   "t1": 92,
    "line": "Your bones? Only a hundred times stronger."
   },
   {
    "shot": "S29",
-   "a": 972,
-   "b": 1076,
+   "a": 1115,
+   "b": 1218,
    "t0": 0,
-   "t1": 104,
+   "t1": 103,
    "line": "So every square inch of bone carries ten times the load."
   },
   {
    "shot": "S30",
-   "a": 1076,
-   "b": 1181,
+   "a": 1218,
+   "b": 1320,
    "t0": 0,
-   "t1": 105,
+   "t1": 102,
    "line": "And a human thigh bone breaks at about ten times your body weight."
   },
   {
    "shot": "S18",
-   "a": 1181,
-   "b": 1250,
+   "a": 1320,
+   "b": 1390,
    "t0": 0,
-   "t1": 69,
+   "t1": 70,
    "line": "Your very first step? Snap."
   },
   {
    "shot": "S19",
-   "a": 1250,
-   "b": 1277,
+   "a": 1390,
+   "b": 1420,
    "t0": 0,
-   "t1": 27,
+   "t1": 30,
    "line": "That's real."
   },
   {
    "shot": "S31",
-   "a": 1277,
-   "b": 1378,
+   "a": 1420,
+   "b": 1528,
    "t0": 0,
-   "t1": 101,
+   "t1": 108,
    "line": "You sit down on a rooftop and wait to shrink back."
   },
   {
    "shot": "S20",
-   "a": 1378,
-   "b": 1476,
+   "a": 1528,
+   "b": 1635,
    "t0": 0,
-   "t1": 98,
+   "t1": 107,
    "line": "The next morning, a man in a suit is waiting in your kitchen."
   },
   {
    "shot": "S21",
-   "a": 1476,
-   "b": 1562,
+   "a": 1635,
+   "b": 1711,
    "t0": 0,
-   "t1": 86,
+   "t1": 76,
    "line": "He has a photo of you. And an offer."
   },
   {
    "shot": "S22",
-   "a": 1562,
-   "b": 1626,
+   "a": 1711,
+   "b": 1774,
    "t0": 0,
-   "t1": 64,
+   "t1": 63,
    "line": "Then the ceiling starts to crack."
   },
   {
    "shot": "S23",
-   "a": 1626,
-   "b": 1700,
+   "a": 1774,
+   "b": 1869,
    "t0": 0,
-   "t1": 74,
+   "t1": 95,
    "line": "Upstairs, your little sister just said the word."
   },
   {
    "shot": "S24",
-   "a": 1700,
-   "b": 1791,
+   "a": 1869,
+   "b": 1948,
    "t0": 0,
-   "t1": 91,
+   "t1": 79,
    "line": "Do you run up and save her… or do you keep your secret?"
   },
   {
    "shot": "S32",
-   "a": 1791,
-   "b": 1892,
+   "a": 1948,
+   "b": 2048,
    "t0": 0,
-   "t1": 101,
+   "t1": 100,
    "line": ""
   }
  ],
@@ -272,7 +272,7 @@
    "id": "S1",
    "size": "medium wide, low angle",
    "key": 15,
-   "len": 43,
+   "len": 26,
    "first": 0,
    "line": "Mum hid the cookies",
    "note": "Pip devant le frigo, la tête levée vers le bocal à cookies posé tout en haut"
@@ -281,8 +281,8 @@
    "id": "S2",
    "size": "insert, contre-plongée",
    "key": 20,
-   "len": 42,
-   "first": 43,
+   "len": 41,
+   "first": 26,
    "line": "on top of the fridge.",
    "note": "le bocal en haut du frigo ; la moufle de Pip s'étire et reste trop courte"
   },
@@ -290,8 +290,8 @@
    "id": "S3",
    "size": "medium wide",
    "key": 13,
-   "len": 19,
-   "first": 85,
+   "len": 32,
+   "first": 67,
    "line": "Grow.",
    "note": "GRANDIS : Pip grandit d'un coup, la tête frôle la suspension qui se balance"
   },
@@ -299,8 +299,8 @@
    "id": "S4",
    "size": "close-up",
    "key": 29,
-   "len": 33,
-   "first": 104,
+   "len": 43,
+   "first": 99,
    "line": "Snack time.",
    "note": "Pip géant, courbé sous le plafond, croque un cookie, satisfait"
   },
@@ -308,8 +308,8 @@
    "id": "S5",
    "size": "medium",
    "key": 37,
-   "len": 38,
-   "first": 137,
+   "len": 44,
+   "first": 142,
    "line": "Late for school?",
    "note": "Pip sur le palier, l'horloge marque 8 h, panique"
   },
@@ -317,8 +317,8 @@
    "id": "S6",
    "size": "wide",
    "key": 14,
-   "len": 23,
-   "first": 175,
+   "len": 17,
+   "first": 186,
    "line": "Grow.",
    "note": "GRANDIS : Pip grandit sur le palier, la lanterne vacille"
   },
@@ -326,8 +326,8 @@
    "id": "S7",
    "size": "wide, low angle",
    "key": 36,
-   "len": 27,
-   "first": 198,
+   "len": 44,
+   "first": 203,
    "line": "One giant step.",
    "note": "une seule enjambée : son pied géant atterrit en bas de l'escalier, les cadres sautent"
   },
@@ -335,8 +335,8 @@
    "id": "S8",
    "size": "medium",
    "key": 30,
-   "len": 42,
-   "first": 225,
+   "len": 61,
+   "first": 247,
    "line": "Your best friend is looking for you.",
    "note": "Mo sur le toit au crépuscule, la main en visière, cherche son ami"
   },
@@ -344,8 +344,8 @@
    "id": "S9",
    "size": "wide, low angle",
    "key": 14,
-   "len": 23,
-   "first": 267,
+   "len": 36,
+   "first": 308,
    "line": "Grow.",
    "note": "GRANDIS : derrière le parapet, une capuche géante monte au-dessus des immeubles"
   },
@@ -353,8 +353,8 @@
    "id": "S10",
    "size": "wide",
    "key": 18,
-   "len": 28,
-   "first": 290,
+   "len": 39,
+   "first": 344,
    "line": "Again.",
    "note": "ENCORE : le visage géant de Pip au-dessus de la ville, aussi grand que le soleil"
   },
@@ -362,8 +362,8 @@
    "id": "S11",
    "size": "very wide, low angle",
    "key": 20,
-   "len": 17,
-   "first": 318,
+   "len": 39,
+   "first": 383,
    "line": "Again.",
    "note": "ENCORE : Pip dépasse les immeubles, la tête dans les nuages ; Mo minuscule sur le toit"
   },
@@ -371,8 +371,8 @@
    "id": "S12",
    "size": "close-up",
    "key": 30,
-   "len": 40,
-   "first": 335,
+   "len": 75,
+   "first": 422,
    "line": "Okay, that's terrifying.",
    "note": "Mo se retourne, terrifié ; derrière lui, flou, l'œil géant de Pip"
   },
@@ -380,8 +380,8 @@
    "id": "S13",
    "size": "title, wide",
    "key": 62,
-   "len": 63,
-   "first": 375,
+   "len": 79,
+   "first": 497,
    "line": "What if you could grow, any time you wanted?",
    "note": "le titre sur la ville au crépuscule ; Pip géant entre les immeubles, le soleil derrière l'épaule"
   },
@@ -389,8 +389,8 @@
    "id": "S25",
    "size": "medium wide",
    "key": 49,
-   "len": 55,
-   "first": 438,
+   "len": 68,
+   "first": 576,
    "line": "One word, and you get bigger.",
    "note": "One word: Pip grows by his desk, his hood up against the ceiling"
   },
@@ -398,8 +398,8 @@
    "id": "S26",
    "size": "wide",
    "key": 39,
-   "len": 67,
-   "first": 493,
+   "len": 76,
+   "first": 644,
    "line": "As big as you like. Sounds amazing.",
    "note": "the colossus over the rooftops, arms wide, clouds and pigeons round his head"
   },
@@ -407,8 +407,8 @@
    "id": "S27",
    "size": "close-up",
    "key": 25,
-   "len": 44,
-   "first": 560,
+   "len": 38,
+   "first": 720,
    "line": "Pigeons think you're a building.",
    "note": "pigeons perched on his hood; one more lands"
   },
@@ -416,8 +416,8 @@
    "id": "S28",
    "size": "wide",
    "key": 30,
-   "len": 69,
-   "first": 604,
+   "len": 63,
+   "first": 758,
    "line": "Your best friend gets the best seat in town.",
    "note": "Mo sits in Pip's huge open palm, waving, high over the city"
   },
@@ -425,8 +425,8 @@
    "id": "S14",
    "size": "medium, low angle",
    "key": 53,
-   "len": 62,
-   "first": 673,
+   "len": 64,
+   "first": 821,
    "line": "And you're the coolest kid in the city.",
    "note": "Pip géant lève les bras, des oiseaux tournent autour de sa tête, un avion passe"
   },
@@ -434,8 +434,8 @@
    "id": "S15",
    "size": "extreme close-up",
    "key": 22,
-   "len": 48,
-   "first": 735,
+   "len": 51,
+   "first": 885,
    "line": "But here's the catch.",
    "note": "le sourire de Pip tombe ; un craquement"
   },
@@ -443,8 +443,8 @@
    "id": "S16",
    "size": "schematic",
    "key": 90,
-   "len": 89,
-   "first": 783,
+   "len": 87,
+   "first": 936,
    "line": "Ten times taller means a thousand times heavier.",
    "note": "×10 de hauteur → un cube devient 1 000 cubes : POIDS ×1000"
   },
@@ -452,8 +452,8 @@
    "id": "S17",
    "size": "schematic",
    "key": 96,
-   "len": 100,
-   "first": 872,
+   "len": 92,
+   "first": 1023,
    "line": "Your bones? Only a hundred times stronger.",
    "note": "la section de l'os ×100 ; charge par cm² ×10, au seuil de rupture du fémur"
   },
@@ -461,8 +461,8 @@
    "id": "S29",
    "size": "schematic",
    "key": 111,
-   "len": 104,
-   "first": 972,
+   "len": 103,
+   "first": 1115,
    "line": "So every square inch of bone carries ten times the load.",
    "note": "one square inch of bone: ×1 then ×10 the load (weight ×1,000 over bone ×100)"
   },
@@ -470,8 +470,8 @@
    "id": "S30",
    "size": "schematic",
    "key": 75,
-   "len": 105,
-   "first": 1076,
+   "len": 102,
+   "first": 1218,
    "line": "And a human thigh bone breaks at about ten times your body weight.",
    "note": "the thigh bone; the load climbs to the breaking line at about ×10 body weight; it cracks"
   },
@@ -479,8 +479,8 @@
    "id": "S18",
    "size": "wide, low angle",
    "key": 71,
-   "len": 69,
-   "first": 1181,
+   "len": 70,
+   "first": 1320,
    "line": "Your very first step? Snap.",
    "note": "Pip géant lève un pied pour enjamber un immeuble : CRAC, flash rouge"
   },
@@ -488,8 +488,8 @@
    "id": "S19",
    "size": "wide",
    "key": 14,
-   "len": 27,
-   "first": 1250,
+   "len": 30,
+   "first": 1390,
    "line": "That's real.",
    "note": "Pip assis sur un immeuble, la jambe tenue, le ciel vire au rouge"
   },
@@ -497,8 +497,8 @@
    "id": "S31",
    "size": "wide",
    "key": 86,
-   "len": 101,
-   "first": 1277,
+   "len": 108,
+   "first": 1420,
    "line": "You sit down on a rooftop and wait to shrink back.",
    "note": "he sits on the roof and shrinks back slowly as night falls"
   },
@@ -506,8 +506,8 @@
    "id": "S20",
    "size": "wide",
    "key": 49,
-   "len": 98,
-   "first": 1378,
+   "len": 107,
+   "first": 1528,
    "line": "The next morning, a man in a suit is waiting in your kitchen.",
    "note": "le lendemain : Pip entre en béquille, plâtre à la jambe ; l'homme en costume l'attend près de l'îlot"
   },
@@ -515,8 +515,8 @@
    "id": "S21",
    "size": "medium, low angle",
    "key": 37,
-   "len": 86,
-   "first": 1476,
+   "len": 76,
+   "first": 1635,
    "line": "He has a photo of you. And an offer.",
    "note": "l'homme en costume pose la photo du géant sur l'îlot ; maman, inquiète, derrière"
   },
@@ -524,8 +524,8 @@
    "id": "S22",
    "size": "insert",
    "key": 28,
-   "len": 64,
-   "first": 1562,
+   "len": 63,
+   "first": 1711,
    "line": "Then the ceiling starts to crack.",
    "note": "la suspension se met à osciller, une fissure court au plafond, de la poussière tombe"
   },
@@ -533,8 +533,8 @@
    "id": "S23",
    "size": "close-up",
    "key": 72,
-   "len": 74,
-   "first": 1626,
+   "len": 95,
+   "first": 1774,
    "line": "Upstairs, your little sister just said the word.",
    "note": "la petite sœur, les yeux qui s'allument en or, un sourire espiègle ; la pièce tremble"
   },
@@ -542,8 +542,8 @@
    "id": "S24",
    "size": "close-up",
    "key": 20,
-   "len": 91,
-   "first": 1700,
+   "len": 79,
+   "first": 1869,
    "line": "Do you run up and save her… or do you keep your secret?",
    "note": "Pip lève les yeux vers le plafond qui se fissure, puis regarde l'homme en costume (flou au premier plan)"
   },
@@ -551,8 +551,8 @@
    "id": "S32",
    "size": "end card",
    "key": 40,
-   "len": 101,
-   "first": 1791,
+   "len": 100,
+   "first": 1948,
    "line": "",
    "note": "PART 1 / WHAT WOULD YOU DO?"
   }
@@ -562,61 +562,61 @@
    "kind": "shake",
    "len": 6,
    "amp": 5,
-   "f": 98
+   "f": 93
   },
   {
    "kind": "shake",
    "len": 9,
    "amp": 12,
-   "f": 219
+   "f": 241
   },
   {
    "kind": "shake",
    "len": 8,
    "amp": 6,
-   "f": 329
+   "f": 416
   },
   {
    "kind": "flash",
    "color": "#FFF3DC",
    "o": 0.5,
-   "f": 375
+   "f": 497
   },
   {
    "kind": "flash",
    "color": "#FF3344",
    "o": 0.55,
-   "f": 1243
+   "f": 1383
   },
   {
    "kind": "shake",
    "len": 10,
    "amp": 12,
-   "f": 1243
+   "f": 1383
   },
   {
    "kind": "shake",
    "len": 6,
    "amp": 6,
-   "f": 1586
+   "f": 1735
   },
   {
    "kind": "flash",
    "color": "#FFE7A0",
    "o": 0.35,
-   "f": 1694
+   "f": 1863
   },
   {
    "kind": "shake",
    "len": 8,
    "amp": 8,
-   "f": 1787
+   "f": 1944
   }
  ],
  "audio": {
-  "voiceVol": 0.593,
+  "voiceVol": 0.4711,
   "sfxVol": 0.8,
-  "musicVol": 0.0919,
+  "musicVol": 0.0951,
   "voice": "grow/voice.wav",
   "sfx": "grow/sfx.wav",
   "music": "grow/music.wav"

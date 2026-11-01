@@ -57,6 +57,14 @@ python3 render.py --voix voix        # → video-voix-off.mp4 + sous-titres-voix
 - Skill : `.claude/skills/what-if-animation/` (FreshStack, MIT). **Lire d'abord son `VENDORED.md`** : le studio est `what-if-studio/` (pas `<skill>/studio`), la voix se fait avec `scripts/voice_fr.py` (Cartesia si `CARTESIA_API_KEY`, sinon Piper local), les sons manquants avec `scripts/sfx_local.py` (pas d'appel ElevenLabs).
 - Studio Remotion : `what-if-studio/` (`npm install` une fois). Épisode 02 : `what-if-studio/src/episodes/grandir/` ; livrables dans `videos/02-what-if-grandir/` (vidéo, storyboard, sous-titres, README avec l'analyse du skill et toutes les commandes).
 - Conteneur cloud uniquement : Remotion ne peut pas y télécharger Chrome. Après `npm install`, lancer `what-if-studio/cloud-chrome.sh` (branche le Chromium préinstallé, à travers le proxy pour les Google Fonts).
-- Épisode 03 (anglais, rendu en 1440p) : partie 1 dans `what-if-studio/src/episodes/grow/` (les plans de `grandir` y sont rejoués, ancrés sur la fin de leur segment), partie 2 dans `what-if-studio/src/episodes/grow2/`. Livrables dans `videos/03-what-if-grow/` : les deux parties à la suite (2 min 05), en 16/9 pour YouTube et en 9:16 pour TikTok. Voix Cartesia (« Carson », vitesse 0,9) générée par l'API.
+- Épisode 03 (anglais, rendu en 1440p) : partie 1 dans `what-if-studio/src/episodes/grow/` (les plans de `grandir` y sont rejoués, ancrés sur la fin de leur segment), partie 2 dans `what-if-studio/src/episodes/grow2/`. Livrables dans `videos/03-what-if-grow/` : les deux parties à la suite (2 min 15), en 16/9 pour YouTube et en 9:16 pour TikTok.
+- Voix de l'épisode 03 : Cartesia « Garrett – Enthusiastic Pal », émotion `excited`, vitesse 1,0.
+  - Elle remplace « Carson », qui chuchotait et faisait tomber des mots de 20 à 40 dB.
+  - Elle se génère par petits groupes de phrases ; pour chaque groupe on garde la meilleure de plusieurs prises (voir `VENDORED.md`).
+  - `voice_fr.py <slug> --offline` la refait à partir des prises déjà payées (`.cache/voice/`).
+  - Après `sfx.py`, lancer `duck.py` (la voix d'abord), puis `mixcheck.py`.
+- Clé Cartesia : la session lit `CARTESIA_API_KEY` à son démarrage. Une clé changée dans les réglages de l'environnement ne sert qu'à partir d'une nouvelle session.
+  - Crédit épuisé : l'API répond HTTP 402.
+  - Les tests de voix coûtent des crédits, il faut les faire sur un court extrait.
 - Version TikTok : chaque épisode a un `vertical.ts` (cadre 9:16 plan par plan), d'où les compositions `GrowVertical` et `Grow2Vertical`. Le moteur est décrit dans `VENDORED.md`, et toutes les commandes dans le README de la vidéo 03.
 - Voix de l'épisode 02 : **provisoire** (Piper). Prochaine étape : voix Cartesia (domaine `api.cartesia.ai` autorisé + `CARTESIA_API_KEY` dans l'environnement), puis relancer `plan.py`, `sfx.py`, `master.py`.

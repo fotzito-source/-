@@ -24,15 +24,18 @@
  "script": [
   {
    "beat": "1 cold open, demo 1 (small and selfish)",
-   "text": "Mum hid the cookies on top of the fridge. Grow. Snack time."
+   "text": "Mum hid the cookies on top of the fridge. Grow. Snack time.",
+   "tts": "Mum hid the cookies on top of the fridge. Grow! Snack time."
   },
   {
    "beat": "1 cold open, demo 2 (useful)",
-   "text": "Late for school? Grow. One giant step."
+   "text": "Late for school? Grow. One giant step.",
+   "tts": "Late for school? Grow! One giant step."
   },
   {
    "beat": "1 cold open, demo 3 (a little uncanny)",
-   "text": "Your best friend is looking for you. Grow. Again. Again. Okay, that's terrifying."
+   "text": "Your best friend is looking for you. Grow. Again. Again. Okay, that's terrifying.",
+   "tts": "Your best friend is looking for you. Grow! Again! Again! Okay, that's terrifying."
   },
   {
    "beat": "2 the premise and its rule (title card)",
@@ -90,10 +93,13 @@
   },
   "cartesia": {
    "model": "sonic-3",
-   "id": "86e30c1d-714b-4074-a1f2-1cb6b552fb49",
+   "id": "c58bda25-abd5-4c72-97a2-4dbe049b368d",
    "language": "en",
-   "name": "Carson - Curious Conversationalist",
-   "speed": 0.9
+   "name": "Garrett - Enthusiastic Pal",
+   "speed": 1.0,
+   "emotion": "excited",
+   "takes": 3,
+   "chunk": 180
   }
  },
  "gaps": {

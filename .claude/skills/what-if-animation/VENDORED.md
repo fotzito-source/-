@@ -12,7 +12,19 @@ Ce qui diffère de l'original :
   - Piper en local (`pip install piper-tts onnx`), voix provisoire.
 
   Dans les deux cas, il écrit les mêmes fichiers que `voice.py` (`voice.wav`, `words.json`) avec le même resserrage
-  des pauses. Il sert aussi pour l'anglais : la langue se règle dans `episode.json`. `--from-audio prise.wav`
+  des pauses. Ce resserrage ne coupe que dans le silence mesuré, à 30 ms de tout son.
+
+  Avec Cartesia, la voix ne se fait pas en une seule prise : sur un texte long, le modèle dérive (mots chuchotés, mots
+  qui tombent de 20 à 40 dB). Elle se fait par petits groupes de phrases :
+  - jamais à cheval sur deux temps du script, et un temps peut avoir sa propre `emotion` ;
+  - plusieurs prises de chaque groupe (`takes`), dont on garde la meilleure. Une prise perd des points pour chaque mot
+    trop faible, chaque mot sans voix (mesure de périodicité) et chaque mot que la reconnaissance vocale n'entend pas ;
+  - la reconnaissance vocale est NeMo Parakeet, avec sherpa-onnx, si son modèle est dans `.cache/asr/` (lien dans le
+    docstring) ;
+  - ensuite, les mots sont égalisés un à un, puis passés dans un compresseur doux.
+
+  Chaque prise reste dans `.cache/voice/<slug>/`. Son nom ne dépend que du texte et des réglages qui changent le son.
+  `--offline` refait la voix à partir de ces prises seulement, sans appel ni crédit. Il sert aussi pour l'anglais : la langue se règle dans `episode.json`. `--from-audio prise.wav`
   reprend une prise faite ailleurs (le site de Cartesia, par exemple) : les horaires des mots viennent d'un alignement
   DTW sur la voix locale. Les mots qu'espeak fusionne (« of the ») sont redécoupés.
 - **`scripts/sfx_local.py` (ajouté)** : synthétise en numpy les bruitages marqués `procedural:` dans `episode.json`. Il
@@ -24,6 +36,9 @@ Ce qui diffère de l'original :
   ville et notre toit. C'est là que se tient un géant debout dans la rue derrière l'immeuble. `strings={false}`
   retire les guirlandes.
 - **Recette `heartbeat`** dans `sfx_local.py` (partie 2 de `grow`).
+- **`scripts/duck.py` (ajouté), à lancer après `sfx.py`** : pendant que quelqu'un parle, les bruitages restent au moins
+  5 dB sous la voix et la musique 8 dB sous la voix (options `--sfx`, `--music`, `--max`). La baisse est rapide et la
+  remontée lente. Dans les pauses, chaque impact garde toute sa force. `mixcheck.py` le vérifie ensuite.
 - **Version verticale 9:16** (`what-if-studio/src/engine/episode.tsx`) : un épisode qui passe `vertical` à
   `defineEpisode` gagne deux compositions de 1080 × 1920, `<Id>Vertical` et `<Id>VerticalBoard` (déclarées dans
   `src/Root.tsx`). `vertical` donne, plan par plan, la fenêtre 9:16 sur l'image 16:9 :

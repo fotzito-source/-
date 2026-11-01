@@ -2,7 +2,9 @@
 
 Two engines, so the pipeline runs with or without a TTS account (voice.py stays the ElevenLabs path):
   cartesia  the Cartesia API (key in CARTESIA_API_KEY, never in a file; api.cartesia.ai must be reachable).
-            One take for the whole script, word timestamps from the API.
+            A few sentences per request (one long take drifts: whispered words, words that drop in level), several
+            takes of each, the best one kept: every word voiced and at level, and, when the speech recogniser is
+            installed, every word of the text heard. Words levelled, a gentle compressor. Word timestamps from the API.
   local     a Piper voice run offline (piper-tts + onnx). One chunk per sentence, word timings from the model's own
             phoneme durations. Good enough to time the edit and the sound; a provisional voice, not the final one.
   auto      cartesia when CARTESIA_API_KEY is set, local otherwise.
@@ -19,10 +21,17 @@ The engine is only called when the text, the engine or its settings change (cach
 
 episode.json "voice": {"backend": "auto",
   "local": {"model": "fr_FR-tom-medium", "length_scale": 0.92, "noise_scale": 0.62, "noise_w_scale": 0.8},
-  "cartesia": {"model": "sonic-3", "id": null, "language": "fr", "speed": null}}
+  "cartesia": {"model": "sonic-3", "id": null, "language": "fr", "speed": null, "emotion": null, "volume": null,
+                "takes": 3, "chunk": 180, "chunking": "beat"}}
+  emotion: a Cartesia emotion ("excited", "happy", "content"...); takes: tries per chunk; chunk: characters per request;
+  chunking: "beat" (chunks never cross a beat, a beat may set its own "emotion") or "text" (the whole script, run on)
+  --offline builds the take from .cache/voice/<slug>/ only: every take is kept there, named by its text and sound settings
+Speech check (optional, for the cartesia takes): a NeMo Parakeet model through sherpa-onnx in .cache/asr/ of the studio:
+  pip install sherpa-onnx; then from the studio folder
+  curl -L https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2 | tar xj -C .cache/asr
 Setup for local: pip install piper-tts onnx  (the voice model downloads once into .cache/tts/ in the studio)
 """
-import argparse, base64, hashlib, json, os, re, sys, tarfile, time, urllib.error, urllib.parse, urllib.request
+import argparse, base64, hashlib, json, os, pathlib, re, sys, tarfile, time, urllib.error, urllib.parse, urllib.request
 
 import numpy as np
 
@@ -34,13 +43,14 @@ ap.add_argument('--backend', choices=['auto', 'cartesia', 'local'])
 ap.add_argument('--force', action='store_true')
 ap.add_argument('--list', action='store_true')
 ap.add_argument('--from-audio', help='a take recorded elsewhere (the Cartesia site, a microphone): word timings by aligning it on the local voice')
+ap.add_argument('--offline', action='store_true', help='cartesia: use only the takes already in .cache/voice (no API call, no credits)')
 args = ap.parse_args()
 slug = args.slug
 ep = load_episode(slug)
 V = {'backend': 'auto', 'local': {}, 'cartesia': {}}
 V.update(ep.get('voice', {}))
 LOCAL = {'model': 'fr_FR-tom-medium', 'length_scale': 0.92, 'noise_scale': 0.62, 'noise_w_scale': 0.8, **V.get('local', {})}
-CART = {'model': 'sonic-3', 'id': None, 'language': 'fr', 'speed': None, **V.get('cartesia', {})}
+CART = {'model': 'sonic-3', 'id': None, 'language': 'fr', 'speed': None, 'emotion': None, 'volume': None, 'takes': 3, 'chunk': 180, 'chunking': 'beat', **V.get('cartesia', {})}
 backend = args.backend or V.get('backend', 'auto')
 if backend == 'auto':
     backend = 'cartesia' if os.environ.get('CARTESIA_API_KEY', '').strip() else 'local'
@@ -87,7 +97,8 @@ def cart(method, path, body=None, params=None, stream=False):
     try:
         return urllib.request.urlopen(req, timeout=180)
     except urllib.error.HTTPError as e:
-        raise SystemExit(f'Cartesia HTTP {e.code} on {path}: {e.read().decode("utf-8", "replace")[:400]}')
+        hint = '\n  The takes already made are in .cache/voice/: --offline builds the voice from them.' if e.code == 402 else ''
+        raise SystemExit(f'Cartesia HTTP {e.code} on {path}: {e.read().decode("utf-8", "replace")[:400]}{hint}')
     except urllib.error.URLError as e:
         raise SystemExit(f'Cartesia unreachable ({e.reason}): is api.cartesia.ai allowed by the network policy?')
 
@@ -124,11 +135,14 @@ def cart_pick():
     return ranked
 
 
-def cart_take(text, voice_id):
+def cart_take(text, voice_id, emotion=None):
     body = {'model_id': CART['model'], 'transcript': text, 'voice': {'mode': 'id', 'id': voice_id}, 'language': CART['language'],
             'output_format': {'container': 'raw', 'encoding': 'pcm_s16le', 'sample_rate': SR}, 'add_timestamps': True}
-    if CART.get('speed'):
-        body['generation_config'] = {'speed': CART['speed']}
+    gen = {k: CART[k] for k in ('speed', 'volume', 'emotion') if CART.get(k)}
+    if emotion:
+        gen['emotion'] = emotion
+    if gen:
+        body['generation_config'] = gen
     pcm, ts = bytearray(), {'words': [], 'start': [], 'end': []}
     with cart('POST', '/tts/sse', body, stream=True) as resp:
         for raw in resp:
@@ -155,6 +169,208 @@ def cart_take(text, voice_id):
                 words[-1]['p'] += w.strip()
             continue
         words.append({'w': tk[0]['w'], 's': float(s), 'e': float(e), 'p': tk[0]['p']})
+    return x, SR, words
+
+
+def chunks(text, limit):
+    """Whole sentences, a few per request, at most `limit` characters (a longer sentence goes alone)."""
+    sents = [m.strip() for m in re.findall(r'.+?(?:[.!?…]+["»)]*(?=\s|$)|$)', text.strip()) if m.strip()]
+    out = []
+    for snt in sents:
+        if out and len(out[-1]) + 1 + len(snt) <= limit:
+            out[-1] += ' ' + snt
+        else:
+            out.append(snt)
+    return out
+
+
+_asr = None
+
+
+def asr_text(x, sr):
+    """What a speech recogniser hears in the take, or None when none is installed (see the docstring)."""
+    global _asr
+    if _asr is False:
+        return None
+    if _asr is None:
+        import glob
+        found = glob.glob(str(STUDIO / '.cache' / 'asr' / 'sherpa-onnx-nemo-parakeet*'))
+        try:
+            import sherpa_onnx
+        except ImportError:
+            found = []
+        if not found:
+            print('  (no speech recogniser in .cache/asr: takes checked on level and voicing only)')
+            _asr = False
+            return None
+        d = found[0]
+        _asr = sherpa_onnx.OfflineRecognizer.from_transducer(encoder=f'{d}/encoder.int8.onnx', decoder=f'{d}/decoder.int8.onnx',
+                                                             joiner=f'{d}/joiner.int8.onnx', tokens=f'{d}/tokens.txt',
+                                                             model_type='nemo_transducer', num_threads=4)
+    import librosa
+    st = _asr.create_stream()
+    st.accept_waveform(16000, librosa.resample(np.asarray(x, dtype=np.float32), orig_sr=sr, target_sr=16000))
+    _asr.decode_stream(st)
+    return st.result.text
+
+
+SAME = {'mum': 'mom', 'mom': 'mom', 'anytime': 'any time', 'okay': 'ok', 'ok': 'ok'}
+NUMS = {'1': 'one', '2': 'two', '3': 'three', '8': 'eight', '9': 'nine', '10': 'ten', '100': 'hundred', '1000': 'thousand'}
+
+
+def heard_errors(text, heard):
+    import difflib
+    norm = lambda t: ' '.join(SAME.get(w, NUMS.get(w, w)) for w in re.findall(r"[a-z0-9']+", t.lower().replace('’', "'"))).split()
+    a, b = norm(text), norm(heard)
+    ops = difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes()
+    return [(' '.join(a[i1:i2]), ' '.join(b[j1:j2])) for op, i1, i2, j1, j2 in ops if op != 'equal']
+
+
+def take_report(x, sr, words, text):
+    """A take's faults: words that drop in level, long words with no voice in them (whispered, creaky), words the
+    recogniser doesn't hear. The score is what we minimise across takes."""
+    hop = sr // 100
+    db = 20 * np.log10(np.sqrt(np.convolve(x ** 2, np.ones(hop) / hop, mode='same'))[::hop] + 1e-9)
+    per = periodicity(x, sr)
+    vflag = per > 0.55
+    lv, quiet, unvoiced = [], [], []
+    for w in words:
+        sl = slice(int(w['s'] * 100), max(int(w['s'] * 100) + 1, int(w['e'] * 100)))
+        lv.append(float(np.percentile(db[sl], 90)) if len(db[sl]) else -99.0)
+    med = float(np.median(lv)) if lv else 0.0
+    for w, l in zip(words, lv):
+        sl = slice(int(w['s'] * 100), max(int(w['s'] * 100) + 1, min(len(vflag), int(w['e'] * 100))))
+        if l < med - 9:
+            quiet.append(w['w'])
+        if w['e'] - w['s'] > 0.14 and len(vflag[sl]) and float(np.mean(vflag[sl])) < 0.3:
+            unvoiced.append(w['w'])
+    heard = asr_text(x, sr)
+    errs = heard_errors(text, heard) if heard is not None else []
+    count_off = abs(len(words) - len(tokens(text)))
+    speech = db[:len(per)] > np.median(lv) - 25 if lv else per > 0
+    clarity = float(np.mean(per[speech])) if speech.any() else 0.0  # how clean the voice is (breathy and creaky are lower)
+    score = len(quiet) + 3 * len(unvoiced) + 8 * sum(max(len(a.split()), len(b.split())) for a, b in errs) + 20 * count_off
+    return {'score': score, 'clarity': round(clarity, 3), 'quiet': quiet, 'unvoiced': unvoiced, 'heard_wrong': errs, 'word_count_off': count_off}
+
+
+def periodicity(x, sr):
+    """Per 10 ms frame, the best normalised autocorrelation for a pitch between 60 and 400 Hz: about 0.7 to 0.95 in a
+    voiced vowel, under 0.4 in a whisper."""
+    import librosa
+    y = librosa.resample(np.asarray(x, dtype=np.float64), orig_sr=sr, target_sr=16000)
+    win, hop, lo, hi = 480, 160, 16000 // 400, 16000 // 60
+    n = max(0, (len(y) - win - hi) // hop)
+    per = np.zeros(n)
+    for i in range(n):
+        f = y[i * hop: i * hop + win + hi]
+        a = f[:win]
+        e = float(np.dot(a, a))
+        if e < 1e-8:
+            continue
+        segs = np.lib.stride_tricks.sliding_window_view(f, win)[lo:hi + 1]
+        per[i] = float(np.max((segs @ a) / (np.sqrt(e * np.einsum('ij,ij->i', segs, segs)) + 1e-12)))
+    return per
+
+
+def trim(x, sr, words, pad=0.04):
+    """Cut the silence before the first word and after the last, keeping `pad` seconds; shift the words."""
+    env = np.convolve(np.abs(x), np.ones(sr // 100) / (sr // 100), mode='same')
+    on = np.nonzero(env > env.max() * 0.01)[0]
+    a = max(0, on[0] - int(pad * sr)) if len(on) else 0
+    b = min(len(x), on[-1] + int(pad * sr)) if len(on) else len(x)
+    if words:
+        a = min(a, max(0, int((words[0]['s'] - pad) * sr)))
+        b = max(b, min(len(x), int((words[-1]['e'] + pad) * sr)))
+    return x[a:b], [{**w, 's': w['s'] - a / sr, 'e': w['e'] - a / sr} for w in words]
+
+
+def level_words(x, sr, words, up=8.0, down=3.0):
+    """Even out the words: each word's loud part is brought toward the median, at most +up / -down dB, through a
+    gain curve that moves between words, never inside one."""
+    hop = sr // 100
+    db = 20 * np.log10(np.sqrt(np.convolve(x ** 2, np.ones(hop) / hop, mode='same'))[::hop] + 1e-9)
+    lv = []
+    for w in words:
+        sl = slice(int(w['s'] * 100), max(int(w['s'] * 100) + 1, int(w['e'] * 100)))
+        lv.append(float(np.percentile(db[sl], 90)) if len(db[sl]) else None)
+    ok = [l for l in lv if l is not None]
+    if not ok:
+        return x
+    med = float(np.median(ok))
+    pts_t, pts_g = [0.0], [0.0]
+    for w, l in zip(words, lv):
+        g = 0.0 if l is None else float(np.clip(med - l, -down, up))
+        pts_t += [w['s'], w['e']]
+        pts_g += [g, g]
+    pts_t.append(len(x) / sr)
+    pts_g.append(pts_g[-1])
+    order = np.argsort(pts_t, kind='stable')
+    t = np.arange(len(x)) / sr
+    gdb = np.interp(t, np.array(pts_t)[order], np.array(pts_g)[order])
+    return x * 10 ** (gdb / 20)
+
+
+def compress(x, sr):
+    """A gentle voice compressor (ffmpeg acompressor): 2.5:1 above about -24 dBFS of speech, 8 ms attack."""
+    import subprocess, tempfile
+    x = x / max(1e-9, np.sqrt(np.mean(x[np.abs(x) > 0.01] ** 2))) * 10 ** (-20 / 20)
+    with tempfile.TemporaryDirectory() as d:
+        write_wav(pathlib.Path(d) / 'in.wav', np.clip(x, -1, 1))
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'{d}/in.wav', '-af',
+                        'acompressor=threshold=0.063:ratio=2.5:attack=8:release=120:knee=4:makeup=1.6', '-c:a', 'pcm_f32le', f'{d}/out.wav'], check=True)
+        return decode(f'{d}/out.wav')
+
+
+def take_files(cache, chunk, voice_id, emo, k):
+    """A take's files, named by what shapes its sound only (text, voice, model, language, speed, volume, emotion) and
+    its number: changing the number of takes or the chunk size keeps every take already paid for."""
+    sound = [chunk, voice_id, CART['model'], CART['language'], CART.get('speed'), CART.get('volume'), emo or CART.get('emotion'), k]
+    key = hashlib.sha1(json.dumps(sound).encode()).hexdigest()[:16]
+    return cache / f'{key}.wav', cache / f'{key}.json'
+
+
+def cart_story(voice_id):
+    """The whole script, beat by beat and a few sentences at a time, best of CART['takes'] takes each (a beat may
+    set its own "emotion"); cached per chunk and take."""
+    cache = STUDIO / '.cache' / 'voice' / slug
+    cache.mkdir(parents=True, exist_ok=True)
+    parts, words, at, report = [], [], 0.0, []
+    if CART['chunking'] == 'text':
+        todo = [(c, None) for c in chunks(spoken, int(CART['chunk']))]
+    else:
+        todo = [(c, b.get('emotion')) for b in ep['script'] for c in chunks(b.get('tts', b['text']), int(CART['chunk']))]
+    for ci, (chunk, emo) in enumerate(todo):
+        best, new_takes = None, 0
+        for k in range(int(CART['takes'])):
+            wav, js = take_files(cache, chunk, voice_id, emo, k)
+            if js.exists() and wav.exists() and not args.force:
+                x, w = decode(wav), load_json(js)
+            elif args.offline:
+                continue
+            else:
+                x, sr, w = cart_take(chunk, voice_id, emo)
+                new_takes += 1
+                write_wav(wav, np.clip(x, -1, 1))
+                save_json(js, w)
+            x, w = trim(x, SR, w)
+            rep = take_report(x, SR, w, chunk)
+            if best is None or (rep['score'], -rep['clarity']) < (best[2]['score'], -best[2]['clarity']):
+                best = (x, w, rep, k)
+            if rep['score'] == 0 and rep['clarity'] >= 0.6:
+                break
+        if best is None:
+            raise SystemExit(f'--offline: no take of chunk {ci + 1} in {cache} ("{chunk[:60]}…")')
+        x, w, rep, k = best
+        print(f"  chunk {ci + 1}: take {k + 1}, score {rep['score']}, clarity {rep['clarity']}" + (f"  quiet {rep['quiet']}" if rep['quiet'] else '') +
+              (f"  unvoiced {rep['unvoiced']}" if rep['unvoiced'] else '') + (f"  heard {rep['heard_wrong']}" if rep['heard_wrong'] else ''))
+        report.append({'chunk': chunk, 'take': k + 1, 'new_takes': new_takes, **rep})
+        parts += [x, np.zeros(int(0.6 * SR))]
+        words += [{**q, 's': q['s'] + at, 'e': q['e'] + at} for q in w]
+        at += len(x) / SR + 0.6
+    save_json(out_dir(slug) / 'voice_takes.json', report)
+    x = np.concatenate(parts[:-1])
+    x = level_words(x, SR, words)
+    x = compress(x, SR)
     return x, SR, words
 
 
@@ -281,7 +497,7 @@ if args.list:
 meta = load_json(out_dir(slug) / 'voice_meta.json', {}) or {}
 settings = LOCAL if backend == 'local' else CART
 src_sig = hashlib.sha1(open(args.from_audio, 'rb').read()).hexdigest() if args.from_audio else ''
-sig = hashlib.sha1(json.dumps([spoken, backend, settings, src_sig], sort_keys=True).encode()).hexdigest()[:12]
+sig = hashlib.sha1(json.dumps([spoken, backend, settings, src_sig, [b.get('emotion') for b in ep['script']]], sort_keys=True).encode()).hexdigest()[:12]
 raw_wav = pub_dir(slug) / 'voice_raw.wav'
 raw_words = out_dir(slug) / 'words_raw.json'
 
@@ -299,10 +515,14 @@ if args.force or meta.get('sig') != sig or not raw_wav.exists() or not raw_words
             best = cart_pick()[0]
             vid, name = best['id'], best.get('name', '')
             print(f'Cartesia voice: {name} ({vid}); pin it with voice.cartesia.id in episode.json')
-        print(f'{len(spoken)} characters to Cartesia ({CART["model"]})')
-        x, sr, timed = cart_take(spoken, vid)
-        info = {'backend': 'cartesia', 'voice_id': vid, 'voice_name': name, 'model': CART['model']}
-        cost = {'step': 'voice (Cartesia)', 'credits': 0, 'note': f'{len(spoken)} characters billed by Cartesia, not ElevenLabs'}
+        if args.offline:
+            print(f'Cartesia takes from .cache/voice/{slug}/ only (--offline: no API call)')
+        else:
+            print(f'{len(spoken)} characters to Cartesia ({CART["model"]}), up to {CART["takes"]} takes per chunk (takes already made are reused)')
+        x, sr, timed = cart_story(vid)
+        info = {'backend': 'cartesia', 'voice_id': vid, 'voice_name': CART.get('name', name), 'model': CART['model']}
+        made = sum(r.get('new_takes', 0) for r in load_json(out_dir(slug) / 'voice_takes.json', []) or [])
+        cost = {'step': 'voice (Cartesia)', 'credits': 0, 'note': f'{made} new takes billed by Cartesia (characters), not ElevenLabs'}
     else:
         print(f'local Piper voice {LOCAL["model"]}: {len(spoken)} characters, no API, no cost')
         x, sr, timed = local_take(spoken)
@@ -330,6 +550,9 @@ if args.force or meta.get('sig') != sig or not raw_wav.exists() or not raw_words
     rows.append(cost)
     save_json(out_dir(slug) / 'costs.json', rows)
     print(f'take: {len(x) / sr:.2f} s in {time.time() - t0:.1f} s ({cost["note"]})')
+    if args.offline:
+        rows.pop()
+        save_json(out_dir(slug) / 'costs.json', rows)
 else:
     print('Voice unchanged since the last call: reusing it.')
 
@@ -339,6 +562,9 @@ G = {'word': 0.12, 'comma': 0.2, 'sentence': 0.3, 'question': 0.45, 'pairs': {}}
 G.update(ep.get('gaps', {}))
 x = decode(raw_wav)
 cuts = []
+_hop = SR // 100
+env_db = 20 * np.log10(np.sqrt(np.convolve(x ** 2, np.ones(_hop) / _hop, mode='same'))[::_hop] + 1e-9)
+speech_db = float(np.median([np.percentile(env_db[int(w['s'] * 100):max(int(w['s'] * 100) + 1, int(w['e'] * 100))], 90) for w in words]))
 
 
 def bare(w):
@@ -359,9 +585,22 @@ for a, b in zip(words, words[1:]):
     else:
         keep = G['word']
     if gap > keep:
-        mid = (a['e'] + b['s']) / 2
-        rm = gap - keep
-        cuts.append((mid - rm / 2, mid + rm / 2))
+        # cut only inside the silence: the frames of the gap that are quiet, 30 ms clear of any sound
+        f0, f1 = int(a['e'] * 100), int(b['s'] * 100)
+        quiet = env_db[f0:f1] < speech_db - 32
+        best_run, run = (0, 0), None
+        for i, q in enumerate(list(quiet) + [False]):
+            if q and run is None:
+                run = i
+            elif not q and run is not None:
+                if i - run > best_run[1] - best_run[0]:
+                    best_run = (run, i)
+                run = None
+        s0, s1 = (f0 + best_run[0]) / 100 + 0.03, (f0 + best_run[1]) / 100 - 0.03
+        rm = min(gap - keep, s1 - s0)
+        if rm > 0.01:
+            mid = (s0 + s1) / 2
+            cuts.append((mid - rm / 2, mid + rm / 2))
 parts, last = [], 0.0
 for s, e in cuts:
     parts.append(x[int(last * SR):int(s * SR)])
