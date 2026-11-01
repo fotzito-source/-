@@ -29,11 +29,11 @@ Tout est fabriqué à partir de l'app : vrais écrans (reconstitués avec les to
 | Temps | Scène | Légende |
 |---|---|---|
 | 0:00 – 2:24 | L'étoile du logo scintille, la lumière dessine le symbole, anneau au remplissage, « NURAQ » lettre par lettre, puis le slogan | — |
-| 2:24 – 4:48 | Carte des îles : Coran, Prière, Piliers, le fil suit le chemin | « Apprends l'islam / de façon claire et progressive » |
+| 2:24 – 4:48 | Carte des îles : Coran, Prière, Piliers, le fil suit le chemin | « Apprends l'islam / pas à pas » |
 | 4:48 – 9:36 | Téléphone : « Combien de piliers l'Islam compte-t-il ? » → 5 → « Bien joué ! » + explication | « Des exercices courts / et une explication à chaque réponse » |
 | 9:36 – 12:36 | Bibliothèque du Coran → reprise de la lecture → Al-Fatiha, verset 1 | « Le Coran / lis et reprends ta lecture » |
 | 12:36 – 15:00 | Série : 7 jours qui s'allument | « Garde le rythme / un jour après l'autre » |
-| 15:00 – 17:24 | Parcours des Piliers : Shahada → Hajj, 0 → 100 % | « Une progression claire / chaque niveau débloque le suivant » |
+| 15:00 – 17:24 | Parcours des Piliers : Shahada → Hajj, 0 → 100 % | « Chaque niveau / débloque le suivant » |
 | 17:24 – 19:48 | Le fil se ramifie vers 5 îles : Prière, Coran, Prophètes, Ramadan, Hajj & Umrah | « 12 parcours / des Piliers au Ramadan » |
 | 19:48 – 22:48 | Mascotte + « Comprendre. Pratiquer. Progresser. » | — |
 | 22:48 – 26:24 | Logo complet + mention des sources du texte coranique | — |
@@ -66,12 +66,12 @@ Tout est fabriqué à partir de l'app : vrais écrans (reconstitués avec les to
 
 ## Voix off
 
-- **Texte** : dans `voix-off.txt`. Il compte 12 courtes répliques, une version prête pour un générateur de voix et le temps d'entrée de chacune.
-- **Pose sur la vidéo** : `python3 mix-voix.py <dossier ou fichier>` produit `nuraq-spot-9x16-voix.mp4` et `nuraq-spot-16x9-voix.mp4`.
-  - Avec un fichier par réplique (01…12), chacune est placée à son temps.
-  - Avec un fichier unique, il est découpé aux silences.
-  - Avec `--tel-quel`, un fichier déjà calé sur la vidéo est posé à 0:00.
-- **Mixage** : les effets baissent de 8 dB sous la voix, et le niveau final vise −16 LUFS.
+- **Voix utilisée** : Solène (Cartesia, sonic-3.6, fr-FR, vitesse 1.1), fichier `son/voix-off-solene.wav`.
+- **Placement** : `son/voix-placement.json` indique, pour chaque réplique, son passage dans le fichier et l'instant où elle démarre dans le spot. Ce placement est calé sur le texte à l'écran : la 2e ligne de chaque légende arrive avec la 2e moitié de la phrase.
+- **Versions avec voix** : `nuraq-spot-9x16-voix.mp4` et `nuraq-spot-16x9-voix.mp4`, produites par `python3 mix-voix.py --plan son/voix-placement.json`.
+  - Les effets baissent de 9 dB sous la voix, et le niveau final vise −16 LUFS.
+  - Le script accepte aussi un dossier (un fichier par réplique) ou un fichier unique, découpé aux silences.
+- **Texte de référence** : `voix-off.txt`.
 
 ## Son
 

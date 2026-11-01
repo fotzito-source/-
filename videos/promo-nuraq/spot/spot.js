@@ -204,13 +204,14 @@
   }
 
   // ------------------------------------------------------------------ légendes
+  // Légendes calées sur la voix off (son/voix-placement.json) : la 2e ligne arrive avec la 2e moitié de la phrase.
   const CAPTIONS = [
-    { a: 2.7, b: 4.62, main: "Apprends l’islam", sub: "de façon claire et progressive" },
+    { a: 2.6, b: 4.62, main: "Apprends l’islam", sub: "pas à pas", subAt: 3.56 },
     { a: 5.05, b: 9.4, main: "Des exercices courts", sub: "et une explication à chaque réponse", subAt: 7.15 },
-    { a: 9.75, b: 12.4, main: "Le Coran", sub: "lis et reprends ta lecture" },
-    { a: 12.85, b: 14.8, main: "Garde le rythme", sub: "un jour après l’autre" },
-    { a: 15.2, b: 17.2, main: "Une progression claire", sub: "chaque niveau débloque le suivant" },
-    { a: 17.45, b: 19.6, main: "12 parcours", sub: "des Piliers au Ramadan" },
+    { a: 9.75, b: 12.4, main: "Le Coran", sub: "lis et reprends ta lecture", subAt: 10.45 },
+    { a: 12.8, b: 14.8, main: "Garde le rythme", sub: "un jour après l’autre", subAt: 13.79 },
+    { a: 15.2, b: 17.2, main: "Chaque niveau", sub: "débloque le suivant", subAt: 15.78 },
+    { a: 17.45, b: 19.6, main: "12 parcours", sub: "des Piliers au Ramadan", subAt: 18.32 },
   ];
   const capLayer = h("div", "layer", stage);
   for (const c of CAPTIONS) {
@@ -974,7 +975,7 @@
     S7.update(t);
     S8.update(t);
     // Scène 9 : logo final
-    LOGO9.update(t, { show: t > 22.7, g0: 22.78, d0: 22.92, d1: 23.46, f0: 23.36, w0: 23.58, t0: 24.0, alpha: E.outCubic(ramp(t, 22.72, 22.86)) });
+    LOGO9.update(t, { show: t > 22.7, g0: 22.78, d0: 22.92, d1: 23.46, f0: 23.36, w0: 23.58, t0: 24.36, alpha: E.outCubic(ramp(t, 22.72, 22.86)) });
     css(fine, { opacity: E.outCubic(ramp(t, 24.0, 24.5)) * 0.9 });
     updateCaptions(t);
     css(grain, { backgroundPosition: `${Math.floor(t * 30 * 37) % 256}px ${Math.floor(t * 30 * 59) % 256}px` });

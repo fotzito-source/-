@@ -35,6 +35,7 @@ Motion design de 26 s inspiré du spot Duolingo, en 9:16 et 16:9. Ici, et seulem
 - **Animation** : `spot/spot.js` (HTML piloté par `seek(t)`). **Rendu** : `node render.mjs` (Playwright + ffmpeg). **Son** : `son/son.py`, sans musique.
 - **Ressources** : elles viennent du dépôt privé `fotzito-source/nuraq-app` (îles, mascotte, logo, contenus des exercices et du Coran). Ne rien inventer : tout texte affiché doit exister dans l'app.
 - **Charte de l'app** (`DESIGN.md` de nuraq-app) : pas de néon violet. Le fil lumineux reste une lueur douce.
+- **Voix off** : Solène (Cartesia), `son/voix-off-solene.wav`. Placement réplique par réplique dans `son/voix-placement.json` (calé sur les légendes) ; `python3 mix-voix.py --plan son/voix-placement.json` → `nuraq-spot-*-voix.mp4`. Si un texte change, changer aussi la légende (`CAPTIONS` dans `spot.js`) et le placement.
 
 ## Voix off avec Cartesia (vidéo 01)
 La clé API se lit **uniquement** dans la variable d'environnement `CARTESIA_API_KEY`. Ne jamais l'écrire dans un fichier du dépôt ni la committer.

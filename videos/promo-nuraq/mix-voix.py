@@ -4,12 +4,14 @@
     python3 mix-voix.py voix/                 # un fichier par réplique (01…12), placés à leur temps
     python3 mix-voix.py voix-off.mp3          # un seul fichier : découpé aux silences si possible
     python3 mix-voix.py voix-off.mp3 --tel-quel   # un seul fichier calé sur la vidéo, posé à 0:00
+    python3 mix-voix.py --plan son/voix-placement.json   # placement exact, réplique par réplique
 
 Sortie : son/nuraq-spot-voix.wav, puis nuraq-spot-9x16-voix.mp4 et nuraq-spot-16x9-voix.mp4
 (image copiée telle quelle, son normalisé vers −16 LUFS). Les temps viennent de voix-off.txt.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 import tempfile
@@ -23,7 +25,7 @@ SR = 48000
 DURATION = 26.4
 # Début de chaque réplique (secondes), dans l'ordre de voix-off.txt.
 LINES = [1.30, 2.60, 5.10, 7.15, 9.80, 12.85, 15.25, 17.50, 20.05, 20.65, 21.25, 23.60]
-DUCK_DB = 8.0  # baisse des effets sous la voix
+DUCK_DB = 9.0  # baisse des effets sous la voix
 
 
 def load(path):
@@ -77,15 +79,32 @@ def split_on_silence(x, min_sil=0.35, min_seg=0.12):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("voix", help="dossier (un fichier par réplique) ou fichier unique")
+    ap.add_argument("voix", nargs="?", help="dossier (un fichier par réplique) ou fichier unique")
     ap.add_argument("--tel-quel", action="store_true", help="fichier unique déjà calé sur la vidéo, posé à 0:00")
+    ap.add_argument("--plan", help="placement JSON : passages du fichier source et instant de chaque réplique")
     args = ap.parse_args()
 
-    src = Path(args.voix)
     n = int(DURATION * SR)
     voice = np.zeros(n)
     placements = []
-    if src.is_dir():
+    src = Path(args.voix) if args.voix else None
+    if args.plan:
+        plan_path = Path(args.plan)
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        x = load(src or plan_path.parent / plan["source"])
+        pad = plan.get("pad", 0.04)
+        fade = int(0.008 * SR)
+        for line in plan["lines"]:
+            i0, i1 = int((line["from"] - pad) * SR), int((line["to"] + pad) * SR)
+            clip = x[max(0, i0):i1].copy()
+            clip[:fade] *= np.linspace(0, 1, fade)
+            clip[-fade:] *= np.linspace(1, 0, fade)
+            at = int((line["at"] - pad) * SR)
+            j = min(n, at + len(clip))
+            voice[at:j] += clip[:j - at]
+            placements.append((line["n"], line["at"], line["to"] - line["from"]))
+        clips = None
+    elif src.is_dir():
         files = sorted(p for p in src.iterdir() if p.suffix.lower() in {".wav", ".mp3", ".m4a", ".aac", ".ogg", ".flac"})
         clips = [trim(load(p)) for p in files]
     elif args.tel_quel:
@@ -116,7 +135,9 @@ def main():
         if t_free > DURATION - 0.3:
             print(f"Attention : la voix finit à {t_free:.1f} s, après la fin du spot ({DURATION} s).", file=sys.stderr)
 
-    # voix à −3 dBFS de crête, effets baissés sous la voix
+    # voix : coupe-bas doux (70 Hz), −3 dBFS de crête ; effets baissés sous la voix
+    f = np.fft.rfftfreq(n, 1 / SR)
+    voice = np.fft.irfft(np.fft.rfft(voice) * (1 - 1 / np.sqrt(1 + (f / 70) ** 4)), n)
     voice *= 10 ** (-3 / 20) / max(np.abs(voice).max(), 1e-9)
     sfx = load_stereo(HERE / "son" / "nuraq-spot.wav")[:, :n]
     env = envelope(voice, 0.05)

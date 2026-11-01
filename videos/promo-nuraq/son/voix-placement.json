@@ -1,0 +1,19 @@
+{
+  "source": "voix-off-solene.wav",
+  "note": "Voix Cartesia « Solene » (sonic-3.6, fr-FR, vitesse 1.1). from/to : passage dans le fichier source (s) ; at : instant où la réplique démarre dans le spot (s), calé sur le texte à l'écran.",
+  "pad": 0.04,
+  "lines": [
+    {"n": 1, "texte": "Nouraq.", "from": 0.08, "to": 0.51, "at": 1.30},
+    {"n": 2, "texte": "Apprends l'islam, pas à pas.", "from": 0.95, "to": 2.30, "at": 2.62},
+    {"n": 3, "texte": "Des exercices courts…", "from": 2.62, "to": 4.026, "at": 5.10},
+    {"n": 4, "texte": "et une explication à chaque réponse.", "from": 4.026, "to": 5.66, "at": 7.15},
+    {"n": 5, "texte": "Le Coran : lis, et reprends ta lecture.", "from": 5.93, "to": 7.71, "at": 9.80},
+    {"n": 6, "texte": "Garde le rythme, un jour après l'autre.", "from": 8.19, "to": 9.99, "at": 12.85},
+    {"n": 7, "texte": "Chaque niveau débloque le suivant.", "from": 10.38, "to": 11.68, "at": 15.25},
+    {"n": 8, "texte": "Douze parcours, des Piliers au Ramadan.", "from": 12.47, "to": 14.30, "at": 17.50},
+    {"n": 9, "texte": "Comprendre.", "from": 14.92, "to": 15.44, "at": 20.05},
+    {"n": 10, "texte": "Pratiquer.", "from": 15.72, "to": 16.26, "at": 20.65},
+    {"n": 11, "texte": "Progresser.", "from": 16.53, "to": 17.02, "at": 21.25},
+    {"n": 12, "texte": "Nouraq. Level up your iman.", "from": 17.60, "to": 19.29, "at": 23.58}
+  ]
+}
