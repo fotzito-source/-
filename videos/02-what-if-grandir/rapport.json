@@ -1,0 +1,17 @@
+{
+ "episode": "Grandir",
+ "file": "grandir-final.mp4",
+ "seconds": 36.0,
+ "lufs": -14.2,
+ "true_peak_dbtp": -1.47,
+ "segments": 24,
+ "cuts_per_min": 38.4,
+ "elevenlabs_credits": 0,
+ "cost_lines": [
+  {
+   "step": "voice (local Piper)",
+   "credits": 0,
+   "note": "provisional offline voice, no API"
+  }
+ ]
+}

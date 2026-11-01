@@ -4,15 +4,16 @@ Un épisode **What If** complet, fait avec le skill [what-if-animation](https://
 de FreshStack (copie dans `.claude/skills/what-if-animation/`, voir son `VENDORED.md`).
 
 - **Format :** 1920 × 1080, 30 i/s, 16/9 pour YouTube.
-- **Durée :** {DUREE} s.
+- **Durée :** 36,0 s.
 - **Structure :** 24 plans sur les 7 temps de la formule What If, en version longue. La version courte du skill
   (15 à 25 s) n'en garde que l'ouverture.
 - **Image :** tout est dessiné en code (SVG rendu par Remotion). Il n'y a ni modèle d'image, ni modèle vidéo.
-- **Son :** mixage à {LUFS} LUFS intégrés, crête vraie {TP} dBTP. La norme YouTube est −14 LUFS et moins de −1 dBTP.
+- **Son :** mixage à −14,2 LUFS intégrés, crête vraie −1,47 dBTP. La norme YouTube est −14 LUFS et moins de −1 dBTP.
 
 | Fichier | Contenu |
 |---|---|
-| `grandir-final.mp4` | La vidéo finale, prête à téléverser |
+| `grandir-final.mp4` | La vidéo finale, prête à téléverser (H.264 High, 1080p30, AAC 48 kHz, 6,8 Mbit/s, 30,6 Mo) |
+| `rapport.json` | Le rapport de `master.py` : durée, loudness, crête, rythme, crédits ElevenLabs utilisés (0) |
 | `storyboard.jpg` | Le storyboard : une image clé par plan, avec le texte dit et la note de plan |
 | `miniature.jpg` | Une miniature YouTube 1280 × 720 : le plan S10 et le titre dans la police du skill (Bricolage Grotesque, OFL) |
 | `grandir.srt` | Sous-titres pour l'import YouTube (à ne pas incruster : le style du genre n'en met pas à l'image) |
