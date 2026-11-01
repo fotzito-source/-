@@ -94,15 +94,39 @@ def main():
         x = load(src or plan_path.parent / plan["source"])
         pad = plan.get("pad", 0.04)
         fade = int(0.008 * SR)
+        extra = {}
+
+        def cut(t0, t1, p0, p1, source=None):
+            xs = x
+            if source:  # réplique régénérée à part (autre fichier)
+                if source not in extra:
+                    extra[source] = load(plan_path.parent / source)
+                xs = extra[source]
+            c = xs[max(0, int((t0 - p0) * SR)):int((t1 + p1) * SR)].copy()
+            c[:fade] *= np.linspace(0, 1, fade)
+            c[-fade:] *= np.linspace(1, 0, fade)
+            return c
+
         for line in plan["lines"]:
-            i0, i1 = int((line["from"] - pad) * SR), int((line["to"] + pad) * SR)
-            clip = x[max(0, i0):i1].copy()
-            clip[:fade] *= np.linspace(0, 1, fade)
-            clip[-fade:] *= np.linspace(1, 0, fade)
+            if "pieces" in line:
+                # réplique remontée à partir de plusieurs passages, séparés par de courtes pauses
+                gaps = line.get("gaps", [0.05] * (len(line["pieces"]) - 1))
+                parts = []
+                for k, (t0, t1) in enumerate(line["pieces"]):
+                    first, last = k == 0, k == len(line["pieces"]) - 1
+                    parts.append(cut(t0, t1, pad if first else 0.012, pad if last else 0.012))
+                    if not last:
+                        parts.append(np.zeros(int(gaps[k] * SR)))
+                clip = np.concatenate(parts)
+                dur = sum(t1 - t0 for t0, t1 in line["pieces"]) + sum(gaps)
+            else:
+                clip = cut(line["from"], line["to"], pad, pad, line.get("source"))
+                dur = line["to"] - line["from"]
+            clip = clip * 10 ** (line.get("gain_db", 0) / 20)
             at = int((line["at"] - pad) * SR)
             j = min(n, at + len(clip))
             voice[at:j] += clip[:j - at]
-            placements.append((line["n"], line["at"], line["to"] - line["from"]))
+            placements.append((line["n"], line["at"], dur))
         clips = None
     elif src.is_dir():
         files = sorted(p for p in src.iterdir() if p.suffix.lower() in {".wav", ".mp3", ".m4a", ".aac", ".ogg", ".flac"})

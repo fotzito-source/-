@@ -13,9 +13,9 @@ A) TEXTE À COLLER DANS LE GÉNÉRATEUR DE VOIX
 
 01  Nouraq.
 02  Apprends l'islam, pas à pas.
-03  Des exercices courts…
-04  et une explication à chaque réponse.
-05  Le Coran : lis, et reprends ta lecture.
+03  Des exercices courts, et une explication à chaque réponse.
+04  (fusionnée avec la 03 : la phrase se dit d'une traite)
+05  Lis le Coran et reprends ta lecture.
 06  Garde le rythme, un jour après l'autre.
 07  Chaque niveau débloque le suivant.
 08  Douze parcours, des Piliers au Ramadan.
@@ -37,9 +37,9 @@ B) QUAND CHAQUE RÉPLIQUE ARRIVE DANS LA VIDÉO
   Temps    Réplique                                     À l'image
   0:01,3   Nuraq.                                       les lettres du nom apparaissent
   0:02,6   Apprends l'islam, pas à pas.                 la lumière parcourt les îles
-  0:05,1   Des exercices courts…                        le téléphone, la question
-  0:07,2   et une explication à chaque réponse.         « Bien joué ! » et l'explication
-  0:09,8   Le Coran : lis, et reprends ta lecture.      bibliothèque puis lecteur
+  0:05,1   Des exercices courts, et une explication     la question, puis « Bien joué ! »
+           à chaque réponse.                            et l'explication (vers 0:06,5)
+  0:09,9   Lis le Coran et reprends ta lecture.         bibliothèque puis lecteur
   0:12,9   Garde le rythme, un jour après l'autre.      les 7 jours de série
   0:15,3   Chaque niveau débloque le suivant.           le parcours des Piliers
   0:17,5   Douze parcours, des Piliers au Ramadan.      la lumière se ramifie vers les îles

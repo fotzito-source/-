@@ -207,8 +207,8 @@
   // Légendes calées sur la voix off (son/voix-placement.json) : la 2e ligne arrive avec la 2e moitié de la phrase.
   const CAPTIONS = [
     { a: 2.6, b: 4.62, main: "Apprends l’islam", sub: "pas à pas", subAt: 3.56 },
-    { a: 5.05, b: 9.4, main: "Des exercices courts", sub: "et une explication à chaque réponse", subAt: 7.15 },
-    { a: 9.75, b: 12.4, main: "Le Coran", sub: "lis et reprends ta lecture", subAt: 10.45 },
+    { a: 5.05, b: 9.4, main: "Des exercices courts", sub: "et une explication à chaque réponse", subAt: 6.5 },
+    { a: 9.75, b: 12.4, main: "Lis le Coran", sub: "et reprends ta lecture", subAt: 10.77 },
     { a: 12.8, b: 14.8, main: "Garde le rythme", sub: "un jour après l’autre", subAt: 13.79 },
     { a: 15.2, b: 17.2, main: "Chaque niveau", sub: "débloque le suivant", subAt: 15.78 },
     { a: 17.45, b: 19.6, main: "12 parcours", sub: "des Piliers au Ramadan", subAt: 18.32 },
@@ -617,8 +617,8 @@
         vis(rd, p2 > 0);
 
         // exercice
-        const selT = 6.2;
-        const valT = 6.95;
+        const selT = 5.72; // choix de la réponse
+        const valT = 6.3; // validation : l'explication arrive avec « et une explication » (voix à 6,5 s)
         const sel = t >= selT;
         const ok = t >= valT + 0.1;
         choices.forEach((c) => css(c, { background: "rgba(31, 31, 35, 0.72)", borderColor: "rgba(247, 245, 250, 0.1)", transform: "none" }));
