@@ -1,0 +1,6 @@
+node_modules/
+out/
+# audio stems rebuilt by voice_fr.py / sfx.py (the shipped examples keep their mp3s)
+public/*/*.wav
+# the local TTS voice model, downloaded on first use
+.cache/

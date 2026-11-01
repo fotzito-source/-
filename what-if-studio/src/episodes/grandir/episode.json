@@ -1,0 +1,731 @@
+{
+ "id": "Grandir",
+ "slug": "grandir",
+ "topic": "Et si tu pouvais grandir à volonté ?",
+ "title": [
+  "ET SI TU POUVAIS",
+  "GRANDIR À VOLONTÉ ?"
+ ],
+ "accent": "GRANDIR",
+ "power": {
+  "word": "Grandis.",
+  "rule": "un mot, et tu grandis, autant que tu veux",
+  "look": "une pulsation dorée qui part des pieds, une règle de hauteur qui monte avec un multiplicateur (×1,6, ×2,5, ×10), une puce GRANDIS ; le son : un grondement qui monte et le bois qui craque"
+ },
+ "cast": [
+  "pipHood",
+  "mo",
+  "mom",
+  "suit",
+  "sis"
+ ],
+ "language": "fr",
+ "length_note": "Version longue de la formule (40 à 60 s) : les 7 temps, du cold open à la question finale.",
+ "script": [
+  {
+   "beat": "1 cold open, démo 1 (petite et égoïste)",
+   "text": "Les cookies sont cachés tout en haut. Grandis. Servi.",
+   "tts": "Les coukis sont cachés tout en haut. Grandis. Servi."
+  },
+  {
+   "beat": "1 cold open, démo 2 (utile)",
+   "text": "En retard ? Grandis. Une enjambée."
+  },
+  {
+   "beat": "1 cold open, démo 3 (un peu inquiétante)",
+   "text": "Ton meilleur pote te cherche. Grandis. Encore. Encore. Là, ça fait peur."
+  },
+  {
+   "beat": "2 la prémisse (carton titre)",
+   "text": "Et si tu pouvais grandir à volonté ?"
+  },
+  {
+   "beat": "3 le plaisir",
+   "text": "Génial, non ?"
+  },
+  {
+   "beat": "4 le revers : le coût, un fait réel chiffré",
+   "text": "Un détail : dix fois plus grand, c'est mille fois plus lourd. Mais tes os ne sont que cent fois plus solides. Au premier pas, ils cassent. C'est réel."
+  },
+  {
+   "beat": "5 quelqu'un de puissant remarque",
+   "text": "Le lendemain, un homme en costume t'attend dans la cuisine."
+  },
+  {
+   "beat": "6 la famille en jeu",
+   "text": "Et à l'étage, ta petite sœur vient de dire le mot."
+  },
+  {
+   "beat": "7 cliffhanger, une question pour les commentaires",
+   "text": "Tu montes la sauver… ou tu te tais ?",
+   "tts": "Tu montes la sauver ? Ou tu te tais ?"
+  }
+ ],
+ "science": [
+  {
+   "claim": "Dix fois plus grand, c'est mille fois plus lourd.",
+   "working": "Agrandir un corps de 10 dans les trois dimensions (hauteur, largeur, épaisseur) multiplie son volume, donc sa masse à densité égale, par 10 × 10 × 10 = 1 000. Pip mesure environ 1,50 m : à ×10, 15 m, la hauteur d'un immeuble de 4 à 5 étages, ce que montrent les plans du toit.",
+   "source": "Loi carré-cube : Galilée, Discours concernant deux sciences nouvelles (1638) ; J. B. S. Haldane, « On Being the Right Size » (1926), exemple des géants Pope et Pagan, dix fois plus hauts et mille fois plus lourds que Christian."
+  },
+  {
+   "claim": "Tes os ne sont que cent fois plus solides.",
+   "working": "La force qu'un os supporte en compression dépend de l'aire de sa section : à ×10, la section passe à 10 × 10 = 100 fois celle d'origine. Chaque cm² d'os porte donc 1 000 / 100 = 10 fois plus de poids qu'avant.",
+   "source": "J. B. S. Haldane, « On Being the Right Size » (1926) : les sections des os des géants ne font que cent fois celles de Christian, chaque pouce carré d'os porte dix fois plus."
+  },
+  {
+   "claim": "Au premier pas, ils cassent.",
+   "working": "Haldane note qu'un fémur humain casse sous environ dix fois le poids du corps. Un géant de ×10 met déjà ses os à ×10 de leur charge debout ; un pas ajoute la charge dynamique de la marche : les fémurs cèdent au premier pas. Haldane conclut que ses géants se seraient cassé les cuisses à chaque pas, ce qui explique qu'ils soient assis sur l'illustration dont il se souvient (d'où le plan de Pip assis sur un immeuble).",
+   "source": "J. B. S. Haldane, « On Being the Right Size », 1926. Copies en ligne citées dans le README de l'épisode."
+  }
+ ],
+ "voice": {
+  "backend": "auto",
+  "local": {
+   "model": "fr_FR-tom-medium",
+   "length_scale": 0.92,
+   "noise_scale": 0.62,
+   "noise_w_scale": 0.8
+  },
+  "cartesia": {
+   "model": "sonic-3",
+   "id": null,
+   "language": "fr"
+  }
+ },
+ "gaps": {
+  "word": 0.12,
+  "comma": 0.22,
+  "sentence": 0.32,
+  "question": 0.42,
+  "pairs": {
+   "peur|Et": 0.6,
+   "non|Un": 0.5,
+   "réel|Le": 0.65,
+   "cuisine|Et": 0.4,
+   "sauver|ou": 0.55
+  }
+ },
+ "shots": [
+  {
+   "id": "S1",
+   "size": "medium wide, low angle",
+   "set": "kitchen",
+   "key": 20,
+   "note": "Pip devant le frigo, la tête levée vers le bocal à cookies posé tout en haut"
+  },
+  {
+   "id": "S2",
+   "size": "insert, contre-plongée",
+   "set": "kitchen (frigo)",
+   "key": 14,
+   "note": "le bocal en haut du frigo ; la moufle de Pip s'étire et reste trop courte"
+  },
+  {
+   "id": "S3",
+   "size": "medium wide",
+   "set": "kitchen",
+   "key": 20,
+   "note": "GRANDIS : Pip grandit d'un coup, la tête frôle la suspension qui se balance"
+  },
+  {
+   "id": "S4",
+   "size": "close-up",
+   "set": "kitchen",
+   "key": 20,
+   "note": "Pip géant, courbé sous le plafond, croque un cookie, satisfait"
+  },
+  {
+   "id": "S5",
+   "size": "medium",
+   "set": "stairwell (palier)",
+   "key": 30,
+   "note": "Pip sur le palier, l'horloge marque 8 h, panique"
+  },
+  {
+   "id": "S6",
+   "size": "wide",
+   "set": "stairwell",
+   "key": 21,
+   "note": "GRANDIS : Pip grandit sur le palier, la lanterne vacille"
+  },
+  {
+   "id": "S7",
+   "size": "wide, low angle",
+   "set": "stairwell (bas)",
+   "key": 24,
+   "note": "une seule enjambée : son pied géant atterrit en bas de l'escalier, les cadres sautent"
+  },
+  {
+   "id": "S8",
+   "size": "medium",
+   "set": "rooftop",
+   "key": 30,
+   "note": "Mo sur le toit au crépuscule, la main en visière, cherche son ami"
+  },
+  {
+   "id": "S9",
+   "size": "wide, low angle",
+   "set": "rooftop",
+   "key": 21,
+   "note": "GRANDIS : derrière le parapet, une capuche géante monte au-dessus des immeubles"
+  },
+  {
+   "id": "S10",
+   "size": "wide",
+   "set": "rooftop",
+   "key": 24,
+   "note": "ENCORE : le visage géant de Pip au-dessus de la ville, aussi grand que le soleil"
+  },
+  {
+   "id": "S11",
+   "size": "very wide, low angle",
+   "set": "rooftop",
+   "key": 24,
+   "note": "ENCORE : Pip dépasse les immeubles, la tête dans les nuages ; Mo minuscule sur le toit"
+  },
+  {
+   "id": "S12",
+   "size": "close-up",
+   "set": "rooftop",
+   "key": 20,
+   "note": "Mo se retourne, terrifié ; derrière lui, flou, l'œil géant de Pip"
+  },
+  {
+   "id": "S13",
+   "size": "title, wide",
+   "set": "city at dusk",
+   "key": 46,
+   "note": "le titre sur la ville au crépuscule ; Pip géant entre les immeubles, le soleil derrière l'épaule"
+  },
+  {
+   "id": "S14",
+   "size": "medium, low angle",
+   "set": "city at dusk",
+   "key": 30,
+   "note": "Pip géant lève les bras, des oiseaux tournent autour de sa tête, un avion passe"
+  },
+  {
+   "id": "S15",
+   "size": "extreme close-up",
+   "set": "city at dusk",
+   "key": 18,
+   "note": "le sourire de Pip tombe ; un craquement"
+  },
+  {
+   "id": "S16",
+   "size": "schematic",
+   "set": "schematic",
+   "key": 70,
+   "note": "×10 de hauteur → un cube devient 1 000 cubes : POIDS ×1000"
+  },
+  {
+   "id": "S17",
+   "size": "schematic",
+   "set": "schematic",
+   "key": 60,
+   "note": "la section de l'os ×100 ; charge par cm² ×10, au seuil de rupture du fémur"
+  },
+  {
+   "id": "S18",
+   "size": "wide, low angle",
+   "set": "city at dusk",
+   "key": 20,
+   "note": "Pip géant lève un pied pour enjamber un immeuble : CRAC, flash rouge"
+  },
+  {
+   "id": "S19",
+   "size": "wide",
+   "set": "city, red sky",
+   "key": 26,
+   "note": "Pip assis sur un immeuble, la jambe tenue, le ciel vire au rouge"
+  },
+  {
+   "id": "S20",
+   "size": "wide",
+   "set": "kitchen",
+   "key": 30,
+   "note": "le lendemain : Pip entre en béquille, plâtre à la jambe ; l'homme en costume l'attend près de l'îlot"
+  },
+  {
+   "id": "S21",
+   "size": "medium, low angle",
+   "set": "kitchen",
+   "key": 30,
+   "note": "l'homme en costume pose la photo du géant sur l'îlot ; maman, inquiète, derrière"
+  },
+  {
+   "id": "S22",
+   "size": "insert",
+   "set": "kitchen (plafond)",
+   "key": 16,
+   "note": "la suspension se met à osciller, une fissure court au plafond, de la poussière tombe"
+  },
+  {
+   "id": "S23",
+   "size": "close-up",
+   "set": "chambre de la sœur",
+   "key": 54,
+   "note": "la petite sœur, les yeux qui s'allument en or, un sourire espiègle ; la pièce tremble"
+  },
+  {
+   "id": "S24",
+   "size": "close-up",
+   "set": "kitchen",
+   "key": 40,
+   "note": "Pip lève les yeux vers le plafond qui se fissure, puis regarde l'homme en costume (flou au premier plan)"
+  }
+ ],
+ "edit": [
+  {
+   "shot": "S1",
+   "at": "Les"
+  },
+  {
+   "shot": "S2",
+   "at": "tout"
+  },
+  {
+   "shot": "S3",
+   "at": "Grandis",
+   "look": "grandis"
+  },
+  {
+   "shot": "S4",
+   "at": "Servi"
+  },
+  {
+   "shot": "S5",
+   "at": "En"
+  },
+  {
+   "shot": "S6",
+   "at": "Grandis",
+   "look": "grandis"
+  },
+  {
+   "shot": "S7",
+   "at": "Une"
+  },
+  {
+   "shot": "S8",
+   "at": "Ton"
+  },
+  {
+   "shot": "S9",
+   "at": "Grandis",
+   "look": "grandis"
+  },
+  {
+   "shot": "S10",
+   "at": "Encore",
+   "look": "grandis"
+  },
+  {
+   "shot": "S11",
+   "at": "Encore",
+   "look": "grandis"
+  },
+  {
+   "shot": "S12",
+   "at": "Là"
+  },
+  {
+   "shot": "S13",
+   "at": "peur+14"
+  },
+  {
+   "shot": "S14",
+   "at": "Génial"
+  },
+  {
+   "shot": "S15",
+   "at": "Un"
+  },
+  {
+   "shot": "S16",
+   "at": "dix"
+  },
+  {
+   "shot": "S17",
+   "at": "Mais"
+  },
+  {
+   "shot": "S18",
+   "at": "Au"
+  },
+  {
+   "shot": "S19",
+   "at": "C'est"
+  },
+  {
+   "shot": "S20",
+   "at": "Le"
+  },
+  {
+   "shot": "S21",
+   "at": "costume"
+  },
+  {
+   "shot": "S22",
+   "at": "Et"
+  },
+  {
+   "shot": "S23",
+   "at": "ta"
+  },
+  {
+   "shot": "S24",
+   "at": "Tu"
+  }
+ ],
+ "tail": 1.2,
+ "fx": [],
+ "sound": {
+  "note": "Clips without 'procedural:' are the skill's starter library (ElevenLabs, generated by the skill's author on a paid plan), reused by their exact name, prompt and length. 'procedural:' clips are synthesized by scripts/sfx_local.py (numpy), no API.",
+  "clips": {
+   "room_tone": [
+    "quiet indoor room tone in the evening, faint distant city hum, no voices",
+    12.5
+   ],
+   "roof_wind": [
+    "a gentle evening breeze on a city rooftop, distant traffic",
+    7.0
+   ],
+   "music": [
+    "playful quirky cartoon background music, pizzicato strings, glockenspiel and soft bass, light and curious, 110 bpm, no vocals",
+    17.0
+   ],
+   "title_boom": [
+    "a cinematic whoosh rising into a deep boom impact",
+    1.6
+   ],
+   "drone_hit": [
+    "a dark ominous low drone hit, deep cinematic horror sting",
+    2.6
+   ],
+   "cookie_crunch": [
+    "one crunchy bite into a chocolate chip cookie, close up",
+    0.6
+   ],
+   "land": [
+    "a heavy body landing flat on a wooden floor, cartoon thud",
+    0.6
+   ],
+   "step": [
+    "a single sneaker footstep on a wooden stair, close",
+    0.5
+   ],
+   "gulp": [
+    "a nervous cartoon gulp, short",
+    0.5
+   ],
+   "shades": [
+    "cool sunglasses sliding on with a swoosh and a bright metallic glint",
+    0.9
+   ],
+   "sparkle": [
+    "a short bright magical sparkle twinkle, cartoon",
+    0.8
+   ],
+   "counter_tick": [
+    "a fast mechanical counter ticking up rapidly, digits rolling over, getting faster",
+    1.6
+   ],
+   "crack": [
+    "glass cracking sharply, the crack spreading across a pane",
+    1.1
+   ],
+   "bulb_pop": [
+    "a small light bulb popping out, a tiny glass tink and fizz",
+    0.5
+   ],
+   "switch_off": [
+    "a heavy electrical breaker switching off with a dull clunk",
+    0.5
+   ],
+   "grow": [
+    "procedural: the power, a short low swell snapping up into a springy overshoot, a whoosh with it, a gold shimmer at the top",
+    0.75
+   ],
+   "creak": [
+    "procedural: a wooden creak, stick-slip pulses through narrow resonances",
+    0.8
+   ],
+   "tick": [
+    "procedural: one wall clock tick, a hard click and a short metal ping",
+    0.25
+   ],
+   "rumble": [
+    "procedural: a building groaning, low brown noise swelling with a creak and grit trickling down",
+    2.4
+   ],
+   "slide": [
+    "procedural: a photo slid across a stone worktop, a dry hiss stopping with a soft tap",
+    0.7
+   ],
+   "bone_snap": [
+    "procedural: a dry bone snap, hard cracks, a woody body, a low thump, splinters",
+    0.6
+   ],
+   "giant_step": [
+    "procedural: a giant footstep, a deep boom falling in pitch, a wooden thud, things rattling",
+    1.2
+   ],
+   "flaps": [
+    "procedural: pigeons' wings flapping, soft feathery bursts",
+    1.4
+   ]
+  },
+  "events": [
+   [
+    "S1",
+    "room_tone",
+    0.12,
+    "onset",
+    "S8"
+   ],
+   [
+    "S3+19",
+    "grow",
+    0.42,
+    "peak",
+    "S4+1"
+   ],
+   [
+    "S3+20",
+    "creak",
+    0.16,
+    "onset",
+    "S4+1"
+   ],
+   [
+    "S4+18",
+    "cookie_crunch",
+    0.42
+   ],
+   [
+    "S5+26",
+    "tick",
+    0.4
+   ],
+   [
+    "S6+19",
+    "grow",
+    0.42,
+    "peak",
+    "S7+1"
+   ],
+   [
+    "S7+22",
+    "giant_step",
+    0.42,
+    "onset",
+    "S8+2"
+   ],
+   [
+    "S7+22",
+    "land",
+    0.25,
+    "onset",
+    "S8+2"
+   ],
+   [
+    "S8",
+    "roof_wind",
+    0.14,
+    "onset",
+    "S13"
+   ],
+   [
+    "S9+19",
+    "grow",
+    0.44,
+    "peak",
+    "S10+1"
+   ],
+   [
+    "S10+21",
+    "grow",
+    0.46,
+    "peak",
+    "S11+1"
+   ],
+   [
+    "S11+22",
+    "grow",
+    0.5,
+    "peak",
+    "S12+3"
+   ],
+   [
+    "S11+22",
+    "rumble",
+    0.12,
+    "onset",
+    "S12+16"
+   ],
+   [
+    "S12+42",
+    "gulp",
+    0.35
+   ],
+   [
+    "S13",
+    "title_boom",
+    0.24,
+    "peak",
+    "S13+14"
+   ],
+   [
+    "S13",
+    "roof_wind",
+    0.08,
+    "onset",
+    "S15"
+   ],
+   [
+    "S14",
+    "flaps",
+    0.07
+   ],
+   [
+    "S14+25",
+    "shades",
+    0.36
+   ],
+   [
+    "S15",
+    "drone_hit",
+    0.08,
+    "onset",
+    "S16"
+   ],
+   [
+    "S15+22",
+    "creak",
+    0.22
+   ],
+   [
+    "S16+40",
+    "counter_tick",
+    0.08,
+    "onset",
+    "S17"
+   ],
+   [
+    "S17+38",
+    "counter_tick",
+    0.08,
+    "onset",
+    "S17+60"
+   ],
+   [
+    "S17+69",
+    "bone_snap",
+    0.12
+   ],
+   [
+    "S18",
+    "roof_wind",
+    0.12,
+    "onset",
+    "S20"
+   ],
+   [
+    "S18+50",
+    "bone_snap",
+    0.6,
+    "onset",
+    "S19+3"
+   ],
+   [
+    "S18+50",
+    "giant_step",
+    0.28,
+    "onset",
+    "S19+3"
+   ],
+   [
+    "S20",
+    "room_tone",
+    0.12,
+    "onset",
+    "S23"
+   ],
+   [
+    "S21+8",
+    "slide",
+    0.24
+   ],
+   [
+    "S22",
+    "rumble",
+    0.13,
+    "onset",
+    "S24+70"
+   ],
+   [
+    "S22+1",
+    "creak",
+    0.14
+   ],
+   [
+    "S22+24",
+    "crack",
+    0.14
+   ],
+   [
+    "S23+54",
+    "sparkle",
+    0.26
+   ],
+   [
+    "S23+58",
+    "grow",
+    0.36,
+    "peak",
+    "S24+1"
+   ],
+   [
+    "S24+78",
+    "bulb_pop",
+    0.26
+   ],
+   [
+    "S24+86",
+    "switch_off",
+    0.36
+   ],
+   [
+    "S24+87",
+    "drone_hit",
+    0.3
+   ]
+  ],
+  "repeats": [
+   {
+    "at": "S20+3",
+    "clip": "step",
+    "n": 4,
+    "every": 8,
+    "gain": [
+     0.16,
+     0.24
+    ],
+    "pitch": [
+     1.05,
+     1.3
+    ],
+    "note": "the crutch and the cast tapping in as he hobbles (walk 0-26)"
+   }
+  ],
+  "music": {
+   "clip": "music",
+   "until": "S15"
+  },
+  "levels": {
+   "sfx_lu": -3.5,
+   "music_lu": -12
+  }
+ }
+}

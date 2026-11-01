@@ -21,3 +21,11 @@ cd videos/01-heures-de-priere/animatic
 python3 render.py              # → animatic.mp4 + sous-titres.srt
 python3 render.py --stills 2,24,38   # images de contrôle dans stills/
 ```
+
+## Vidéos « What If » (YouTube, 16/9)
+
+| Fichier | Contenu |
+|---|---|
+| [`videos/02-what-if-grandir/`](videos/02-what-if-grandir/) | Vidéo 02 : « Et si tu pouvais grandir à volonté ? ». Vidéo finale, storyboard, sous-titres, README (analyse du skill, commandes) |
+| `what-if-studio/` | Le studio Remotion du skill What If : moteur, décors, personnages, et l'épisode `src/episodes/grandir/` |
+| `.claude/skills/what-if-animation/` | Le skill What If (FreshStack, MIT), avec les scripts ajoutés pour le français (voir `VENDORED.md`) |

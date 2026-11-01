@@ -1,0 +1,432 @@
+{
+ "slug": "grandir",
+ "title": "ET SI TU POUVAIS GRANDIR À VOLONTÉ ?",
+ "fps": 30,
+ "total": 1077,
+ "segments": [
+  {
+   "shot": "S1",
+   "a": 0,
+   "b": 38,
+   "t0": 0,
+   "t1": 38,
+   "line": "Les cookies sont cachés"
+  },
+  {
+   "shot": "S2",
+   "a": 38,
+   "b": 61,
+   "t0": 0,
+   "t1": 23,
+   "line": "tout en haut."
+  },
+  {
+   "shot": "S3",
+   "a": 61,
+   "b": 84,
+   "t0": 0,
+   "t1": 23,
+   "line": "Grandis.",
+   "look": "grandis"
+  },
+  {
+   "shot": "S4",
+   "a": 84,
+   "b": 108,
+   "t0": 0,
+   "t1": 24,
+   "line": "Servi."
+  },
+  {
+   "shot": "S5",
+   "a": 108,
+   "b": 144,
+   "t0": 0,
+   "t1": 36,
+   "line": "En retard?"
+  },
+  {
+   "shot": "S6",
+   "a": 144,
+   "b": 168,
+   "t0": 0,
+   "t1": 24,
+   "line": "Grandis.",
+   "look": "grandis"
+  },
+  {
+   "shot": "S7",
+   "a": 168,
+   "b": 196,
+   "t0": 0,
+   "t1": 28,
+   "line": "Une enjambée."
+  },
+  {
+   "shot": "S8",
+   "a": 196,
+   "b": 248,
+   "t0": 0,
+   "t1": 52,
+   "line": "Ton meilleur pote te cherche."
+  },
+  {
+   "shot": "S9",
+   "a": 248,
+   "b": 271,
+   "t0": 0,
+   "t1": 23,
+   "line": "Grandis.",
+   "look": "grandis"
+  },
+  {
+   "shot": "S10",
+   "a": 271,
+   "b": 298,
+   "t0": 0,
+   "t1": 27,
+   "line": "Encore.",
+   "look": "grandis"
+  },
+  {
+   "shot": "S11",
+   "a": 298,
+   "b": 325,
+   "t0": 0,
+   "t1": 27,
+   "line": "Encore.",
+   "look": "grandis"
+  },
+  {
+   "shot": "S12",
+   "a": 325,
+   "b": 366,
+   "t0": 0,
+   "t1": 41,
+   "line": "Là, ça fait peur."
+  },
+  {
+   "shot": "S13",
+   "a": 366,
+   "b": 447,
+   "t0": 0,
+   "t1": 81,
+   "line": "Et si tu pouvais grandir à volonté?"
+  },
+  {
+   "shot": "S14",
+   "a": 447,
+   "b": 503,
+   "t0": 0,
+   "t1": 56,
+   "line": "Génial, non?"
+  },
+  {
+   "shot": "S15",
+   "a": 503,
+   "b": 530,
+   "t0": 0,
+   "t1": 27,
+   "line": "Un détail:"
+  },
+  {
+   "shot": "S16",
+   "a": 530,
+   "b": 604,
+   "t0": 0,
+   "t1": 74,
+   "line": "dix fois plus grand, c'est mille fois plus lourd."
+  },
+  {
+   "shot": "S17",
+   "a": 604,
+   "b": 680,
+   "t0": 0,
+   "t1": 76,
+   "line": "Mais tes os ne sont que cent fois plus solides."
+  },
+  {
+   "shot": "S18",
+   "a": 680,
+   "b": 737,
+   "t0": 0,
+   "t1": 57,
+   "line": "Au premier pas, ils cassent."
+  },
+  {
+   "shot": "S19",
+   "a": 737,
+   "b": 777,
+   "t0": 0,
+   "t1": 40,
+   "line": "C'est réel."
+  },
+  {
+   "shot": "S20",
+   "a": 777,
+   "b": 824,
+   "t0": 0,
+   "t1": 47,
+   "line": "Le lendemain, un homme en"
+  },
+  {
+   "shot": "S21",
+   "a": 824,
+   "b": 886,
+   "t0": 0,
+   "t1": 62,
+   "line": "costume t'attend dans la cuisine."
+  },
+  {
+   "shot": "S22",
+   "a": 886,
+   "b": 914,
+   "t0": 0,
+   "t1": 28,
+   "line": "Et à l'étage,"
+  },
+  {
+   "shot": "S23",
+   "a": 914,
+   "b": 974,
+   "t0": 0,
+   "t1": 60,
+   "line": "ta petite sœur vient de dire le mot."
+  },
+  {
+   "shot": "S24",
+   "a": 974,
+   "b": 1077,
+   "t0": 0,
+   "t1": 103,
+   "line": "Tu montes la sauver… ou tu te tais?"
+  }
+ ],
+ "shots": [
+  {
+   "id": "S1",
+   "size": "medium wide, low angle",
+   "key": 20,
+   "len": 38,
+   "first": 0,
+   "line": "Les cookies sont cachés",
+   "note": "Pip devant le frigo, la tête levée vers le bocal à cookies posé tout en haut"
+  },
+  {
+   "id": "S2",
+   "size": "insert, contre-plongée",
+   "key": 14,
+   "len": 23,
+   "first": 38,
+   "line": "tout en haut.",
+   "note": "le bocal en haut du frigo ; la moufle de Pip s'étire et reste trop courte"
+  },
+  {
+   "id": "S3",
+   "size": "medium wide",
+   "key": 20,
+   "len": 23,
+   "first": 61,
+   "line": "Grandis.",
+   "note": "GRANDIS : Pip grandit d'un coup, la tête frôle la suspension qui se balance"
+  },
+  {
+   "id": "S4",
+   "size": "close-up",
+   "key": 20,
+   "len": 24,
+   "first": 84,
+   "line": "Servi.",
+   "note": "Pip géant, courbé sous le plafond, croque un cookie, satisfait"
+  },
+  {
+   "id": "S5",
+   "size": "medium",
+   "key": 30,
+   "len": 36,
+   "first": 108,
+   "line": "En retard?",
+   "note": "Pip sur le palier, l'horloge marque 8 h, panique"
+  },
+  {
+   "id": "S6",
+   "size": "wide",
+   "key": 21,
+   "len": 24,
+   "first": 144,
+   "line": "Grandis.",
+   "note": "GRANDIS : Pip grandit sur le palier, la lanterne vacille"
+  },
+  {
+   "id": "S7",
+   "size": "wide, low angle",
+   "key": 24,
+   "len": 28,
+   "first": 168,
+   "line": "Une enjambée.",
+   "note": "une seule enjambée : son pied géant atterrit en bas de l'escalier, les cadres sautent"
+  },
+  {
+   "id": "S8",
+   "size": "medium",
+   "key": 30,
+   "len": 52,
+   "first": 196,
+   "line": "Ton meilleur pote te cherche.",
+   "note": "Mo sur le toit au crépuscule, la main en visière, cherche son ami"
+  },
+  {
+   "id": "S9",
+   "size": "wide, low angle",
+   "key": 21,
+   "len": 23,
+   "first": 248,
+   "line": "Grandis.",
+   "note": "GRANDIS : derrière le parapet, une capuche géante monte au-dessus des immeubles"
+  },
+  {
+   "id": "S10",
+   "size": "wide",
+   "key": 24,
+   "len": 27,
+   "first": 271,
+   "line": "Encore.",
+   "note": "ENCORE : le visage géant de Pip au-dessus de la ville, aussi grand que le soleil"
+  },
+  {
+   "id": "S11",
+   "size": "very wide, low angle",
+   "key": 24,
+   "len": 27,
+   "first": 298,
+   "line": "Encore.",
+   "note": "ENCORE : Pip dépasse les immeubles, la tête dans les nuages ; Mo minuscule sur le toit"
+  },
+  {
+   "id": "S12",
+   "size": "close-up",
+   "key": 20,
+   "len": 41,
+   "first": 325,
+   "line": "Là, ça fait peur.",
+   "note": "Mo se retourne, terrifié ; derrière lui, flou, l'œil géant de Pip"
+  },
+  {
+   "id": "S13",
+   "size": "title, wide",
+   "key": 46,
+   "len": 81,
+   "first": 366,
+   "line": "Et si tu pouvais grandir à volonté?",
+   "note": "le titre sur la ville au crépuscule ; Pip géant entre les immeubles, le soleil derrière l'épaule"
+  },
+  {
+   "id": "S14",
+   "size": "medium, low angle",
+   "key": 30,
+   "len": 56,
+   "first": 447,
+   "line": "Génial, non?",
+   "note": "Pip géant lève les bras, des oiseaux tournent autour de sa tête, un avion passe"
+  },
+  {
+   "id": "S15",
+   "size": "extreme close-up",
+   "key": 18,
+   "len": 27,
+   "first": 503,
+   "line": "Un détail:",
+   "note": "le sourire de Pip tombe ; un craquement"
+  },
+  {
+   "id": "S16",
+   "size": "schematic",
+   "key": 70,
+   "len": 74,
+   "first": 530,
+   "line": "dix fois plus grand, c'est mille fois plus lourd.",
+   "note": "×10 de hauteur → un cube devient 1 000 cubes : POIDS ×1000"
+  },
+  {
+   "id": "S17",
+   "size": "schematic",
+   "key": 60,
+   "len": 76,
+   "first": 604,
+   "line": "Mais tes os ne sont que cent fois plus solides.",
+   "note": "la section de l'os ×100 ; charge par cm² ×10, au seuil de rupture du fémur"
+  },
+  {
+   "id": "S18",
+   "size": "wide, low angle",
+   "key": 20,
+   "len": 57,
+   "first": 680,
+   "line": "Au premier pas, ils cassent.",
+   "note": "Pip géant lève un pied pour enjamber un immeuble : CRAC, flash rouge"
+  },
+  {
+   "id": "S19",
+   "size": "wide",
+   "key": 26,
+   "len": 40,
+   "first": 737,
+   "line": "C'est réel.",
+   "note": "Pip assis sur un immeuble, la jambe tenue, le ciel vire au rouge"
+  },
+  {
+   "id": "S20",
+   "size": "wide",
+   "key": 30,
+   "len": 47,
+   "first": 777,
+   "line": "Le lendemain, un homme en",
+   "note": "le lendemain : Pip entre en béquille, plâtre à la jambe ; l'homme en costume l'attend près de l'îlot"
+  },
+  {
+   "id": "S21",
+   "size": "medium, low angle",
+   "key": 30,
+   "len": 62,
+   "first": 824,
+   "line": "costume t'attend dans la cuisine.",
+   "note": "l'homme en costume pose la photo du géant sur l'îlot ; maman, inquiète, derrière"
+  },
+  {
+   "id": "S22",
+   "size": "insert",
+   "key": 16,
+   "len": 28,
+   "first": 886,
+   "line": "Et à l'étage,",
+   "note": "la suspension se met à osciller, une fissure court au plafond, de la poussière tombe"
+  },
+  {
+   "id": "S23",
+   "size": "close-up",
+   "key": 54,
+   "len": 60,
+   "first": 914,
+   "line": "ta petite sœur vient de dire le mot.",
+   "note": "la petite sœur, les yeux qui s'allument en or, un sourire espiègle ; la pièce tremble"
+  },
+  {
+   "id": "S24",
+   "size": "close-up",
+   "key": 40,
+   "len": 103,
+   "first": 974,
+   "line": "Tu montes la sauver… ou tu te tais?",
+   "note": "Pip lève les yeux vers le plafond qui se fissure, puis regarde l'homme en costume (flou au premier plan)"
+  }
+ ],
+ "fx": [],
+ "audio": {
+  "voiceVol": 0.5225,
+  "sfxVol": 0.8,
+  "musicVol": 0.1031,
+  "voice": "grandir/voice.wav",
+  "sfx": "grandir/sfx.wav",
+  "music": "grandir/music.wav"
+ }
+}

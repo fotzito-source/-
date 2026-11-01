@@ -52,3 +52,9 @@ python3 render.py --voix voix        # → video-voix-off.mp4 + sous-titres-voix
 1. Générer la voix (ci-dessus), l'écouter, régénérer les répliques mal prononcées.
 2. Faire relire le texte par une personne compétente, puis ouvrir une fois les liens du § 7 de `brief.md`.
 3. Exporter la version finale (avec ou sans sous-titres incrustés, selon l'usage des sous-titres automatiques de TikTok).
+
+## Vidéos « What If » (YouTube 16/9), à part de la série Nuraq
+- Skill : `.claude/skills/what-if-animation/` (FreshStack, MIT). **Lire d'abord son `VENDORED.md`** : le studio est `what-if-studio/` (pas `<skill>/studio`), la voix se fait avec `scripts/voice_fr.py` (Cartesia si `CARTESIA_API_KEY`, sinon Piper local), les sons manquants avec `scripts/sfx_local.py` (pas d'appel ElevenLabs).
+- Studio Remotion : `what-if-studio/` (`npm install` une fois). Épisode 02 : `what-if-studio/src/episodes/grandir/` ; livrables dans `videos/02-what-if-grandir/` (vidéo, storyboard, sous-titres, README avec l'analyse du skill et toutes les commandes).
+- Conteneur cloud uniquement : Remotion ne peut pas y télécharger Chrome. Après `npm install`, lancer `what-if-studio/cloud-chrome.sh` (branche le Chromium préinstallé, à travers le proxy pour les Google Fonts).
+- Voix de l'épisode 02 : **provisoire** (Piper). Prochaine étape : voix Cartesia (domaine `api.cartesia.ai` autorisé + `CARTESIA_API_KEY` dans l'environnement), puis relancer `plan.py`, `sfx.py`, `master.py`.
