@@ -126,7 +126,7 @@ export const S3: React.FC<ShotProps> = ({ t, len }) => {
   ]);
   const bump = clamp((t - 19) / 2) * (1 - clamp((t - 23) / 6));
   return (
-    <g transform={camT(1250, kf(t, [[0, 560], [len, 520]]), kf(t, [[0, 1.12], [len, 1.0]]))}>
+    <g transform={camT(kf(t, [[0, 1310], [len, 1300]]), kf(t, [[0, 600], [len, 545]]), kf(t, [[0, 1.42], [len, 1.3]]))}>
       <Kitchen t={t + 60} id="k3" veil={0.4} />
       <CookieJar x={JAR.x} y={JAR.y} s={1.05} />
       <GrowFx x={KF.x} y={K_FLOOR} t={t - 14} s={1.1} />
@@ -537,6 +537,7 @@ export const S14: React.FC<ShotProps> = ({ t, len }) => {
         sunX={430}
         sunY={640}
         low={300}
+        strings={false}
         between={
           <g>
             <rect x={tower.x0} y={top} width={tower.x1 - tower.x0} height={1400} fill="#3A2C55" />
@@ -730,7 +731,7 @@ export const S18: React.FC<ShotProps> = ({ t, len }) => {
   ]);
   const flash = t >= hit && t < hit + 3;
   return (
-    <g transform={`translate(${t >= hit ? Math.sin(t * 3) * 10 * clamp(1 - (t - hit) / 8) : 0} 0) ${camT(980, kf(t, [[0, 560], [len, 580]]), kf(t, [[0, 1.0], [len, 1.06]]))}`}>
+    <g transform={camT(980, kf(t, [[0, 560], [len, 580]]), kf(t, [[0, 1.0], [len, 1.06]]))}>
       <StreetSet t={t} id="st18" red={t >= hit ? 0.35 : 0}>
         <Hero look={PIP} pose={{ ...pose, ...faceAt(t, [[0, 'neutral'], [12, 'happy'], [hit, 'shock']]) }} rimId={t >= hit ? 'rimRed' : 'rimR'} shadow={0} />
       </StreetSet>

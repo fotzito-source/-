@@ -14,6 +14,7 @@ de FreshStack (copie dans `.claude/skills/what-if-animation/`, voir son `VENDORE
 |---|---|
 | `grandir-final.mp4` | La vidéo finale, prête à téléverser |
 | `storyboard.jpg` | Le storyboard : une image clé par plan, avec le texte dit et la note de plan |
+| `miniature.jpg` | Une miniature YouTube 1280 × 720 : le plan S10 et le titre dans la police du skill (Bricolage Grotesque, OFL) |
 | `grandir.srt` | Sous-titres pour l'import YouTube (à ne pas incruster : le style du genre n'en met pas à l'image) |
 | `script.md` | Le texte, temps par temps, et la science avec ses sources |
 | `../../what-if-studio/src/episodes/grandir/` | Les sources de l'épisode : `episode.json` (script, science, plans, montage, son), `shots.tsx` (les 24 plans), `index.tsx` (le look du pouvoir) |

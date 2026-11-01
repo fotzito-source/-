@@ -9,7 +9,7 @@ import { Glow } from '../light';
 // city, `lightsOut` kills the string lights one by one, `blackout` turns the city's windows off in a sweep from the left (raise `cityLit`, about 2.5, so there's plenty to switch off).
 // `low` lowers the camera (the city and roof drop in frame, the lights climb) for looking up at a character.
 // `between` is drawn after the city and before the near blocks, our roof and the string lights: a giant in the street
-// behind our building stands there (it moves with `low`, like the city).
+// behind our building stands there (it moves with `low`, like the city). `strings={false}` takes the string lights down.
 /** A sun with a clock face in it: hands that spin, and a crack that draws down it. */
 export const SunClock: React.FC<{ x: number; y: number; r: number; t: number; spin: number; red: number; crack: number }> = ({ x, y, r, t, spin, red, crack }) => (
   <g>
@@ -68,8 +68,8 @@ const CityLayer: React.FC<{ base: number; h: number; seed: number; color: string
   return <g>{out}</g>;
 };
 
-export const Rooftop: React.FC<{ t: number; sunX?: number; sunY?: number; clock?: boolean; spin?: number; red?: number; crack?: number; lightsOut?: number; blackout?: number; low?: number; cityLit?: number; between?: React.ReactNode }> = ({
-  t, sunX = 960, sunY = 640, clock = false, spin = 0, red = 0, crack = 0, lightsOut = 0, blackout = 0, low = 0, cityLit = 1, between,
+export const Rooftop: React.FC<{ t: number; sunX?: number; sunY?: number; clock?: boolean; spin?: number; red?: number; crack?: number; lightsOut?: number; blackout?: number; low?: number; cityLit?: number; between?: React.ReactNode; strings?: boolean }> = ({
+  t, sunX = 960, sunY = 640, clock = false, spin = 0, red = 0, crack = 0, lightsOut = 0, blackout = 0, low = 0, cityLit = 1, between, strings = true,
 }) => {
   const sag = (x: number) => 440 + 80 * (1 - Math.pow((x - 960) / 860, 2)) + Math.sin(t / 22 + x / 400) * 5 * (1 - Math.pow((x - 960) / 860, 2));
   const bulbs = Array.from({ length: 15 }).map((_, i) => 140 + i * 117);
@@ -159,6 +159,7 @@ export const Rooftop: React.FC<{ t: number; sunX?: number; sunY?: number; clock?
       <path d="M 1430 840 L 1440 760" stroke="#3A3444" strokeWidth={8} />
       <path d="M 1400 740 Q 1440 700 1490 730 Q 1460 790 1400 740 Z" fill="#4A4454" />
       </g>
+      {strings ? (
       <g transform={`translate(0 ${-low * 0.8})`}>
       {/* string lights between two poles: they go out one by one at the turn */}
       <path d={`M 140 ${860 + low * 1.8} L 140 430 M 1780 ${860 + low * 1.8} L 1780 430`} stroke="#120C18" strokeWidth={8} />
@@ -174,6 +175,7 @@ export const Rooftop: React.FC<{ t: number; sunX?: number; sunY?: number; clock?
         );
       })}
       </g>
+      ) : null}
       {red > 0 ? <rect x={-400} y={-400} width={2720} height={1900} fill="#16000A" opacity={0.42 * red} /> : null}
     </g>
   );
