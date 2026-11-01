@@ -6,23 +6,23 @@ Elle existe en deux formats : 16/9 pour YouTube et 9:16 pour TikTok.
 
 | Fichier | Contenu |
 |---|---|
-| `grow-full-youtube.mp4` | **YouTube** : les parties 1 et 2 à la suite, 2 min 05 (124,8 s), 2560 × 1440 (1440p) |
+| `grow-full-youtube.mp4` | **YouTube** : les parties 1 et 2 à la suite, 2 min 15 (134,6 s), 2560 × 1440 (1440p) |
 | `grow-full-tiktok.mp4` | **TikTok** : la même vidéo recadrée en 9:16, 1080 × 1920 |
 | `grow-full.srt` | Sous-titres anglais de la vidéo complète, à importer sur YouTube |
 | `thumbnail.jpg` | Miniature YouTube 1280 × 720 |
 | `tiktok-cover.jpg` | Couverture TikTok 1080 × 1920 |
 | `storyboard.jpg`, `storyboard-part2.jpg` | Les plans des parties 1 (32 plans) et 2 (30 plans), une image clé chacun |
 | `cartesia-script.txt`, `cartesia-script-part2.txt` | Le texte dit par la voix, partie par partie |
-| `report.json` | Mesures de la version YouTube : durée, loudness, crête |
-| `../../what-if-studio/src/episodes/grow/`, `grow2/` | Les sources : `episode.json` (script, science, montage, son), `shots.tsx` (les plans), `index.tsx` (le look GROW), `vertical.ts` (le cadrage 9:16) |
+| `report.json` | Mesures des deux versions : durée, débit, loudness, crête |
+| `../../what-if-studio/src/episodes/grow/`, `grow2/` | Les sources : `episode.json` (script, science, montage, son), `shots.tsx` (les plans), `index.tsx` (le look GROW), `vertical.ts` (le cadrage 9:16), `takes/` (les prises de voix retenues) |
 
 ## L'histoire
 
-- **Partie 1 (63 s)** : Pip découvre qu'il grandit quand il dit « grow ». D'abord le bocal de cookies, puis il devient
+- **Partie 1 (68 s)** : Pip découvre qu'il grandit quand il dit « grow ». D'abord le bocal de cookies, puis il devient
   un colosse au-dessus de la ville, jusqu'au premier pas où son fémur casse. Le lendemain, un homme en costume
   l'attend dans la cuisine avec une photo de lui. Puis le plafond se fissure : à l'étage, sa petite sœur vient de dire
   le mot. Carton : « PART 1 / WHAT WOULD YOU DO? ».
-- **Partie 2 (62 s), « The word »** : la suite immédiate.
+- **Partie 2 (66 s), « The word »** : la suite immédiate.
   1. Pip monte l'escalier avec sa béquille. La chambre de sa sœur n'est plus une chambre : elle est grande comme la
      maison, et elle adore ça.
   2. Puis elle vacille : à dix fois sa taille, son cœur ne peut plus monter le sang jusqu'au cerveau.
@@ -55,11 +55,39 @@ Elle existe en deux formats : 16/9 pour YouTube et 9:16 pour TikTok.
 
 ## La voix
 
-- **Voix :** Cartesia `sonic-3`, « Carson – Curious Conversationalist », vitesse 0,9.
-- **Génération :** par l'API, avec la clé lue dans la variable d'environnement `CARTESIA_API_KEY` (jamais écrite dans
-  le dépôt).
+- **Voix :** Cartesia `sonic-3`, « Garrett – Enthusiastic Pal », émotion `excited`, vitesse 1,0.
+  - Sur dix voix Cartesia mesurées, c'est la plus proche de la toute première voix provisoire (Piper « Ryan ») :
+    un timbre clair et jeune, autour de 180 Hz (170 Hz pour Ryan), une voix pleine et enjouée.
+  - Ryan ne peut pas servir pour la version publiée : sa licence interdit l'usage commercial.
+- **Pourquoi elle remplace « Carson » :** générée d'un seul bloc, la voix Carson dérivait. Elle chuchotait par
+  endroits et faisait tomber certains mots de 20 à 40 dB, comme « He » ou « You ».
+- **Génération :** par petits groupes de phrases (180 caractères au plus), avec jusqu'à trois prises par groupe.
+  `voice_fr.py` garde la meilleure. Une prise perd des points pour chaque mot trop faible, chaque mot chuchoté et
+  chaque mot que la reconnaissance vocale locale (NeMo Parakeet) n'entend pas.
+- **Finition :** le volume est égalisé mot par mot, puis passé dans un compresseur doux. « Grow! » est dit comme un
+  ordre.
+- **Mesures sur la piste de voix finale**, niveau de chaque mot comparé au niveau médian des mots :
+
+  | | Partie 1, Carson | Partie 1, Garrett | Partie 2, Carson | Partie 2, Garrett |
+  |---|---|---|---|---|
+  | Mots à plus de 6 dB sous les autres | 36 | 0 | 47 | 0 |
+  | Mots à plus de 10 dB sous les autres | 16 | 0 | 30 | 0 |
+  | Mot le plus faible | −33,7 dB (« He ») | −2,8 dB | −39,1 dB (« You ») | −4,7 dB |
+  | Écart type des niveaux | 6,6 dB | 0,7 dB | 7,7 dB | 0,8 dB |
+
+  Dans la nouvelle voix, la reconnaissance vocale retrouve tous les mots du texte. Elle écrit seulement « mom » pour
+  « Mum » et « anytime » pour « any time ».
+- **Prises versionnées :** les prises retenues sont dans `src/episodes/grow/takes/` et `grow2/takes/`, en FLAC (sans
+  perte, 4,4 Mo en tout). `voice_fr.py <slug> --offline` refait la voix à partir d'elles, au bit près, sans clé ni
+  crédit.
+- **Clé :** lue uniquement dans la variable d'environnement `CARTESIA_API_KEY`, jamais écrite dans le dépôt.
+  - Une session lit la clé à son démarrage : une clé changée dans les réglages ne sert qu'à partir d'une nouvelle
+    session.
+  - Si l'API répond HTTP 402, le crédit est épuisé.
 - **Montage :** l'API donne l'horaire de chaque mot, et tout le montage s'y accroche : les coupes, les actions des
   plans et les bruitages.
+- **Mixage :** pendant que l'on parle, `duck.py` garde les bruitages au moins 5 dB sous la voix et la musique au moins
+  8 dB sous la voix. Dans les silences, les impacts gardent toute leur force.
 
 ## La version TikTok (9:16)
 
@@ -80,12 +108,15 @@ Pour les sous-titres, active les sous-titres automatiques de TikTok : ils s'affi
 
 - **YouTube :**
   - rendu à 2880 × 1620, réduit en Lanczos à 2560 × 1440 (contours plus nets), master en CRF 14 ;
-  - fichier livré en H.264 High, 2 passes, 5,9 Mbit/s (91 Mo) pour rester sous la limite de 100 Mo de
-    GitHub ;
+  - fichier livré en H.264 High, 2 passes, au débit le plus haut qui reste sous 95 Mo (la limite de GitHub est
+    100 Mo) ;
   - YouTube réencode le 1440p en VP9, ce qui donne une meilleure image à la diffusion qu'un envoi en 1080p.
-- **TikTok :** rendu vectoriel direct en 1080 × 1920 (pas un agrandissement), puis H.264 High en 2 passes,
-  5,8 Mbit/s (90 Mo).
-- **Son :** les deux versions sont à −14,1 LUFS intégrés, crête vraie −1,9 dBTP.
+- **TikTok :** rendu vectoriel direct en 1080 × 1920 (pas un agrandissement), puis H.264 High en 2 passes, sous 95 Mo
+  aussi.
+- **Son :** les deux versions ont la même bande son, à −14 LUFS intégrés, crête vraie sous −1 dBTP, en AAC
+  256 kbit/s.
+
+Les débits, les tailles et les mesures exactes de chaque version sont dans `report.json`.
 
 ## Refaire les rendus
 
@@ -93,9 +124,13 @@ Depuis `what-if-studio/`, après `npm install` et `./cloud-chrome.sh` dans le co
 
 ```bash
 S=../.claude/skills/what-if-animation/scripts
-export CARTESIA_API_KEY=…   # seulement pour régénérer la voix
-python3 $S/voice_fr.py grow2 && python3 $S/plan.py grow2 && python3 $S/sfx.py grow2 && python3 $S/mixcheck.py grow2
+python3 $S/voice_fr.py grow2 --offline   # la voix, à partir des prises versionnées
+python3 $S/plan.py grow2 && python3 $S/sfx.py grow2
+python3 $S/duck.py grow2 --sfx 5 --music 8 --max 14 && python3 $S/mixcheck.py grow2
 ```
+
+Si le texte change, il faut de nouvelles prises : `export CARTESIA_API_KEY=…`, puis `voice_fr.py grow2` sans
+`--offline`. Chaque prise coûte des crédits Cartesia, donc les essais se font sur un court extrait.
 
 Pour chaque partie (`grow` → `Grow`, `grow2` → `Grow2`) :
 
@@ -107,8 +142,9 @@ npx remotion render src/index.ts Grow2Vertical out/grow2/grow2-vertical-raw.mp4 
 ```
 
 La version verticale passe ensuite par la même normalisation à −14 LUFS. Les deux parties sont mises bout à bout avec
-le filtre `concat` de ffmpeg. Chaque son est coupé à la durée exacte de son image (1 892 et 1 852 images), pour que
-la partie 2 reste synchrone.
+le filtre `concat` de ffmpeg. Chaque son est coupé à la durée exacte de son image (2 048 et 1 990 images), pour que
+la partie 2 reste synchrone. La bande son complète est ramenée à −14 LUFS, puis limitée à −2 dBFS avec un
+suréchantillonnage ×4, pour que la crête reste sous −1 dBTP après l'encodage AAC.
 
 Pour revoir un cadrage vertical, change le plan dans `vertical.ts`, puis regarde la composition `Grow2VerticalBoard`
 dans le studio Remotion : une image par plan.
