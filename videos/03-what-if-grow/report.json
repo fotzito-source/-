@@ -20,8 +20,10 @@
  "tiktok": {
   "width": 1080,
   "height": 1920,
-  "video_kbps": 5753,
-  "lufs": -14.1,
-  "true_peak_dbtp": -1.87
+  "video_kbps": 5297,
+  "size_mb": 93.4,
+  "lufs": -14.0,
+  "true_peak_dbtp": -1.96,
+  "audio": "same AAC stream as the YouTube file"
  }
 }
