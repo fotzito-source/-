@@ -4,18 +4,19 @@
   "grow-full-tiktok.mp4"
  ],
  "parts": [
-  "grow (Part 1, 1892 frames)",
-  "grow2 (Part 2, 1852 frames)"
+  "grow (Part 1, 2048 frames)",
+  "grow2 (Part 2, 1990 frames)"
  ],
- "seconds": 124.8,
+ "seconds": 134.6,
  "width": 2560,
  "height": 1440,
  "fps": 30,
- "video_kbps": 5860,
- "lufs": -14.1,
- "true_peak_dbtp": -1.87,
+ "video_kbps": 5298,
+ "size_mb": 93.4,
+ "lufs": -14.0,
+ "true_peak_dbtp": -1.96,
  "shots": 62,
- "voice": "Cartesia sonic-3, Carson - Curious Conversationalist, speed 0.9",
+ "voice": "Cartesia sonic-3, Garrett - Enthusiastic Pal, emotion excited, speed 1.0, best of 3 takes per chunk",
  "tiktok": {
   "width": 1080,
   "height": 1920,
