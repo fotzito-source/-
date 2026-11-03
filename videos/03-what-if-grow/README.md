@@ -9,6 +9,7 @@ Elle existe en deux formats : 16/9 pour YouTube et 9:16 pour TikTok.
 | `grow-full-youtube.mp4` | **YouTube** : les parties 1 et 2 à la suite, 2 min 15 (134,6 s), 2560 × 1440 (1440p) |
 | `grow-full-tiktok.mp4` | **TikTok** : la même vidéo recadrée en 9:16, 1080 × 1920 |
 | `grow-full.srt` | Sous-titres anglais de la vidéo complète, à importer sur YouTube |
+| `youtube.md` | Fiche YouTube à coller dans YouTube Studio : titre, description avec chapitres et sources, tags, commentaire épinglé |
 | `thumbnail.jpg` | Miniature YouTube 1280 × 720 |
 | `tiktok-cover.jpg` | Couverture TikTok 1080 × 1920 |
 | `storyboard.jpg`, `storyboard-part2.jpg` | Les plans des parties 1 (32 plans) et 2 (30 plans), une image clé chacun |
