@@ -30,13 +30,25 @@ import blender_scene as bs  # noqa: E402
 import zone  # noqa: E402
 from textures import write_stud_textures  # noqa: E402
 
-# Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox
+# Vues : (position caméra, cible, champ vertical en degrés), en coordonnées Roblox.
+# On court vers -Z ; le soleil de jour vient de -X/+Z (derrière l'entrée, à gauche) : la droite du couloir et le crâne
+# (qui regarde l'entrée) sont éclairés de face.
 VUES = {
-    # À DÉFINIR par la direction artistique (position caméra, cible, champ vertical en degrés)
-    "aerienne": ((-240, 340, 120), (10, 0, -285), 48),
-    "entree": ((0, 8, 20), (0, 30, -80), 78),
+    "aerienne": ((-250, 330, 150), (10, 0, -290), 48),      # de haut, côté soleil : crâne, tour, aqueduc, château
+    "entree": ((0, 6, 34), (6, 30, -150), 76),             # vue joueur aux abords : les deux tours encadrent le crâne et le château
+    "village": ((-10, 9, -44), (30, 30, -200), 70),        # rue du village, église à gauche, colline et crâne à droite
+    "crane": ((6, 10, -66), (130, 64, -158), 62),          # le crâne cornu de 3/4 depuis le couloir, côtes géantes devant
+    "tour": ((34, 10, -196), (-92, 64, -252), 64),         # tour aux grimoires et sa nuée de livres, placette, bourg
+    "bataille": ((-24, 9, -292), (16, 34, -420), 72),      # champ de bataille : ruines, bâtons, cratères, aqueduc
+    "place": ((-36, 30, -394), (8, 4, -462), 64),          # cercle magique, obélisques, racines, arbre et îlots
+    "retour": ((4, 9, -486), (0, 26, -60), 70),            # vers la base : aqueduc, tour, crâne, tours d'entrée
+    "cote": ((-400, 250, -110), (0, 10, -300), 45),        # côté gauche : forêt, montagne de la capitale, falaises
+    "final": ((0, 12, -412), (0, 66, -548), 70),           # château démoniaque et sa porte en arc brisé
     "plan": None,  # vue de dessus orthographique
 }
+
+# Crépuscule démoniaque : horizon cramoisi-rose, ciel violet, zénith presque noir ; soleil bas derrière le château
+CIEL_DEMON = ((0.66, 0.30, 0.40), (0.30, 0.17, 0.42), (0.04, 0.03, 0.12))
 
 
 def lune_path() -> str | None:
@@ -50,7 +62,7 @@ def lune_path() -> str | None:
 def main() -> None:
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
     ap = argparse.ArgumentParser()
-    ap.add_argument("--vues", default="aerienne,entree,plan")
+    ap.add_argument("--vues", default="aerienne,entree,village,crane,tour,bataille,place,retour,cote,final,plan")
     ap.add_argument("--rapide", action="store_true")
     ap.add_argument("--sans-rendu", action="store_true")
     ap.add_argument("--sans-export", action="store_true")
@@ -76,10 +88,11 @@ def main() -> None:
     st = bs.build(pj)
     print(json.dumps({k: v for k, v in st.items() if k != "tris_by_object"}))
     if args.ambiance == "crepuscule":
-        # soleil bas, ciel violet : les lueurs magiques et les braseros (Neon) ressortent
-        bs.setup_world(sun_elev=11, sun_azim=20, view="AgX", look="AgX - Punchy", exposure=1.0,
-                       ciel=bs.CIEL_CREPUSCULE, soleil=(1.0, 0.62, 0.42), soleil_energie=3.6, ciel_force=1.5)
-        bs.setup_brume(debut=60, profondeur=900, maximum=0.5, couleur=(0.36, 0.26, 0.48))
+        # soleil bas derrière le château (azimut 8 : un peu à droite), ciel violet et cramoisi : le château se
+        # découpe en silhouette, les lueurs magiques, les braseros et les fenêtres (Neon) ressortent
+        bs.setup_world(sun_elev=9, sun_azim=8, view="AgX", look="AgX - Punchy", exposure=1.0,
+                       ciel=CIEL_DEMON, soleil=(1.0, 0.52, 0.44), soleil_energie=3.4, ciel_force=1.5)
+        bs.setup_brume(debut=60, profondeur=850, maximum=0.55, couleur=(0.32, 0.20, 0.42))
     else:
         bs.setup_world()
         bs.setup_brume()
@@ -96,9 +109,9 @@ def main() -> None:
         for name in [v for v in args.vues.split(",") if v]:
             t0 = time.time()
             if VUES[name] is None:
-                cam = bs.add_camera("plan", (0, 420, -270), (0, 0, -270.01), fov=30)   # basse : moins de brume
+                cam = bs.add_camera("plan", (0, 420, -254), (0, 0, -254.01), fov=30)   # basse : moins de brume
                 cam.data.type = "ORTHO"
-                cam.data.ortho_scale = 600
+                cam.data.ortho_scale = 640
                 cam.data.clip_end = 2000
                 bs.render(cam, out / f"{name}{args.suffixe}.png", res=(h * 9 // 10, int(h * 1.1)), samples=max(8, samples // 3))
             else:
