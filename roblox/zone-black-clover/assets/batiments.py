@@ -375,7 +375,7 @@ def _toit_pignon(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, rive_av
     if rives is not None:
         # planches de rive le long des deux rampants du pignon avant, plus saillantes que les pans
         rc = col(rives)
-        for (A, B, ea, eb) in ((E_g, Rg, 0.0, 0.3), (Rg, E_d, 0.3, 0.0)):
+        for (A, B, ea, eb) in ((E_g, Rg, 0.15, 0.3), (Rg, E_d, 0.3, 0.15)):
             A2, B2 = _decale(A, B, 0.12)
             _pan_x(b, A2[0], A2[1], B2[0], B2[1], za - 0.25, za + 0.2, ep + 0.25, rc, ext_a=ea, ext_b=eb,
                    studs="none", name="Rive", **DECO)
@@ -718,7 +718,7 @@ def _etage(b, x0, x1, y, h, z, zb, zprev, enduit, bois, fenetres, motif, panneau
     b.box((x0 - 0.15, y, z - 0.3), (x1 + 0.15, y + 0.6, zb + 0.15), bois, name="Sabliere")
     if gorge and zprev - z > 0.05:
         b.wedge_under((x0, y - 0.6, z - 0.3), (x1, y, zprev), bois, down="-z", name="Gorge", **DECO)
-    ya, yb = y + 0.6, y + h
+    ya, yb = y + 0.6, y + h - 0.05
     for xp in (poteaux if poteaux is not None else (x0 + 0.3, 0.0, x1 - 0.3)):
         if xp <= x0 + 0.31:
             b.box((x0 - 0.1, ya, z - 0.24), (x0 + 0.55, yb, z + 0.3), bois, name="Poteau", **DECO)
@@ -920,7 +920,8 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
               (0.9 + (x1 - x0 + 0.9 - (zb - zf + 1.1)) / 2, yr + 0.45, (zf + zb) / 2 + 0.5), shade(ardoise, 0.72),
               studs="top", name="Faitage")
         # bandeau sous l'égout (le toit en pavillon repose sur une corniche)
-        b.box((x0 - 0.2, H - 0.1, zf - 0.2), (x1 + 0.2, H + 0.6, zb + 0.2), vr("pierre_fonce", rng, 0.03), name="Corniche")
+        b.box((x0 - 0.35, H - 0.1, zf - 0.35), (x1 + 0.35, H + 0.6, zb + 0.35), vr("pierre_fonce", rng, 0.03),
+              name="Corniche")
         haut = yr + 0.45
         # lucarne sur le pan avant
         if niv < 3:
@@ -981,14 +982,14 @@ def _ruine(b, v, L, P, niv):
             b.box((xa, y0, za), (xb, h, zz), pierre(), name=name)
 
     def suie(xa, xb, ya, yb, z=zf):
-        b.box((xa, ya, z - 0.1), (xb, yb, z + 0.05), col("noir"), name="Suie", **DECO)
+        b.box((xa, ya + 0.1, z - 0.1), (xb, yb, z + 0.05), col("noir"), name="Suie", **DECO)
 
     haut = 0.0
     if v == 0:
         # façade : porte et fenêtre béantes, pignon debout au-dessus (pointe droite écroulée)
         mur(x0, -3.6 * s, zf, zf + e, 6.0)
         mur(-3.6 * s, -1.4 * s, zf, zf + e, 6.0, y0=4.8)
-        b.box((-3.6 * s - 0.2, 4.2, zf - 0.1), (-1.4 * s + 0.2, 4.8, zf + e), brule, name="Linteau")
+        b.box((-3.6 * s - 0.2, 4.2, zf - 0.1), (-1.4 * s + 0.2, 4.8, zf + e - 0.12), brule, name="Linteau")
         mur(-1.4 * s, 1.4 * s, zf, zf + e, 6.0)
         mur(1.4 * s, 3.2 * s, zf, zf + e, 2.0)
         mur(1.4 * s, 3.2 * s, zf, zf + e, 6.0, y0=3.8)
@@ -1036,7 +1037,7 @@ def _ruine(b, v, L, P, niv):
         mur(-2.0 * s, 1.0 * s, zf, zf + e, 1.2)
         mur(1.0 * s, 2.0 * s, zf, zf + e, 4.6)
         mur(2.0 * s, 3.6 * s, zf, zf + e, 1.8)
-        b.box((2.0 * s - 0.2, 3.4, zf - 0.1), (3.6 * s + 0.2, 3.9, zf + e), brule, name="Linteau")
+        b.box((2.0 * s - 0.2, 3.4, zf - 0.1), (3.6 * s + 0.2, 3.9, zf + e - 0.12), brule, name="Linteau")
         mur(2.0 * s, 3.6 * s, zf, zf + e, 4.6, y0=3.9)
         mur(3.6 * s, x1, zf, zf + e, 4.0)
         suie(2.1 * s, 3.5 * s, 3.9, 4.5)
@@ -1069,9 +1070,9 @@ def _ruine(b, v, L, P, niv):
         xx = float(rng.uniform(x0 + e + 0.8, x1 - e - 0.8))
         zz = float(rng.uniform(zf + e + 0.8, zb - e - 0.8))
         sz = float(rng.uniform(0.9, 1.6))
-        b.boxc((xx, 0.2 + sz * 0.3, zz), (sz * 1.3, sz * 0.6, sz), pierre(), yaw=float(rng.uniform(0, 90)), studs="top",
-               name="Eboulis", **DECO)
-    for (xx, zz, sz) in ((x1 - 0.6, zf - 0.9, 1.1), (x0 + 1.4, zf - 0.6, 0.8))[: (2 if niv < 3 else 0)]:
+        b.boxc((xx, 0.2 + sz * 0.3 + 0.07 * i, zz), (sz * 1.3, sz * 0.6, sz), pierre(), yaw=float(rng.uniform(0, 90)),
+               studs="top", name="Eboulis", **DECO)
+    for (xx, zz, sz) in ((x1 - 0.6, zf - 0.9, 1.1), (x0 + 1.4, zf - 0.6, 0.85))[: (2 if niv < 3 else 0)]:
         b.boxc((xx, sz * 0.3, zz), (sz * 1.2, sz * 0.6, sz), pierre(), yaw=float(rng.uniform(0, 90)), studs="top",
                name="Eboulis", **DECO)
     if v == 2:
@@ -1157,7 +1158,7 @@ def _grange(b, v, L, P, niv):
               name="CouvreJoint", **DECO)
     # --- fenil ouvert, foin, poutre de palan, poulie et corde
     yf0, yf1 = hp + 1.6, hp + 4.1
-    b.box((-1.8, yf0, zw - 0.1), (1.8, yf1, zw + 0.05), noir, name="Fenil", **DECO)
+    b.box((-1.8, yf0 - 0.15, zw - 0.1), (1.8, yf1, zw + 0.05), noir, name="Fenil", **DECO)
     b.box((-1.6, yf0, zw - 0.7), (1.3, yf0 + 0.9, zw + 0.05), vr("foin", rng, 0.04), studs="top", name="Foin", **DECO)
     if niv < 2:
         b.box((-1.0, yf0 + 0.9, zw - 0.45), (0.7, yf0 + 1.5, zw + 0.05), vr("ble_fonce", rng, 0.04), name="Foin", **DECO)
@@ -1182,7 +1183,7 @@ def _grange(b, v, L, P, niv):
         b.box((x1 - 2.8, 0, zf - 2.6), (x1 - 0.4, 1.2, zf - 0.6), vr("foin", rng, 0.04), studs="top", name="Botte")
         b.box((x1 - 2.4, 1.2, zf - 2.3), (x1 - 0.9, 2.2, zf - 1.0), vr("ble_fonce", rng, 0.04), studs="top", name="Botte")
     if v == 1 and niv < 3:
-        b.part("cyl", (0.3, 2.6, 2.6), (x0 + 1.4, 1.2, zf - 0.3), rot_y(90) @ rot_x(8), col("bois_fonce"), name="Roue",
+        b.part("cyl", (0.3, 2.6, 2.6), (x0 + 1.4, 1.45, zf - 0.35), rot_y(90) @ rot_x(8), col("bois_fonce"), name="Roue",
                **DECO)
     if v == 2:
         # trou du toit : chevrons nus au-dessus du foin
@@ -1283,8 +1284,9 @@ def _aile(b, hub, theta, R, w, bois, *, toile=None, dechiree=False, cassee=False
     Rz = rot_z(theta)
     bc = col(bois)
 
-    def pt(r, s, dz):
-        return Hb + u * r + p * s + np.array([0.0, 0.0, dz])
+    def pt(r, s, z):
+        q = Hb + u * r + p * s
+        return np.array([q[0], q[1], z])
     b.part("block", (R, 0.55, 0.55), pt(R / 2, 0, zs - 0.35), Rz, bc, name="Vergue")
     r0 = 2.2
     rl = R if not cassee else R * 0.8
@@ -1357,7 +1359,7 @@ def _moulin(b, v, niv):
     # arbre, moyeu
     hub = (0.0, 24.6, -6.9)
     b.cyl((0, 24.6, -4.8), 0.5, 4.6, col("bois_noir"), axis="z", name="Arbre")
-    b.box((-0.8, 23.8, -7.65), (0.8, 25.4, -6.15), col("fer_fonce"), name="Moyeu")
+    b.box((-0.8, 23.8, -7.95), (0.8, 25.4, -6.15), col("fer_fonce"), name="Moyeu")
     # ailes
     theta0 = (22.0, 8.0, 0.0, 34.0)[v]
     bois = "bois_fonce" if v != 2 else "bois_noir"
@@ -1389,7 +1391,7 @@ def _lancette(b, x, y0, w, h, tip, z, verre, *, neon=False, appui="pierre", cadr
     """Baie lancéolée sur un plan de façade z (extérieur -z) : vitrail (rectangle et pointe) en saillie, appui de
     pierre ; embrasure sombre en option (bordure de 0,25 derrière le vitrail)."""
     if cadre:
-        _ogive(b, x, y0 - 0.25, w + 0.5, h + 0.25, tip + 0.3, z - 0.1, z + 0.05, cadre, name="Embrasure", **DECO)
+        _ogive(b, x, y0 - 0.25, w + 0.5, h + 0.1, tip + 0.45, z - 0.1, z + 0.05, cadre, name="Embrasure", **DECO)
     _ogive(b, x, y0, w, h, tip, z - 0.18, z + 0.05, verre, name="Vitrail", **(NEON if neon else DECO))
     if appui:
         b.box((x - w / 2 - 0.3, y0 - 0.35, z - 0.45), (x + w / 2 + 0.3, y0, z + 0.05), col(appui), studs="top",
@@ -1511,8 +1513,8 @@ def _eglise(b, v, L, P, niv):
               **DECO)
     # portail en arc brisé : chambranle clair, embrasure sombre, vantaux de bois, ferrures ; marches
     _ogive(b, 0, 1.2, 5.0, 5.0, 2.6, zf - 0.3, zf + 0.05, vr(clair, rng, 0.03), name="Portail", **DECO)
-    _ogive(b, 0, 1.2, 4.0, 5.0, 2.1, zf - 0.38, zf + 0.05, col("pierre_ombre"), name="Embrasure", **DECO)
-    _ogive(b, 0, 1.2, 3.2, 5.0, 1.7, zf - 0.46, zf + 0.05, col("bois_fonce"), name="Porte", **DECO)
+    _ogive(b, 0, 1.2, 4.0, 4.85, 2.1, zf - 0.38, zf + 0.05, col("pierre_ombre"), name="Embrasure", **DECO)
+    _ogive(b, 0, 1.2, 3.2, 4.7, 1.7, zf - 0.46, zf + 0.05, col("bois_fonce"), name="Porte", **DECO)
     if niv < 2:
         for yy in (2.4, 4.8):
             b.box((-1.45, yy, zf - 0.58), (1.45, yy + 0.3, zf - 0.4), col("fer_fonce"), name="Ferrure", **FIN)
@@ -1738,8 +1740,8 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
             yk = H0 + He * kk
             b.box((-1.1, yk + 1.5, z1 - 1.32), (1.1, yk + He - 0.9, z1 - 1.15), col("lueur_bougie") if kk == 0 else
                   col("fenetre"), name="Fenetre", **(NEON if kk == 0 else DECO))
-            b.box((-1.5 - 0.02, yk + 0.6 if kk else yo0, z1 - 1.38), (1.5 + 0.02, (yk + 1.1) if kk else (yo0 + 0.4),
-                                                                    z1 - 1.15), bois, name="Lisse", **DECO)
+            b.box((-1.52, yk + 0.6 if kk else yo0 + 0.1, z1 - 1.38), (1.52, (yk + 1.1) if kk else (yo0 + 0.5), z1 - 1.15),
+                  bois, name="Lisse", **DECO)
         b.wedge((-2.75, yo1, z1 - 1.5), (2.75, yo1 + 0.9, z1 + 0.05), ardoise, down="-z", studs="top", name="ToitOriel")
     if S.get("tourelle"):
         zt = zf - 0.4
@@ -1876,7 +1878,7 @@ def _taverne(b, v, L, P, niv):
     b.box((-3.0, 4.6, zp - 0.3), (3.0, 5.1, zp + 0.3), bois, name="Sabliere")
     b.wedge((-3.3, 5.1, zf - 3.0), (3.3, 6.3, zf + 0.05), ardoise, down="-z", studs="top", name="Auvent")
     if niv < 3:
-        b.box((-0.06, 3.6, zp - 0.06), (0.06, 4.6, zp + 0.06), col("chaine"), name="Tige", **FIN)
+        b.box((-0.05, 3.7, zp - 0.05), (0.05, 4.6, zp + 0.05), col("chaine"), name="Tige", **FIN)
         mobilier._lanterne(b, 0, 2.0, zp, col("fer_fonce"), "lueur_lanterne", 0.6, name="Lanterne")
     # tonneaux et banc
     if niv < 4:
