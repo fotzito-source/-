@@ -496,7 +496,7 @@ def porte_entree(b, variant=0, ouverture=100, rayon_tour=13, hauteur_tour=58, ha
             _vantail(b, s, o2 - 3.0, o2 - 1.0, za, zb, 26.0, x_gond)
         with b.group(f"Liaison{cote}"):
             _pilier_liaison(b, rng, s, xt + r - 5.0, xt + r + 1.0, float(hauteur_mur) + 3.0)
-    return {"emprise": (round(2 * (xt + r + 1.4), 1), 32.0), "hauteur": round(top, 1)}
+    return {"emprise": (round(2 * (xt + r + 2.7), 1), round(r + 2.7 + zb, 1)), "hauteur": round(top, 1)}
 
 
 # ---------------------------------------------------------------------------
@@ -650,7 +650,9 @@ def mur_enceinte(b, variant=0, longueur=40.75, hauteur=34, epaisseur=8):
             _toit_conique(b, rng, ech, zc, 33.6, 3.8, 42.0, n=5, p=1.1, q=1.0)
             b.ball((ech, 42.4, zc), 0.45, c("or"), name="Epi")
             _archere(b, ech, zc, 3.0, 0.0, 26.0, 3.0, True)
-    return {"emprise": (L, e + 2.0), "hauteur": H if v != 3 else 42.85}
+    avant = {0: e / 2 + 3.0, 1: e / 2 + 3.0, 2: 10.0, 3: e / 2 + 5.8}[v]     # contreforts, éboulis, échauguette
+    arriere = 10.0 if v == 2 else e / 2 + 1.0
+    return {"emprise": (L, round(avant + arriere, 1)), "hauteur": H if v != 3 else 42.9}
 
 
 # ---------------------------------------------------------------------------
@@ -1113,8 +1115,10 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
                     noms = ("pierre_ombre", "pierre_fonce", "pierre") if j == 0 else PIERRES
                     b.box((xc - wp / 2, nv[j], -dz), (xc + wp / 2, nv[j + 1], dz),
                           _ton(rng, noms, (0.35, 0.45, 0.2) if j == 0 else (0.45, 0.2, 0.35), 0.04), name="Pile")
-                b.box((xc - wp / 2 - 0.4, y_imp - 1.0, -dz - 0.4), (xc + wp / 2 + 0.4, y_imp, dz + 0.4), c("pierre_pale"),
-                      name="Imposte")
+                ia, ib = xc - wp / 2 - 0.4, xc + wp / 2 + 0.4
+                if k == 0:                                     # piles du couloir : imposte affleurante côté couloir
+                    ia, ib = (xc - wp / 2, ib) if s > 0 else (ia, xc + wp / 2)
+                b.box((ia, y_imp - 1.0, -dz - 0.4), (ib, y_imp, dz + 0.4), c("pierre_pale"), name="Imposte")
         # culées pleines aux deux bouts (elles s'enfoncent dans les falaises)
         u_fin = centres[-1] + wp / 2
         for s in (-1, 1):
@@ -1156,7 +1160,7 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
             zf_ = zs * (dz + 0.4 + 0.3)
             for (tt, col, ep_) in ((1.5, "obsidienne", 0.12), (0.95, "lueur_violette", 0.24)):
                 b.part("block", (tt, tt, ep_), (0.0, y_cor - 1.6, zf_ + zs * (ep_ / 2 - 0.02)), rot_z(45.0), c(col),
-                       name="Rune", **(NEON if col.startswith("lueur") else DECO))
+                       name="Losange", **(NEON if col.startswith("lueur") else DECO))
         for s in (-1, 1):
             for k in range(len(centres) - 1):
                 ua, ub = centres[k] + wp / 2, centres[k + 1] - wp / 2
@@ -1257,7 +1261,7 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
         pts = []
         for i in range(15):
             u = float(rng.uniform(rup[0] + 5.0, rup[1] - 4.0))
-            pts.append((sgn_r * u, float(rng.uniform(-8.0, 8.0))))
+            pts.append((sgn_r * u, float(rng.uniform(-6.0, 6.0))))
         with b.group("Eboulis"):
             _eboulis(b, rng, pts[:5], PIERRES, (1.2, 2.2), claveaux=5)
             for (x, z) in pts[5:9]:

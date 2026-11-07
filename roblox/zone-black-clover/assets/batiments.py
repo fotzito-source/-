@@ -1070,8 +1070,9 @@ def _ruine(b, v, L, P, niv):
         xx = float(rng.uniform(x0 + e + 0.8, x1 - e - 0.8))
         zz = float(rng.uniform(zf + e + 0.8, zb - e - 0.8))
         sz = float(rng.uniform(0.9, 1.6))
-        b.boxc((xx, 0.2 + sz * 0.3 + 0.07 * i, zz), (sz * 1.3, sz * 0.6, sz), pierre(), yaw=float(rng.uniform(0, 90)),
-               studs="top", name="Eboulis", **DECO)
+        hy = sz * 0.6 + 0.07 * i
+        b.boxc((xx, 0.15 + hy / 2, zz), (sz * 1.3, hy, sz), pierre(), yaw=float(rng.uniform(0, 90)), studs="top",
+               name="Eboulis", **DECO)
     for (xx, zz, sz) in ((x1 - 0.6, zf - 0.9, 1.1), (x0 + 1.4, zf - 0.6, 0.85))[: (2 if niv < 3 else 0)]:
         b.boxc((xx, sz * 0.3, zz), (sz * 1.2, sz * 0.6, sz), pierre(), yaw=float(rng.uniform(0, 90)), studs="top",
                name="Eboulis", **DECO)
@@ -1445,10 +1446,11 @@ def _eglise(b, v, L, P, niv):
 
     # ===== nef
     b.box((-wn, 0, zn0), (wn, Hn, zn1), mur, name="Nef")
-    b.box((-wn - 0.3, 0, zn0), (wn + 0.3, 1.2, zn1 + 0.3), vr("pierre_ombre", rng, 0.03), studs="top", name="Soubassement")
+    b.box((-wn - 0.3, 0, zn0 - 0.3), (wn + 0.3, 1.2, zn1 + 0.3), vr("pierre_ombre", rng, 0.03), studs="top",
+          name="Soubassement")
     for s_ in (-1, 1):
         xa, xb = sorted((s_ * (wn - 0.1), s_ * (wn + 0.4)))
-        b.box((xa, Hn - 0.7, zn0), (xb, Hn, zn1), vr(clair, rng, 0.03), name="Corniche", **DECO)
+        b.box((xa, Hn - 0.75, zn0 - 0.2), (xb, Hn - 0.05, zn1 + 0.2), vr(clair, rng, 0.03), name="Corniche", **DECO)
     zcf = (zn0 + 5.0, zn0 + 12.5, zn0 + 20.0, zn0 + 27.5)
     for s_ in (-1, 1):
         for zc in zcf:
@@ -1597,7 +1599,7 @@ def _eglise(b, v, L, P, niv):
 
 _STYLES_HAUTE = (
     dict(enduit="enduit_gris", toit="pignon", motifs=("croix", "echarpe"), pignon="enduit", bois="bois_noir"),
-    dict(enduit="enduit_ocre", toit="lucarnes", motifs=("echarpe", "croix"), pignon="enduit", bois="bois_noir"),
+    dict(enduit="enduit_ocre", toit="lucarnes", motifs=("echarpe", "chevron"), pignon="enduit", bois="bois_noir"),
     dict(enduit="enduit_rouge", toit="pignon", motifs=("chevron", "croix"), pignon="ardoise", bois="bois_noir"),
     dict(enduit="enduit_vert", toit="pignon", motifs=("croix", "chevron"), pignon="enduit", bois="bois_fonce",
          travers=True),
@@ -1665,7 +1667,13 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
             xa, xb = sorted((xc - s_ * 0.25, xc + s_ * 0.95))
             b.box((xa, 0.7, zf - 0.25), (xb, H0 - 0.05, zf + 0.95), vr("pierre", rng, 0.03), name="Pile", **DECO)
     xa_, xb_ = x0 + 0.95, x1 - 0.95
-    sf0, sf1 = sorted((flip * (xa_ + 1.3), flip * 0.4))
+    tourelle = bool(S.get("tourelle"))
+    if tourelle:
+        # la tourelle occupe l'angle côté sx : enseigne côté -sx, devanture au milieu, porte sous la tourelle
+        flip = -sx
+        sf0, sf1 = sorted((flip * (xb_ - 1.5), -flip * 0.9))
+    else:
+        sf0, sf1 = sorted((flip * (xa_ + 1.5), flip * 0.4))
     b.box((sf0 - 0.45, 0.7, zf - 0.2), (sf1 + 0.45, 5.0, zf + 0.05), bois, name="Devanture", **DECO)
     b.box((sf0, 1.4, zf - 0.3), (sf1, 4.55, zf + 0.05), col("lueur_bougie"), name="Vitrine", **NEON)
     nm = 2 if (sf1 - sf0) > 4.2 and niv < 2 else 1
@@ -1674,7 +1682,7 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
         b.box((xm - 0.14, 1.3, zf - 0.42), (xm + 0.14, 4.65, zf + 0.05), bois, name="Meneau", **FIN)
     b.box((sf0 - 0.6, 0.7, zf - 0.85), (sf1 + 0.6, 1.4, zf + 0.05), vr("bois", rng, 0.04), studs="top", name="Etalage",
           **DECO)
-    if niv < 1:
+    if niv < 2 and enseigne:
         couleurs = _MARCHANDISES.get(enseigne, ("bois_clair", "cuir_brun", "bois"))
         for i in range(3):
             xg = sf0 + (sf1 - sf0) * (i + 0.5) / 3
@@ -1685,12 +1693,16 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
                 b.boxc((xg, 1.75, zf - 0.55), (1.1, 0.7, 0.5), cg, yaw=6.0 * (i - 1), name="Herbes", **DECO)
             else:
                 b.boxc((xg, 1.85, zf - 0.55), (1.0, 0.9, 0.5), cg, yaw=8.0 * (i - 1), name="Livre", **DECO)
-    xd = flip * 2.1 if L >= 13 else flip * 2.0
     wd = 2.0 if L >= 13 else 1.8
-    _porte(b, xd, wd, 4.3, zf, bois="bois_fonce", seuil="pierre_fonce" if niv < 3 else None, pentures=niv < 2)
-    _lanterne(b, flip * (xa_ + 0.55), 4.6, zf, niv=0 if niv < 2 else 1)
+    if tourelle:
+        xd = sx * (xb_ - 1.0 - wd / 2)
+    else:
+        xd = flip * (2.1 if L >= 13 else 2.0)
+    _porte(b, xd, wd, 4.3, zf, bois="bois_fonce", seuil="pierre_fonce" if niv < 2 else None, pentures=niv < 2)
+    if not tourelle:
+        _lanterne(b, flip * (xa_ + 0.55), 4.6, zf, niv=0 if niv < 1 else 1)
     if enseigne:
-        _enseigne(b, enseigne, v % 4, flip * (xb_ - 0.6), 4.7, zf, zf - 8.6)
+        _enseigne(b, enseigne, v % 4, (-sx if tourelle else flip) * (xb_ - 0.6), 4.7, zf, zf - 8.6)
 
     # ===== étages à colombages
     W = x1 - x0
@@ -1745,7 +1757,7 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
         b.wedge((-2.75, yo1, z1 - 1.5), (2.75, yo1 + 0.9, z1 + 0.05), ardoise, down="-z", studs="top", name="ToitOriel")
     if S.get("tourelle"):
         zt = zf - 0.4
-        for (r, ya, yb) in ((0.9, 3.4, 4.2), (1.4, 4.2, 5.0), (1.85, 5.0, 5.8)):
+        for (r, ya, yb) in ((1.1, 4.9, 5.4), (1.7, 5.4, 5.8)):
             b.cyl((xt, (ya + yb) / 2, zt), r, yb - ya, rez, name="Encorbellement")
         yt1 = H + 6.0
         b.cyl((xt, (5.8 + yt1) / 2, zt), 2.1, yt1 - 5.8, enduit, name="Tourelle")
@@ -1878,8 +1890,9 @@ def _taverne(b, v, L, P, niv):
     b.box((-3.0, 4.6, zp - 0.3), (3.0, 5.1, zp + 0.3), bois, name="Sabliere")
     b.wedge((-3.3, 5.1, zf - 3.0), (3.3, 6.3, zf + 0.05), ardoise, down="-z", studs="top", name="Auvent")
     if niv < 3:
-        b.box((-0.05, 3.7, zp - 0.05), (0.05, 4.6, zp + 0.05), col("chaine"), name="Tige", **FIN)
-        mobilier._lanterne(b, 0, 2.0, zp, col("fer_fonce"), "lueur_lanterne", 0.6, name="Lanterne")
+        b.box((-0.05, 3.5, zp - 0.05), (0.05, 4.6, zp + 0.05), col("chaine"), name="Tige", **FIN)
+        b.box((-0.4, 2.3, zp - 0.4), (0.4, 3.2, zp + 0.4), col("lueur_lanterne"), name="Lanterne", **NEON)
+        b.box((-0.55, 3.2, zp - 0.55), (0.55, 3.55, zp + 0.55), col("fer_fonce"), name="Chapeau", **DECO)
     # tonneaux et banc
     if niv < 4:
         with b.at((sx * -6.9, 0, zf - 1.4)):
@@ -1889,7 +1902,7 @@ def _taverne(b, v, L, P, niv):
         b.box((xa + 0.3, 0, zf - 1.0), (xb - 0.3, 0.9, zf - 0.6), col("bois_fonce"), name="Banc")
         b.box((xa, 0.9, zf - 1.25), (xb, 1.2, zf - 0.35), col("bois"), studs="top", name="Banc", **DECO)
     if niv < 1:
-        _pierres(b, rng, 4, (x0 + 1.5, x1 - 1.5), (1.0, H0 - 0.6), zf,
+        _pierres(b, rng, 2, (x0 + 1.5, x1 - 1.5), (1.0, H0 - 0.6), zf,
                  [(-10.9, 1.1, -7.1, 5.6), (-6.7, 1.1, -2.9, 5.6), (2.9, 1.1, 6.7, 5.6), (7.1, 1.1, 10.9, 5.6),
                   (-2.3, 0, 2.3, 7.0)], couleurs=("pierre", "pierre_ombre", "moellon_fonce"))
 
@@ -1905,7 +1918,7 @@ def _taverne(b, v, L, P, niv):
                pan if niv < 3 else [], poteaux=pot if niv < 3 else None)
     H = H0 + 2 * He
     _enseigne(b, "TAVERNE", 0, sx * 4.6, H0 + 4.3, z1, zf - 8.5)
-    _lanterne(b, -sx * 2.6, 4.9, zf, niv=0 if niv < 2 else 1)
+    _lanterne(b, -sx * 2.6, 4.9, zf, niv=0 if niv < 1 else 1)
 
     # ===== toit : gouttereau sur rue, grand pignon central, deux lucarnes, deux cheminées
     R = _toit_gouttereau(b, rng, x0, x1, z2, zb, H, 1.15, ardoise, enduit, ep=0.6, deb_av=0.3, deb_ar=0.5, rive=0.3)

@@ -228,6 +228,18 @@ def _couronne(b, x0, x1, z0, z1, y, h_fleche, *, w_tambour=None, h_tambour=7.0, 
     return top
 
 
+def _corne(b, p, dx, dz, L=3.2, ep=0.9) -> None:
+    """Pointe d'angle recourbée (gargouille stylisée, sans visage) : deux segments qui sortent de l'angle (p) vers
+    (dx, dz) puis plongent ; 2 pièces."""
+    p = _v(p)
+    n = math.hypot(dx, dz) or 1.0
+    ux, uz = dx / n, dz / n
+    q = p + _v((ux * L, -0.25 * L, uz * L))
+    r = q + _v((ux * 0.45 * L, -0.55 * L, uz * 0.45 * L))
+    _poutre(b, p - _v((ux, 0, uz)) * 0.6, q, ep, c("obsidienne"), ext=0.2, name="Corne", **DECO)
+    _poutre(b, q, r, ep * 0.55, c("obsidienne"), ext=0.15, name="Corne", **FIN)
+
+
 def _merlons(b, xa, xb, y0, z0, z1, larg=2.5, pas=5.0, h=3.0, col=None) -> None:
     """Merlons réguliers de xa à xb (créneaux entre eux)."""
     col = c("chateau_arete") if col is None else col
@@ -300,9 +312,11 @@ def _falaise_chateau(b, rng, L2, D, xt) -> dict:
                 else:
                     h1 = round(h * float(rng.uniform(0.35, 0.6)))
                     assises = [(0, h1, zf), (h1, h, zf + float(rng.choice((2.0, 3.0))))]
+                dos = [D, D - float(rng.choice((0.0, 2.0, 3.0))), D - float(rng.choice((3.0, 4.0, 6.0)))]
                 for k, (ya, yb, z) in enumerate(assises):
                     col = roche(rng) if rng.random() < 0.8 else vary("basalte_clair", rng, 0.08)
-                    b.box((x0, ya, z), (x1, yb, D), col, studs="top", name="Roche")
+                    zb = dos[k] if (u0 + u1) / 2 > xt + 12 else D
+                    b.box((x0, ya, z), (x1, yb, zb), col, studs="top", name="Roche")
                     if k == 0:
                         continue
                     zp = assises[k - 1][2]
@@ -487,6 +501,11 @@ def _porte_chateau(b, rng, arc, arc_dos, xo, hp, D, YC) -> None:
             y0 = max(y for (xa, xb, y) in arc if not (u1 <= xa or u0 >= xb)) + hv - 0.3
             _bx(b, s, u0, u1, y0, YG + 3.7, ZF - 1.3, zt + 0.2, cc, name="Pilastre")
             _pinacle(b, s * (u0 + u1) / 2, YG + 3.7, ZF - 0.1, 2.4, 3.5, aiguille=8.0)
+    with b.group("Revers"):
+        b.box((-xo, YG, D - 1.6), (xo, YG + 2.5, D), ch, studs="top", name="Parapet")
+        for s in (-1, 1):
+            for x in (25.0, 32.0, 39.0, 46.0):
+                b.box((s * x - 1.4, YG + 2.5, D - 1.6), (s * x + 1.4, YG + 5.0, D), ca, studs="top", name="Merlon")
     with b.group("Herse"):
         zh = ZR + 1.2
         fer = c("fer_fonce")
@@ -523,6 +542,8 @@ def _tour_porte(b, rng, s, xo, xt, hp, D) -> None:
         _archere(b, s * (um + 3.6), 12.0)
     x0, x1 = _sx(s, xo, xt)
     _couronne(b, x0, x1, ZF, ZT, H, 32.0, w_tambour=11.0, h_tambour=8.0, h_pinacle=5.0)
+    _corne(b, (s * (xt - 0.4), H - 3.0, ZF + 0.6), s * 3.0, -0.55)
+    _corne(b, (s * (xo + 0.4), H - 3.0, ZF + 0.6), -s * 3.0, -0.55)
 
 
 def _tunnel(b, xo, xt, hp, D, YC) -> None:
@@ -561,6 +582,14 @@ def _donjon(b, D) -> None:
             _lancette(b, u, 100.0, 1.6, 10.0, appui=False)
     _couronne(b, -21, 21, z0, z1, 116, 27.0, w_tambour=12.0, h_tambour=11.0, h_pinacle=7.0, saillie=1.2,
               cz_tambour=z0 + 7.5)
+    with b.group("ArcsBoutants"):
+        for s in (-1, 1):
+            for zc in (-9.0, 6.0):
+                pa = (s * 21.0, 110.0, zc)                    # tête contre le donjon
+                pb = (s * 51.5, 97.5, max(zc, -12.0))         # pied sur le parapet de la tour de porte
+                _poutre(b, pa, pb, 1.6, ca, ep_z=1.4, ext=0.4, name="ArcBoutant")
+                m = ((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2 - 1.2, (pa[2] + pb[2]) / 2)
+                _poutre(b, (s * 24.0, 107.5, zc), m, 1.1, ch, ext=0.3, name="ArcBoutant", **DECO)
 
 
 def _toit(b, s, u0, u1, z0, z1, y, h, col=None) -> None:
@@ -595,7 +624,7 @@ def _tourelle(b, s, u0, u1, z0, z1, y0, y1, h_fleche, *, fen=(), cote=None, ocul
 def _socle(cols, u0, u1) -> float:
     """Base d'un bâtiment posé sur la falaise : 3 sous la colonne la plus basse qu'il recouvre."""
     hs = [h for (a, bb, h, zf) in cols if not (bb <= u0 or a >= u1)]
-    return (min(hs) if hs else 40.0) - 3.0
+    return (min(hs) if hs else 40.0) - 3.3
 
 
 def _aile(b, rng, s, xt, D, cols) -> None:
@@ -614,8 +643,12 @@ def _aile(b, rng, s, xt, D, cols) -> None:
     # haute tourelle
     yt = 104.0 if s > 0 else 96.0
     y0 = _socle(cols, 82, 94)
-    _tourelle(b, s, 82, 94, -17.3, -5, y0, yt, 28.0 if s > 0 else 24.0, fen=((62.0, 2.2, 10.0), (80.0, 2.0, 8.0)),
+    _tourelle(b, s, 82, 94, -17.3, -5, y0, yt, 28.0 if s > 0 else 24.0, fen=((62.0, 2.2, 10.0),),
               cote=(74.0, 1.8, 8.0) if s > 0 else None, oculus=(yt - 8.0, 1.8), h_tambour=7.0)
+    with _face(b, "-z", -17.3):
+        _banniere(b, s * 88.0, yt - 12.0, 4.0, 18.0, c("cramoisi") if s > 0 else c("violet_profond"))
+    for u, sg in ((82.0, -1.0), (94.0, 1.0)):
+        _corne(b, (s * (u + 0.4 * sg), yt - 2.5, -16.7), s * sg * 2.6, -0.5, L=2.6, ep=0.75)
     if s > 0:
         # grande salle : contreforts, trois lancettes, toit d'ardoise violette, pinacles sur le faîtage
         y0 = _socle(cols, 94, 124)
@@ -853,9 +886,9 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
                 d = np.array([math.cos(ph) * math.cos(el), math.sin(el), math.sin(ph) * math.cos(el)])
                 q = p + d * Ls[j] * k
                 rq = math.hypot(q[0], q[2])
-                if rq > 53.0 * k:                    # houppier dans un rayon de 55
-                    q[0] *= 53.0 * k / rq
-                    q[2] *= 53.0 * k / rq
+                if rq > 49.0 * k:                    # houppier dans un rayon de 55 (griffes comprises)
+                    q[0] *= 49.0 * k / rq
+                    q[2] *= 49.0 * k / rq
                 _segment_veine(b, p, q, eps[j] * k, 35.0 * j, (ra, rc)[(j + nb) % 2], centre_axe,
                                veine=(j == 1) or (j == 0 and nb % 3 == 0), name="Branche")
                 if j in (1, 2, 3) and not (j == 3 and nb % 2):          # rameaux secondaires en griffes
@@ -925,7 +958,7 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
     dessus = (c("herbe_grise"), c("cendre"), c("roche_noire"), c("cendre_fonce"))[v]
     with b.group("Ilot"):
         b.box((-rx, -1.4, -rz), (rx, 0, rz), dessus, studs="top", name="Dessus")
-        b.boxc((0.15 * t, -1.0, -0.12 * t), (0.78 * t, 1.6, 0.66 * t), roche(rng), yaw=32, studs="top", name="Rebord")
+        b.boxc((0.06 * t, -1.0, -0.05 * t), (0.7 * t, 1.6, 0.56 * t), roche(rng), yaw=32, studs="top", name="Rebord")
         y = -1.4
         n = 5
         depth = 0.8 * t
@@ -1017,16 +1050,17 @@ def falaise(b, variant: int = 0, longueur: float = 60, profondeur: float = 50, h
         for i, (x0, x1) in enumerate(cols):
             xm = (x0 + x1) / 2
             e = abs(xm) / (L / 2)
-            hc = H * (0.8 + 0.2 * float(rng.random())) * (1 - 0.2 * e ** 3)
-            if rng.random() < 0.25:
-                hc *= 0.82                                     # encoche
-            z0 = zf0 + float(rng.choice((0.0, 0.5, 1.0, 1.5, 2.0)))
-            h1, h2 = hc * float(rng.uniform(0.25, 0.4)), hc * float(rng.uniform(0.55, 0.75))
-            z1 = z0 + P * float(rng.uniform(0.1, 0.18))
-            z2 = z1 + P * float(rng.uniform(0.1, 0.2))
-            for (ya, yb, z) in ((0, h1, z0), (h1, h2, z1), (h2, hc, z2)):
+            hc = H * (0.66 + 0.34 * float(rng.random())) * (1 - 0.2 * e ** 3)
+            if rng.random() < 0.3:
+                hc *= 0.78                                     # encoche
+            z0 = zf0 + float(rng.choice((0.0, 0.5, 1.0, 1.5, 2.0, 3.0)))
+            h1, h2 = hc * float(rng.uniform(0.2, 0.42)), hc * float(rng.uniform(0.5, 0.8))
+            z1 = z0 + P * float(rng.uniform(0.05, 0.22))
+            z2 = z1 + P * float(rng.uniform(0.06, 0.24))
+            dos = (P / 2, P / 2 - float(rng.choice((0.0, 2.0, 4.0))), P / 2 - float(rng.choice((4.0, 6.0, 9.0))))
+            for k_, (ya, yb, z) in enumerate(((0, h1, z0), (h1, h2, z1), (h2, hc, z2))):
                 col = roche(rng) if rng.random() < 0.82 else vary("basalte_clair", rng, 0.08)
-                b.box((x0, ya, z), (x1, yb, P / 2), col, studs="top", name="Roche")
+                b.box((x0, ya, z), (x1, yb, max(dos[k_], z + 4.0)), col, studs="top", name="Roche")
             r = rng.random()
             if r < 0.3:
                 b.wedge((x0, h1, z0), (x1, h1 + float(rng.uniform(2.5, 5)), z1), vary("basalte_clair", rng, 0.08),
@@ -1034,16 +1068,24 @@ def falaise(b, variant: int = 0, longueur: float = 60, profondeur: float = 50, h
             elif r < 0.55:
                 b.box((x0 + 0.3, h2 - 0.8, z1 - 0.4), (x1 - 0.3, h2 + 0.4, z1 + 1.2), vary("basalte_clair", rng, 0.06),
                       studs="top", name="Strate")
-            if rng.random() < 0.4 and i not in (0, len(cols) - 1):
-                w = float(rng.uniform(3, 5))
-                hp_ = float(rng.uniform(5, 11))
-                b.part("block", (w, hp_ + 2, w * 0.8), (xm + float(rng.uniform(-1, 1)), hc + hp_ / 2 - 1, z2 + float(rng.uniform(3, 9))),
-                       rot_y(float(rng.uniform(0, 90))) @ rot_z(float(rng.uniform(-12, 12))), roche(rng), studs="top",
-                       name="Pic")
+            if rng.random() < 0.7 and i not in (0, len(cols) - 1):
+                for kk in range(1 if rng.random() < 0.55 else 2):
+                    w = float(rng.uniform(3.5, 6.0)) * (0.65 if kk else 1.0)
+                    hp_ = min(float(rng.uniform(6, 14)) * (0.6 if kk else 1.0), max(2.0, 1.1 * H - hc - 1.0 - 2.0 * kk))
+                    zc = min(P / 2 - w, z2 + float(rng.uniform(2, 14)))
+                    b.part("block", (w, hp_ + 2, w * 0.8), (xm + float(rng.uniform(-1.5, 1.5)), hc + hp_ / 2 - 1 + kk * 2.0,
+                                                           zc), rot_y(float(rng.uniform(0, 90))) @ rot_z(float(rng.uniform(-14, 14))),
+                           roche(rng), studs="top", name="Pic")
+            if rng.random() < 0.3:
+                w = float(rng.uniform(2.2, 3.4))
+                xb_ = min(max(xm + float(rng.uniform(-1.5, 1.5)), x0 + 0.75 * w), x1 - 0.75 * w)
+                b.part("block", (w, 0.8 * w, w), (xb_, 0.3 * w, max(z0 + 0.4, zf0 + 0.75 * w)),
+                       rot_y(float(rng.uniform(0, 90))) @ rot_x(float(rng.uniform(-12, 12))), vary("basalte_clair", rng, 0.08),
+                       studs="top", name="Bloc")
             info.append((x0, x1, h1, h2, hc, z0, z1, z2))
     with b.group("Cristaux"):
         n_g = 2 + v % 3
-        idx = sorted(rng.choice(len(cols), size=min(n_g, len(cols)), replace=False))
+        idx = sorted(1 + rng.choice(len(cols) - 2, size=min(n_g, len(cols) - 2), replace=False))
         for j in idx:
             x0, x1, h1, h2, hc, z0, z1, z2 = info[j]
             _grappe_corniche(b, rng, (x0 + x1) / 2, h1, (z0 + z1) / 2, 0.9 + 0.2 * (j % 2), zmin_abs=zf0 + 0.3)
@@ -1053,8 +1095,9 @@ def falaise(b, variant: int = 0, longueur: float = 60, profondeur: float = 50, h
                 continue
             x0, x1, h1, h2, hc, z0, z1, z2 = info[j]
             xm = (x0 + x1) / 2
-            pts = [(xm, h2 + 0.5, z2 + 3.0), (xm + 1.5, h1 + 1.0, z1 + 0.5), (xm + 3.0, 1.0, z0 + 0.6),
-                   (xm + 5.5, -0.4, z0 - 0.4)]
+            sg = -1.0 if xm > 0 else 1.0
+            pts = [(xm, h2 + 0.5, z2 + 3.0), (xm + 1.5 * sg, h1 + 1.0, max(z1 + 0.5, zf0 + 2.0)),
+                   (xm + 3.0 * sg, 1.0, max(z0 + 0.6, zf0 + 1.8)), (xm + 5.5 * sg, -0.4, max(zf0 + 1.4, z0 - 0.4))]
             for m in range(3):
                 _poutre(b, pts[m], pts[m + 1], (2.4, 1.8, 1.3)[m], c(("racine", "racine_claire")[m % 2]), ext=0.4,
                         tors=20.0 * m, name="Racine", **(DECO if m == 2 else {}))
@@ -1063,9 +1106,10 @@ def falaise(b, variant: int = 0, longueur: float = 60, profondeur: float = 50, h
         x0, x1, h1, h2, hc, z0, z1, z2 = info[j]
         with b.at(((x0 + x1) / 2, h2, (z1 + z2) / 2 + 0.5), yaw=float(rng.uniform(0, 360))):
             mobilier.arbre_mort(b, variant=1 if v % 2 else 0, hauteur=min(10.0, 0.25 * H))
-    if v in (1, 3):
+    cands = [j for j in range(1, len(cols) - 1) if info[j][5] >= zf0 + 0.95 and info[j][1] - info[j][0] >= 6.0]
+    if v in (1, 3) and cands:
         with b.group("Grotte"):
-            j = max(1, int(len(cols) * 0.5))
+            j = min(cands, key=lambda j: abs(info[j][0] + info[j][1]))
             x0, x1, h1, h2, hc, z0, z1, z2 = info[j]
             xm = (x0 + x1) / 2
             w = min(4.5, x1 - x0 - 1.0)
@@ -1141,8 +1185,9 @@ def racine_geante(b, variant: int = 0, longueur: float = 24, hauteur: float = 10
     v = variant % 4
     rng = np.random.default_rng(1201 + 7 * v)
     L, Hh = float(longueur), float(hauteur)
-    arcs = {0: [(-L / 2, 0.46 * L, Hh)], 1: [(-L / 2, 0.06 * L, Hh), (-0.06 * L, L / 2, 0.55 * Hh)],
-            2: [(-0.46 * L, L / 2, 0.85 * Hh)], 3: [(-L / 2, 0.22 * L, Hh), (0.12 * L, L / 2, 0.45 * Hh)]}[v]
+    a, z_ = L / 2 - 1.7, 0.0
+    arcs = {0: [(-a, 0.42 * L, Hh)], 1: [(-a, 0.06 * L, Hh), (-0.06 * L, a, 0.55 * Hh)],
+            2: [(-0.42 * L, a, 0.85 * Hh)], 3: [(-a, 0.22 * L, Hh), (0.12 * L, a, 0.45 * Hh)]}[v]
     ra, rc = c("racine"), c("racine_claire")
     with b.group("Racine"):
         bouts = []
