@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 
-from kit import mix, rot_x, rot_z, shade
+from kit import mix, rot_x, rot_y, rot_z, shade
 from palette import c, os_teinte, vary
 from textures import mask_rects
 
@@ -99,14 +99,15 @@ def _voxels(b, codes, xe, ye, ze, couleurs, rng, var=0.025, name="Os", **kw) -> 
 # ---------------------------------------------------------------------------
 
 # Codes des voxels du crâne
-OS_CLAIR, OS, OS_OMBRE, OS_FONCE, OS_MI, OS_BRULE, FOND = 1, 2, 3, 4, 5, 6, 7
+(IVOIRE, BEIGE, OCRE, OS_OMBRE, OS_FONCE, OS_MI, OS_BRULE, FOND, MOUSSE) = range(1, 10)
+ECHELLE_CRANE = 1.1      # le crâne est un peu plus grand que `hauteur` (64) : il domine le village
 
 
 def _crane_grille():
-    """Grille de conception (crâne de 64 de haut) : arêtes des cellules de 2 studs."""
-    xe = np.arange(-32.0, 32.01, 2.0)
+    """Grille de conception (crâne de 64 de haut avant ECHELLE_CRANE) : arêtes des cellules de 2 studs."""
+    xe = np.arange(-34.0, 34.01, 2.0)
     ye = np.arange(0.0, 64.01, 2.0)
-    ze = np.arange(-30.0, 28.01, 2.0)
+    ze = np.arange(-36.0, 34.01, 2.0)
     return xe, ye, ze
 
 
@@ -118,27 +119,44 @@ def _crane_codes(xe, ye, ze, variant: int):
     def se(cx, cy, cz, rx, ry, rz, n, x=X):
         return np.abs((x - cx) / rx) ** n + np.abs((Y - cy) / ry) ** n + np.abs((Z - cz) / rz) ** n
 
-    voute = np.where(Y >= 36, se(0, 36, 1, 28, 28, 25, 2.6), se(0, 36, 1, 28, 31, 25, 2.4)) <= 1
-    face = se(0, 17, -10, 24, 17, 17.5, 2.9) <= 1
-    pommettes = se(19.5, 23.5, -18, 5.0, 3.4, 8.0, 2.4, x=AX) <= 1
-    arcade = se(11.5, 37.4, -19.5, 10.5, 3.2, 8.0, 2.6, x=AX) <= 1
-    machoire = se(0, -3, -7, 19, 4.5, 20, 2.6) <= 1
-    plein = voute | face | pommettes | arcade | machoire
+    # voûte au dessus aplati (exposant 3), plus longue vers l'arrière ; face en museau ; arcades zygomatiques larges ;
+    # arcades sourcilières lourdes qui surplombent les orbites ; mâchoire inférieure enterrée
+    voute = np.where(Y >= 36, se(0, 36, 3, 28, 26.5, 27, 3.0), se(0, 36, 3, 28, 31, 27, 2.4)) <= 1
+    face = se(0, 16, -12, 24, 15.5, 18.5, 2.8) <= 1
+    zygo = se(22, 23, -12, 6.5, 3.4, 13, 2.4, x=AX) <= 1
+    arcade = se(11.8, 37.8, -21, 11.6, 3.8, 8.6, 2.6, x=AX) <= 1
+    machoire = se(0, -3, -9, 19, 4.5, 21, 2.6) <= 1
+    plein = voute | face | zygo | arcade | machoire
 
-    # creux : deux grandes orbites (bord intérieur un peu abaissé : regard dur), cavité nasale en cœur renversé
-    # (pointe en haut, deux lobes de part et d'autre de la cloison), bouche sombre derrière les dents
-    orbite = ((((AX - 11.8) / 7.6) ** 2 + ((Y - 29.5) / 7.0) ** 2) <= 1.0) & (Y <= 34.8 + 0.3 * (AX - 11.8))
+    # creux : deux orbites rondes (cercles en gradins) très profondes, cavité nasale en cœur renversé, bouche
+    orbite = (((AX - 11.8) / 7.3) ** 2 + ((Y - 29.0) / 7.0) ** 2) <= 1.0
     nez = (((Y > 24) & (Y < 26) & (AX < 2)) | ((Y > 20) & (Y < 24) & (AX < 4)) | ((Y > 18) & (Y < 20) & (AX < 6))
            | ((Y > 16) & (Y < 18) & (AX > 2) & (AX < 6)) | ((Y > 14) & (Y < 16) & (AX > 2) & (AX < 4)))
-    bouche = (Y >= 1) & (Y <= 8) & (AX <= 16)
-    creux = orbite | nez | bouche
-    plein &= ~(creux & (Z < -20))
-    fond = plein & creux & (Z < -18)
+    bouche = (Y >= 1) & (Y <= 8) & (AX <= 17)
+    plein &= ~(orbite & (Z < -18))
+    plein &= ~((nez | bouche) & (Z < -20))
+    fond = plein & ((orbite & (Z < -16)) | ((nez | bouche) & (Z < -18)))
 
-    # teintes : ivoire en haut, ombré sous les pommettes, noirci au ras de la colline (os_brule)
+    # teintes : ivoire, beige et ocre gris en grandes plages ; ombré puis noirci vers la colline ; mousse sombre sur
+    # le dessus et à l'arrière (basse fréquence : peu de pièces)
+    base = np.select([Y < 2, Y < 4, Y < 7, Y < 12], [OS_BRULE, OS_MI, OS_FONCE, OS_OMBRE], IVOIRE)
+    pad = np.pad(~plein, 1, constant_values=True)
+    peau = plein & (pad[:-2, 1:-1, 1:-1] | pad[2:, 1:-1, 1:-1] | pad[1:-1, :-2, 1:-1] | pad[1:-1, 2:, 1:-1]
+                    | pad[1:-1, 1:-1, :-2] | pad[1:-1, 1:-1, 2:])
+    dessus = plein & pad[1:-1, 2:, 1:-1]
+    ph = 0.9 * variant
+    t = base.copy()
+    # bande ocre gris sur le museau et les dents, écharpe beige en diagonale sur la voûte (frontières qui ne
+    # coupent chaque tranche qu'en peu d'endroits : peu de pièces)
+    t = np.where((base == IVOIRE) & (Y < 18.5 + 3.0 * np.sin(0.2 * X + ph)), OCRE, t)
+    t = np.where((t == IVOIRE) & (np.abs(Y - 0.42 * X - 36.0 - 1.5 * math.sin(ph)) < 5.0), BEIGE, t)
+    t = np.where((t == IVOIRE) & (Z > 14.0) & (Y < 40), BEIGE, t)
+    # mousse sombre : calotte d'un côté du dessus, et un peu à l'arrière, au-dessus de la terre
+    mousse = ((dessus & (Y >= 56) & (X - 0.6 * Z > 7.0) & (Z > -12)) | (dessus & (Y >= 58) & (X < -10) & (Z > 6))
+              | (peau & (Z > 21) & (Y > 10) & (Y < 20) & (X < 8)))
+    t = np.where(mousse & ~fond, MOUSSE, t)
     codes = np.zeros(X.shape, np.int8)
-    base = np.select([Y < 2, Y < 4, Y < 7, Y < 13, Y < 50], [OS_BRULE, OS_MI, OS_FONCE, OS_OMBRE, OS], OS)
-    codes[plein] = base[plein]
+    codes[plein] = t[plein]
     codes[fond] = FOND
     return codes, (xc, yc, zc)
 
@@ -150,13 +168,12 @@ def _front_z(codes, xe, ze, i, j):
 
 
 def _fissures(b, codes, xe, ye, ze, lignes, k, col, larg=0.5, saillie=0.2, noyau=0.1, name="Fissure") -> int:
-    """Fissures en saillie de 0,2 sur les faces avant du crâne en voxels : chaque ligne brisée (vue de face, en unités
-    de conception) est coupée aux bords des cellules et chaque morceau est posé contre la face de sa cellule."""
+    """Fissures (ou coulures) en saillie sur les faces avant du crâne en voxels : chaque ligne brisée (vue de face, en
+    unités de conception) est coupée aux bords des cellules et chaque morceau est posé contre la face de sa cellule."""
     n = 0
     for pts in lignes:
         morceaux = []
         for (x0, y0), (x1, y1) in zip(pts[:-1], pts[1:]):
-            # coupe le segment aux bords de cellules (x et y)
             ts = {0.0, 1.0}
             for e in xe:
                 if (x0 - e) * (x1 - e) < 0:
@@ -174,10 +191,9 @@ def _fissures(b, codes, xe, ye, ze, lignes, k, col, larg=0.5, saillie=0.2, noyau
                 if not (0 <= i < codes.shape[0] and 0 <= j < codes.shape[1]):
                     continue
                 kk = np.nonzero(codes[i, j, :])[0]
-                if len(kk) == 0 or codes[i, j, kk[0]] == FOND:
+                if len(kk) == 0 or codes[i, j, kk[0]] in (FOND, MOUSSE):
                     continue
                 morceaux.append((pa, pb, float(ze[kk[0]])))
-        # fusionne les morceaux consécutifs alignés sur la même face
         fus = []
         for m in morceaux:
             if fus and fus[-1][2] == m[2] and np.allclose(fus[-1][1], m[0]):
@@ -230,131 +246,164 @@ def _spline(ctrl, n):
     return out
 
 
-def _corne(b, ctrl, s0, s1, n, rng, ref=(0.0, 0.0, 1.0), torsion=3.0, anneaux=(2, 4, 6), name="Corne") -> None:
-    """Corne : courbe lisse (Catmull-Rom) découpée en n blocs tendus de point à point (prolongés pour fermer les
-    coudes), section décroissante de s0 à s1, légère torsion, dégradé os → os_fonce vers la pointe, anneaux de
-    croissance en saillie de 0,25 à quelques coudes."""
+def _corne(b, ctrl, sections, rng, ref=(0.0, 0.0, 1.0), torsion=2.5, cassee=False, fissures=(1, 3, 5),
+           name="Corne") -> None:
+    """Corne massive : courbe lisse découpée en segments ; chaque segment = un bloc carré + un bloc tourné de 45° sur
+    son axe (section presque ronde), de la même couleur ; section qui s'effile jusqu'à une pointe aiguë ; bandes de
+    tons alternés (os → ocre → os foncé vers la pointe) ; quelques fissures sombres sur la face avant.
+    `cassee` : la corne s'arrête net sur une cassure (éclats sombres)."""
+    n = len(sections)
     pts = _spline(ctrl, n)
-    dirs = [(pts[i + 1] - pts[i]) / np.linalg.norm(pts[i + 1] - pts[i]) for i in range(n)]
     for i in range(n):
         t = i / max(1, n - 1)
-        col = os_teinte(0.06 + 0.66 * t ** 1.4)
-        s = s0 + (s1 - s0) * t ** 0.9
+        col = os_teinte(0.04 + 0.62 * t ** 1.35)
+        col = shade(col, (1.05, 0.95, 1.0)[i % 3])            # bandes de tons, sans saillie
+        s = sections[i]
         roll = torsion * (1 if i % 2 else -1)
-        _poutre(b, pts[i], pts[i + 1], s, vary(col, rng, 0.015), ref=ref, ext=s * 0.3 if i else 0.0, roll=roll,
-                name=name)
-        if i in anneaux:
-            d = dirs[i - 1] + dirs[i]
-            d /= np.linalg.norm(d)
-            sp = s0 + (s1 - s0) * ((i - 1) / max(1, n - 1)) ** 0.9
-            _poutre(b, pts[i] - d * 0.6, pts[i] + d * 0.6, sp + 0.5, shade(col, 0.86), ref=ref, roll=roll * 0.5,
-                    name="Anneau", **DECO)
+        a, bb = pts[i], pts[i + 1]
+        ext = min(s * 0.3, 2.5) if i else 0.0
+        p1 = _poutre(b, a, bb, s, col, ref=ref, ext=ext, roll=roll, name=name)
+        if s > 2.0:
+            u = (bb - a) / np.linalg.norm(bb - a)
+            _poutre(b, a + u * 0.15, bb - u * 0.15, s * 0.86, col, ref=ref, ext=ext, roll=roll + 45.0, name=name)
+        if i in fissures and s > 3.0:
+            R = np.asarray(p1.rot).reshape(3, 3)
+            L = float(np.linalg.norm(bb - a))
+            for (u0, w0, ang) in ((-0.25, 0.1, 18.0), (0.12, -0.08, -24.0)):
+                ctr = (a + bb) / 2 + R @ np.array([u0 * L, -(s / 2 + 0.04), w0 * s])
+                Rf = R @ rot_y(ang)
+                b.part("block", (L * 0.42, 0.18, 0.45), ctr, Rf, c("fissure"), name="FissureCorne", **FIN)
+    if cassee:
+        a, bb = pts[n - 1], pts[n]
+        u = (bb - a) / np.linalg.norm(bb - a)
+        s = sections[-1]
+        _poutre(b, bb - u * 0.6, bb + u * 0.5, s * 0.8, c("os_fonce"), ref=ref, roll=17.0, name="Cassure", **DECO)
+        _poutre(b, bb + u * 0.2, bb + u * 1.6 + np.array([0.4, 0.3, 0.0]), s * 0.42, c("os_ombre"), ref=ref, roll=-25.0,
+                name="Cassure", **DECO)
 
 
 def crane_demon(b, variant: int = 0, hauteur: float = 64) -> dict:
-    """Crâne de démon cornu, ivoire fissuré, mâchoire inférieure à moitié enterrée (refBC1).
+    """Crâne de démon cornu, os ivoire, beige et ocre fissuré, mâchoire inférieure à moitié enterrée (refBC1).
 
     Origine : centre de l'emprise au niveau du plateau de la colline (y = 0) ; la face regarde -Z local.
-    Volume en voxels de 2 studs (tranches horizontales en gradins), deux orbites profondes à braise cramoisie,
-    cavité nasale en cœur renversé, pommettes, crocs, deux grandes cornes recourbées, petites pointes, fissures,
-    étendard cramoisi uni et déchiré au sommet (aucune statue, aucune figure, pas de troisième orbite)."""
+    Volume en voxels de 2 studs (tranches horizontales en gradins) : dessus aplati, arrière allongé, arcades
+    zygomatiques larges, lourdes arcades sourcilières au-dessus de deux orbites rondes très profondes (petite braise
+    cramoisie au fond), cavité nasale en cœur renversé, mâchoire supérieure à longs crocs ; deux cornes massives qui
+    partent des côtés, s'écartent presque à l'horizontale puis montent et se recourbent (l'une crochue vers
+    l'intérieur, l'autre cassée) ; fissures, coulures sombres, mousse ; terre et mousse qui l'enterrent jusqu'aux
+    pommettes ; longues défenses d'os qui sortent de la colline ; étendard cramoisi uni et déchiré au sommet.
+    Aucune statue, aucune figure, pas de troisième orbite."""
     rng = _rng(variant, 101)
-    k = hauteur / 64.0
+    k = hauteur / 64.0 * ECHELLE_CRANE
     xe, ye, ze = _crane_grille()
     codes, _ = _crane_codes(xe, ye, ze, variant)
-    couleurs = {OS_CLAIR: c("os_clair"), OS: c("os"), OS_OMBRE: c("os_ombre"), OS_FONCE: c("os_fonce"),
-                OS_MI: os_teinte(0.75), OS_BRULE: c("os_brule"), FOND: c("noir")}
+    couleurs = {IVOIRE: c("os"), BEIGE: mix(c("os"), c("os_ombre"), 0.65), OCRE: mix(c("os_ombre"), c("ble_fonce"), 0.3),
+                OS_OMBRE: c("os_ombre"), OS_FONCE: c("os_fonce"), OS_MI: os_teinte(0.75), OS_BRULE: c("os_brule"),
+                FOND: c("obsidienne"), MOUSSE: c("feuille_sombre")}
     S = lambda p: tuple(float(v) * k for v in p)        # noqa: E731  (conception → studs)
     ye_s = ye * k
     ye_s[0] = -0.6                                       # la tranche du bas s'enfonce un peu dans le plateau
     with b.group("Crane"):
-        _voxels(b, codes, xe * k, ye_s, ze * k, couleurs, rng, var=0.035, name="Os")
+        _voxels(b, codes, xe * k, ye_s, ze * k, couleurs, rng, var=0.03, name="Os")
 
-    # --- fissures (sombres, en saillie) et éclats ----------------------------------------------------
+    # --- fissures, taches et coulures sombres qui descendent des orbites et des fissures -------------------
     lignes = [
-        [(9, 37), (6, 42), (9, 46.5), (5, 51), (8, 55.5), (6, 59)],
-        [(-14, 37.5), (-17, 42), (-13, 46), (-16, 50.5), (-13.5, 54)],
-        [(-17, 46), (-22, 48.5), (-24.5, 44)],
-        [(19.5, 26), (23, 30.5), (21.5, 35)],
-        [(-16, 22.5), (-20, 18.5), (-17.5, 13.5)],
-        [(1, 26.5), (2.5, 30), (-0.5, 33.5), (1.5, 37)],
+        [(9, 41), (6, 45), (9, 49.5), (5, 53), (8, 57.5), (6, 61)],
+        [(-14, 41.5), (-17, 45), (-13, 49), (-16, 53.5), (-13.5, 57)],
+        [(-17, 47), (-22, 49.5), (-24.5, 45)],
+        [(20.5, 24), (23.5, 28.5), (22, 33)],
+        [(-16, 21.5), (-20, 17.5), (-17.5, 12.5)],
+        [(1, 26.5), (2.5, 30), (-0.5, 34), (1.5, 39)],
         [(13.5, 12.5), (17, 16.5), (20.5, 13.5)],
-        [(5, 51), (0, 53.5), (-3, 57.5)],
-        [(15, 39), (19, 43), (23.5, 42)],
-        [(-7, 14), (-10, 11)],
+        [(5, 53), (0, 56), (-3, 60)],
+        [(16, 42), (20, 45.5), (24.5, 44)],
+        [(-7, 13.5), (-10, 10.5)],
     ]
-    taches = [[(7, 44), (8, 50), (6.5, 56)], [(-15, 43), (-15, 49)], [(21, 29), (21.5, 34)], [(-18, 20), (-18, 15)]]
+    coulures = [[(-14.5, 22), (-14.8, 16.5), (-14.2, 12)], [(-9.2, 22), (-9.0, 17)], [(9.5, 22), (9.8, 15.5)],
+                [(14.6, 22), (14.4, 17.5), (15.0, 13.5)], [(6.5, 40.5), (6.8, 36.5)], [(-15.5, 41), (-15.8, 37)],
+                [(2.2, 13.5), (2.5, 9.5)], [(-2.4, 13.5), (-2.0, 10)]]
+    taches = [[(7, 46), (8, 52), (6.5, 58)], [(-15, 45), (-15, 51)], [(21.5, 27), (22, 32)], [(-18, 19), (-18, 14)]]
     with b.group("Fissures"):
         _fissures(b, codes, xe, ye, ze, taches, k, c("os_ombre"), larg=2.6, saillie=0.1, noyau=0.05, name="Tache")
+        _fissures(b, codes, xe, ye, ze, coulures, k, mix(c("os_fonce"), c("fissure"), 0.45), larg=1.6, saillie=0.08,
+                  noyau=0.07, name="Coulure")
         _fissures(b, codes, xe, ye, ze, lignes, k, c("fissure"))
 
-    # --- braises au fond des orbites -------------------------------------------------------------
+    # --- petite braise cramoisie, sourde, au fond de chaque orbite ------------------------------------
     with b.group("Braises"):
-        # lit de braises au fond de l'orbite : lueur vive en bas du mur du fond, halo cramoisi sombre au-dessus
         for s in (-1, 1):
             cx = s * 11.8
-            b.box(S((cx - 3.6, 24.2, -20.5)), S((cx + 3.6, 26.6, -20.0)), c("feu_cramoisi"), name="Braise", **NEON)
-            b.box(S((cx - 1.8, 26.6, -20.3)), S((cx + 1.4, 27.8, -20.0)), c("lueur_cramoisie"), name="Braise", **NEON)
-            b.box(S((cx - 4.4, 22.4, -23.0)), S((cx + 4.4, 24.2, -20.0)), c("cramoisi_fonce"), name="Braise", **DECO)
-            b.box(S((cx - 2.6, 24.2, -21.6)), S((cx + 1.0, 25.4, -20.5)), c("feu"), name="Braise", **NEON)
+            b.box(S((cx - 2.3, 25.2, -18.3)), S((cx + 2.3, 27.6, -18.0)), c("cramoisi_fonce"), name="Halo", **DECO)
+            b.box(S((cx - 1.2, 25.7, -18.7)), S((cx + 1.2, 26.9, -18.3)), mix(c("cramoisi"), c("lueur_cramoisie"), 0.5),
+                  name="Braise", **NEON)
 
-    # --- dents ------------------------------------------------------------------------------------
-    j8 = int(np.searchsorted(ye, 8.0))           # rangée du maxillaire juste au-dessus de la bouche
+    # --- dents : mâchoire supérieure proéminente, quatre longs crocs (un cassé) ---------------------------
+    j8 = int(np.searchsorted(ye, 8.0))
     with b.group("Dents"):
-        hautes = [(1.6, 2.8, 4.2, "i"), (4.7, 2.8, 4.6, "i"), (7.9, 3.0, -0.8, "croc"), (11.1, 2.8, 4.0, "p"),
-                  (14.1, 2.6, 1.4, "croc")]
+        hautes = [(1.6, 2.8, 4.0, "i"), (4.7, 2.8, 4.4, "i"), (8.0, 3.4, -2.6, "croc"), (11.3, 2.8, 3.8, "p"),
+                  (14.6, 3.0, -0.4, "croc")]
         casse = 1 if variant % 2 == 0 else -1
         for s in (-1, 1):
             for (xm, w, ybas, kind) in hautes:
                 x = s * xm
                 i = int(np.searchsorted(xe, x) - 1)
-                zf = _front_z(codes, xe, ze, i, j8) or -26.0
+                zf = _front_z(codes, xe, ze, i, j8) or -27.0
                 za, zb = zf + 0.4, -20.4
                 col = c("os_clair") if kind == "croc" else vary(c("os"), rng, 0.03)
                 if kind == "croc" and s == casse and xm > 10:          # croc cassé net, éclat sombre
-                    b.box(S((x - w / 2, 4.4, za)), S((x + w / 2, 8.0, zb)), shade(col, 0.95), name="CrocCasse")
-                    b.box(S((x - w / 2 + 0.4, 3.6, za + 0.3)), S((x + w / 2 - 0.8, 4.4, zb)), c("os_ombre"),
+                    b.box(S((x - w / 2, 3.8, za)), S((x + w / 2, 8.0, zb)), shade(col, 0.95), name="CrocCasse")
+                    b.box(S((x - w / 2 + 0.4, 3.0, za + 0.3)), S((x + w / 2 - 0.8, 3.8, zb)), c("os_ombre"),
                           name="CrocCasse")
                 else:
                     _dent(b, *S((x - w / 2, x + w / 2)), 8.0 * k, ybas * k, za * k, zb * k, col)
-        basses = [(2.0, 2.4, 3.0), (5.4, 2.6, 2.4), (8.9, 2.4, 3.4), (12.2, 2.4, 2.2)]
+        basses = [(2.0, 2.4, 3.0), (5.4, 2.6, 2.6), (11.2, 2.4, 2.8)]
         for s in (-1, 1):
             for n_, (xm, w, yh) in enumerate(basses):
                 x = s * xm + float(rng.uniform(-0.3, 0.3))
-                col = os_teinte(0.55 + 0.1 * n_)
-                with b.at(S((x, 0, -23.2)), yaw=float(rng.uniform(-9, 9))):
+                col = os_teinte(0.5 + 0.1 * n_)
+                with b.at(S((x, 0, -23.6)), yaw=float(rng.uniform(-9, 9))):
                     _dent(b, *S((-w / 2, w / 2)), -1.5 * k, yh * k, *S((-1.6, 1.6)), col, vers_bas=False)
 
-    # --- mousse et terre au pied (la mâchoire inférieure est enterrée ; les épaulements de la colline font le reste)
+    # --- terre et mousse sombres devant la mâchoire (les épaulements de la colline l'enterrent sur les côtés) -----
+    # (arêtes et dessus hors de la grille paire des voxels : jamais de faces confondues avec l'os)
     with b.group("Terre"):
-        for (x0, x1, h, z0, z1, nom) in ((-22, -12, 1.2, -29, -23, "mousse"), (12, 21, 0.9, -29.5, -24, "herbe_fonce"),
-                                         (-4, 5, 0.5, -31, -27.5, "mousse")):
-            b.box(S((x0, 0, z0)), S((x1, h, z1)), vary(nom, rng, 0.05), studs="top", name="Mousse", **DECO)
+        for (p0, p1, nom) in (((-19, -5.5, -33), (19, 0.9, -25), "sapin_fonce"), ((-15, 0.9, -30.5), (15, 1.7, -26.5), "mousse"),
+                              ((-27, -5.1, -29), (-17, 3.3, -21), "sapin"), ((17, -4.7, -29), (27, 2.7, -21), "sapin")):
+            b.box(S(p0), S(p1), vary(nom, rng, 0.05), studs="top", name="Terre")
 
-    # --- cornes et petites pointes --------------------------------------------------------------
+    # --- longues défenses d'os qui sortent de la colline en diagonale (refBC1) -------------------------------
+    with b.group("Defenses"):
+        defenses = {1: [((30, 3, -8), (44, 9, -7), (55, 14, -5), (5.0, 3.2, 1.4)),
+                        ((33, 11, 8), (41, 22, 10), (46, 33, 11), (4.4, 2.8, 1.2))],
+                    -1: [((31, 5, -9), (43, 13, -12), (52, 23, -12), (4.8, 3.0, 1.3)),
+                         ((32, 2, 9), (47, 7, 12), (58, 9, 13), (4.6, 2.9, 1.2)),
+                         ((34, 12, -2), (39, 20, -4), (41, 27, -5), (3.6, 2.2, 1.0))]}
+        for s, lst in defenses.items():
+            for (p0, p1, p2, secs) in lst:
+                q = [np.array(S((s * p[0], p[1], p[2]))) for p in (p0, p1, p2)]
+                q.append(q[2] + (q[2] - q[1]) * 0.45)
+                for n_ in range(3):
+                    _poutre(b, q[n_], q[n_ + 1], secs[n_] * k, os_teinte(0.32 - 0.12 * n_), ref=(0, 0, 1),
+                            ext=0.25 * secs[n_] * k if n_ else 0.0, name="Defense")
+
+    # --- cornes massives : vers l'extérieur presque à l'horizontale, puis vers le haut et un peu vers l'avant -------
     with b.group("Cornes"):
-        # droite : sort de la tempe, s'écarte, monte et se recourbe vers l'avant, pointe vers l'intérieur ;
-        # gauche : plus enroulée (asymétrie, refBC1)
-        droite = [(17, 46, 3), (33, 51, 1), (46, 60, -2), (52.5, 75, -5.5), (50, 88, -7.5), (41, 95.5, -6)]
-        gauche = [(-17, 46, 3), (-33, 51.5, 1.5), (-45, 61, -1), (-49, 76, -3.5), (-44, 87.5, -5), (-33.5, 91, -2.5)]
+        crochue = [(16, 47, 2), (31, 49.5, 1), (44, 52, 0), (54, 59, -1.5), (59, 71, -3.5), (58, 83, -6),
+                   (53, 92, -8.5), (46, 97, -10), (40.5, 97.5, -10.5)]
+        cassee = [(-16, 46.5, 2), (-31, 48.5, 1.5), (-44, 51, 0.5), (-53.5, 57.5, -1), (-58, 68, -2.5),
+                  (-58, 79, -4.5)]
+        sec_c = [20.0, 18.5, 16.5, 14.5, 12.5, 10.5, 8.7, 7.0, 5.4, 4.0, 2.7, 1.4]
+        sec_k = [19.0, 17.5, 15.5, 13.5, 11.8, 10.2, 9.0, 8.2]
         if variant % 2:
-            droite, gauche = [(-p[0], p[1], p[2]) for p in gauche], [(-p[0], p[1], p[2]) for p in droite]
-        for n_, pts in enumerate((droite, gauche)):
-            _corne(b, [S(p) for p in pts], 12.5 * k, 2.6 * k, 10, rng, torsion=3.0 if n_ == 0 else -3.0)
-        pointes = [(((18, 3, -10), (30, 6, -9), (40, 11.5, -6.5), (46, 19, -4)), (4.0, 2.8, 1.6)),
-                   (((24, 40, 7), (32, 44, 10), (37, 49.5, 13)), (3.2, 1.8)),
-                   (((24, 22, -6), (31, 21, -5), (37, 23.5, -3)), (2.6, 1.5))]
-        for s in (-1, 1):
-            for (pts, secs) in pointes:
-                q = [S((s * p[0], p[1], p[2])) for p in pts]
-                for n_ in range(len(q) - 1):
-                    _poutre(b, q[n_], q[n_ + 1], secs[n_] * k, os_teinte(0.15 + 0.25 * n_), ref=(0, 0, 1),
-                            ext=0.3 * secs[n_] * k if n_ else 0.0, name="Pointe")
+            crochue = [(-p[0], p[1], p[2]) for p in crochue]
+            cassee = [(-p[0], p[1], p[2]) for p in cassee]
+        _corne(b, [S(p) for p in crochue], [s_ * k for s_ in sec_c], rng, torsion=2.5)
+        _corne(b, [S(p) for p in cassee], [s_ * k for s_ in sec_k], rng, torsion=-2.5, cassee=True, fissures=(2, 4, 6))
 
     # --- étendard cramoisi uni et déchiré au sommet ---------------------------------------------
     with b.group("Etendard"):
-        base = np.array(S((-6.0, 57.0, -9.0)))
-        top = base + np.array([1.2, 33.0, 1.5]) * k
+        base = np.array(S((-6.0, 55.0, -6.0)))
+        top = base + np.array([1.0, 30.0, 1.4]) * k
         _poutre(b, base, top, 1.0 * k, c("bois_noir"), name="Mat", **DECO)
         haut = top - np.array([0, 1.4, 0]) * k
         _poutre(b, haut + np.array([-0.6, 0, 0]) * k, haut + np.array([10.6, 0, 0]) * k, 0.6 * k, c("bois_noir"),
@@ -371,7 +420,7 @@ def crane_demon(b, variant: int = 0, hauteur: float = 64) -> dict:
             col = shade(c("toile_cramoisie"), (0.92, 1.0, 0.86, 0.95)[n_])
             b.box((x0 + n_ * lw + 0.12, y1 - (10.5 + L) * k, zt - 0.1), (x0 + (n_ + 1) * lw - 0.12, y1 - 10.5 * k, zt + 0.1),
                   col, name="Lambeau", **DECO)
-    return {"emprise": (round(112 * k, 1), round(60 * k, 1)), "hauteur": round(96 * k, 1)}
+    return {"emprise": (round(130 * k, 1), round(63 * k, 1)), "hauteur": round(99 * k, 1)}
 
 
 # ---------------------------------------------------------------------------
@@ -415,10 +464,12 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
         if masques:
             m &= masques[-1]
         masques.append(m)
-    masques[-1] |= (X ** 2 + Z ** 2) <= 30.0 ** 2          # plateau : rayon ≥ 26 autour de l'origine
-    for m in masques[:-1]:
-        m |= masques[-1]
-    tons = [("herbe_fonce", "herbe"), ("herbe_fonce", "mousse"), ("mousse", "herbe_fonce"), ("herbe_fonce", "mousse")]
+    # plateau large (rayon 40 : le crâne et ses épaulements y reposent), terrasses du dessous élargies d'autant
+    for n_, rr in ((3, 40.0), (2, 44.0), (1, 47.0)):
+        masques[n_] |= ((X ** 2 + Z ** 2) <= rr ** 2) & (np.abs(X) <= W2) & (np.abs(Z) <= P2)
+    for n_ in range(len(masques) - 2, -1, -1):
+        masques[n_] |= masques[n_ + 1]
+    tons = [("herbe_fonce", "mousse"), ("sapin", "herbe_fonce"), ("sapin_fonce", "sapin"), ("sapin_fonce", "sapin")]
     y0 = 0.0
     with b.group("Terrasses"):
         for n_, ((yt, *_), m) in enumerate(zip(niveaux, masques)):
@@ -433,11 +484,11 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
     ZS = math.sin(a) * X + math.cos(a) * Z
     AXS = np.abs(XS)
     paliers = []
-    for (dy, rx, rz, cz, x_libre, z_libre) in ((8.6, 46.0, 43.0, 2.0, 25.0, -16.0), (15.6, 41.0, 38.0, 6.0, 28.0, -8.0),
-                                               (22.6, 36.0, 31.0, 13.0, 30.0, 4.0), (28.6, 30.0, 24.0, 20.0, 26.0, 12.0)):
+    for (dy, rx, rz, cz, x_libre, z_libre) in ((8.6, 50.0, 46.0, 1.0, 25.0, -22.0), (15.6, 46.0, 41.0, 4.0, 29.5, -15.0),
+                                               (22.6, 41.0, 34.0, 11.0, 33.0, -4.0), (28.9, 33.0, 26.0, 20.0, 29.0, 12.0)):
         m = ((XS / (rx * lob)) ** 2 + ((ZS - cz) / (rz * lob)) ** 2) <= 1.0
         m &= ~((ZS < z_libre) & (AXS < x_libre))
-        m &= masques[-1] | masques[-2]
+        m &= masques[-1]
         if paliers:
             m &= paliers[-1][1]
         paliers.append((H + dy, m))
@@ -445,7 +496,7 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
         yb = H
         for n_, (yt, m) in enumerate(paliers):
             for (i, kz, w, h) in mask_rects(m.T):
-                col = vary(("herbe_fonce", "sapin", "sapin_fonce", "sapin")[n_], rng, 0.05)
+                col = vary(("sapin", "sapin_fonce", "sapin", "sapin_fonce")[n_], rng, 0.05)
                 b.box((xe[i], yb, ze[kz]), (xe[i + w], yt, ze[kz + h]), col, studs="top", name="Epaulement")
             yb = yt
 
@@ -486,7 +537,7 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
             s_ = float(rng.uniform(6, 9.5))
             if z - s_ * 0.5 < -P2:
                 continue
-            col = vary(("roche_noire", "basalte", "basalte_clair")[n_ % 3], rng, 0.05)
+            col = vary(("roche_noire", "basalte", "obsidienne")[n_ % 3], rng, 0.05)
             b.boxc((x, yb + (yh - yb) * 0.5 - 0.4, z), (s_, (yh - yb) + 2.2, s_ * 0.75), col, yaw=float(rng.uniform(12, 78)),
                    studs="top", name="Roche")
             n_ok += 1
@@ -495,17 +546,17 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
 
     # sapins sombres (épaulements, flancs, arrière) et arbres morts (devant, sur les côtés)
     with b.group("Arbres"):
-        dans_crane = [(-36, -14, 30), (37, -10, 28), (-40, 6, 27), (42, 10, 26), (-28, 26, 32), (30, 26, 30),
-                      (-12, 36, 30), (12, 37, 31), (0, 40, 26)]
+        dans_crane = [(-39, -15, 30), (40, -11, 28), (-43, 6, 28), (45, 10, 27), (-31, 28, 33), (33, 28, 31),
+                      (-13, 39, 31), (13, 40, 32), (0, 43, 27)]
         places = [(_vers_colline(xs, zs) + (h, "s")) for (xs, zs, h) in dans_crane]
         places += [(-46, 20, 22, "s"), (44, 30, 21, "s"), (-45, -14, 15, "m"), (43, -24, 14, "m")]
         for n_, (x, z, h, kind) in enumerate(places):
             x = float(np.clip(x, -W2 + 0.25 * h, W2 - 0.25 * h))
             z = float(np.clip(z, -P2 + 0.25 * h, P2 - 0.25 * h))
             y = niveau(x, z) - 0.3
-            with b.at((x, y, z), yaw=float(rng.uniform(10, 80))):
+            with b.at((x, y, z), yaw=float(rng.uniform(10, 38))):     # jamais aligné sur la grille des terrasses
                 if kind == "s":
-                    mobilier.sapin_sombre(b, variant=(0, 2, 0, 3, 2, 0, 2, 0, 1, 2)[n_ % 10], hauteur=h)
+                    mobilier.sapin_sombre(b, variant=(2, 0, 2, 3, 2, 2, 0, 2, 2, 3)[n_ % 10], hauteur=h)
                 else:
                     mobilier.arbre_mort(b, variant=(0, 2)[n_ % 2], hauteur=h)
 
@@ -689,7 +740,7 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
         b.cyl((0, 5.0, 0), R + 0.8, 1.2, c("pierre"), studs="top", name="Talus")
         y = 5.6
         n_ = 0
-        joints = [0.0, 4.4, 5.6]
+        joints = [0.0, 4.4, 5.6, 8.4, 9.6]
         cordons = [H * 0.235, H * 0.465]
         while y < y_cour - 6.5 - 0.01:
             prochain = min([cd for cd in cordons if cd > y + 1] + [y_cour - 6.5])
@@ -738,6 +789,15 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
             col = (c("pierre_claire"), shade(c("pierre_pale"), 1.12), c("pierre"), c("pierre_fonce"))[i % 4]
             with b.at((0, 0, 0), yaw=-math.degrees(th)):
                 b.box((-w_ / 2, yy, -(R - 0.4)), (w_ / 2, yy + h_, -(R + 0.35)), col, name="Moellon", **DECO)
+
+    # contreforts au pied (entre les baies basses et de part et d'autre de la porte) et cordon de soubassement
+    with b.group("Soubassement"):
+        b.cyl((0, 9.0, 0), R + 0.5, 1.2, c("pierre_claire"), studs="top", name="Cordon")
+        for th in (-24.0, 24.0, -90.0, 90.0, -160.0, 160.0):
+            with b.at((0, 0, 0), yaw=-th):
+                b.box((-1.7, 0.0, -(R - 1.0)), (1.7, 7.4, -(R + 4.1)), c("pierre_pale"), name="Contrefort")
+                b.wedge((-1.7, 7.4, -(R - 1.0)), (1.7, 10.9, -(R + 4.1)), c("pierre_claire"), down="-z", studs="top",
+                        name="Contrefort")
 
     # baies en quinconce (2 × 8) : quatre niveaux, quatre directions, décalées de 45° d'un niveau à l'autre
     centres_baies = []
@@ -816,14 +876,15 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
 
     # lierre sombre qui grimpe sur le bas du corps (coulées irrégulières de petites plaques)
     with b.group("Lierre"):
-        for (th, yb_, hh) in ((-118, 3, 26), (-146, 5, 17), (148, 4, 30), (112, 4, 14), (-96, 24, 10), (176, 6, 12)):
+        for (th, yb_, hh) in ((-118, 3, 26), (-146, 5, 17), (148, 4, 30), (112, 4, 14), (-96, 24, 10), (176, 6, 12),
+                              (-60, 30, 16), (66, 40, 13)):
             with b.at((0, 0, 0), yaw=-th):
                 y_ = yb_
                 x_ = 0.0
                 for n_ in range(3):
                     w_ = (4.4, 3.0, 1.8)[n_]
                     h_ = hh * (0.45, 0.33, 0.22)[n_]
-                    col = c(("lierre", "lierre_clair", "lierre")[n_])
+                    col = c(("lierre", "lierre_clair", "lierre")[n_]) if yb_ < 20 else c(("sapin_fonce", "lierre", "sapin_fonce")[n_])
                     while any(abs(y_ - j) < 0.06 or abs(y_ + h_ - j) < 0.06 for j in joints):
                         y_ += 0.13                           # pas dans le plan d'un joint d'assise
                     b.box((x_ - w_ / 2, y_, -(R - 0.3 - 0.07 * n_)), (x_ + w_ / 2, y_ + h_, -(R + 0.3 + 0.08 * n_)), col,
@@ -835,16 +896,16 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
     # l'hélice, ailes ouvertes, légèrement penchés ; un sur quatre a des pages lumineuses
     from palette import CUIRS
     with b.group("Grimoires"):
-        n_l = 40
-        tours = 1.75
+        n_l = 46
+        tours = 2.0
         a0 = math.pi * (0.75 + 0.5 * float(rng.random()))      # départ derrière la tour (la porte reste dégagée)
-        y_a, y_b = 17.0, min(H - 16.0, 100.0)
+        y_a, y_b = 15.0, min(H - 15.0, 103.0)
         echauguettes = (-62.0, 62.0) if variant % 2 == 0 else (-58.0,)
         for i in range(n_l):
             t = i / (n_l - 1)
             a = a0 + 2 * math.pi * tours * t
-            r = R + 4.4 + 0.8 * math.sin(7 * t + 1.0)
-            y = y_a + (y_b - y_a) * t + float(rng.uniform(-1.2, 1.2))
+            r = R + 5.2
+            y = y_a + (y_b - y_a) * t + float(rng.uniform(-0.4, 0.4))
             if y_cour - 4 < y < y_cour + 5:
                 r += 1.4                                      # au large du balcon
             ad = (math.degrees(a) + 180) % 360 - 180
@@ -858,11 +919,11 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
             nrm -= np.dot(nrm, tang) * tang
             nrm /= np.linalg.norm(nrm)
             R0 = np.column_stack([np.cross(nrm, tang), nrm, tang])
-            R0 = R0 @ rot_z(float(rng.uniform(-18, 18))) @ rot_x(float(rng.uniform(-12, 12)))
+            R0 = R0 @ rot_z(float(rng.uniform(-8, 8))) @ rot_x(float(rng.uniform(-6, 6)))
             couv = vary(CUIRS[int(rng.integers(len(CUIRS)))], rng, 0.05)
             lum = i % 4 == 1
-            s_ = float(rng.uniform(2.2, 2.6))
-            ouv = float(rng.uniform(16, 32))
+            s_ = float(rng.uniform(2.45, 2.8))
+            ouv = float(rng.uniform(18, 30))
             for _essai in range(3):                         # le livre entier reste à moins de 24 de l'axe
                 ex = _grimoire_rayon(p, R0, s_, ouv) - 23.8
                 if ex <= 0:
