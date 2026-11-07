@@ -8,8 +8,8 @@ Fonctions publiques (signatures appelées par `zone.py`, fiches dans SPECS.md) :
 - `mur_enceinte` : segment d'enceinte crénelée (assises de 4, cordon, chemin de ronde) ; variantes : sobre,
   lierre et archères, brèche, échauguette ;
 - `ruine_tour`, `ruine_mur`, `arche_effondree` : ruines calcinées du champ de bataille ;
-- `aqueduc` : aqueduc ruiné en travers du couloir (arche centrale de 94, dessous ≥ 36), effondré à droite,
-  cascade qui tombe du canal brisé.
+- `aqueduc` : aqueduc ruiné et sombre en travers du couloir (arche centrale de 94, dessous ≥ 36), grande brèche
+  à droite avec cascade, travée effondrée à gauche, parapets édentés, travées affaissées.
 
 Repère : origine au centre de l'emprise au sol, avant vers -Z local. Pierre gris-violet en assises de 3-4 tons,
 ruines plus sombres (`pierre_noire`, `pierre_ombre`, `bois_brule`), ardoise violette, lierre ; lueurs Neon avec
@@ -347,9 +347,9 @@ def _tour_porte(b, rng, s: int, xt: float, r: float, h: float, h_mur: float, v: 
 
     # --- toit conique d'ardoise violette, épi doré, fanion uni ---
     y0t = h + 1.2
-    y1t = y0t + 37.6
+    y1t = y0t + 52.0                                  # aiguille d'ardoise : 1,65 × le diamètre (refBC2)
     with b.group("Toit"):
-        _toit_conique(b, rng, cx, cz, y0t, r + 2.7, y1t, n=20, p=1.25, q=1.1)
+        _toit_conique(b, rng, cx, cz, y0t, r + 2.7, y1t, n=24, p=1.25, q=1.1)
         # lucarne éclairée tournée vers les arrivants, côté couloir
         with _radial(b, cx, cz, r, -24.0 * s):
             b.box((-1.5, y0t + 2.4, -2.5), (1.5, y0t + 6.4, 2.0), vary("pierre_claire", rng, 0.03), name="Lucarne")
@@ -378,8 +378,8 @@ def _tour_porte(b, rng, s: int, xt: float, r: float, h: float, h_mur: float, v: 
                   c("pierre_pale") if rr > 2.5 else vary("pierre_fonce", rng, 0.03), name="CulDeLampe")
         b.cyl((ex, 42.0, ez), 3.2, 9.6, vary("pierre_claire", rng, 0.03), name="Echauguette")
         b.cyl((ex, 47.1, ez), 3.6, 0.6, c("pierre_pale"), studs="top", name="Bandeau")
-        _toit_conique(b, rng, ex, ez, 47.4, 4.1, 58.5, n=6, p=1.15, q=1.05)
-        b.ball((ex, 58.9, ez), 0.45, c("or"), name="Epi")
+        _toit_conique(b, rng, ex, ez, 47.4, 4.1, 63.0, n=6, p=1.15, q=1.05)
+        b.ball((ex, 63.4, ez), 0.45, c("or"), name="Epi")
         _archere(b, ex, ez, 3.2, pe, 40.0, 3.2, True)
     reserver(pe, 8.0, 31.0, 48.0)
 
@@ -475,7 +475,7 @@ def porte_entree(b, variant=0, ouverture=100, rayon_tour=13, hauteur_tour=58, ha
     """Porte d'entrée (refBC2) : deux tours rondes massives d'axes x = ±(ouverture/2 + rayon_tour), faces
     intérieures en |x| = ouverture/2 ; talus, assises de 4 en 3-4 tons et pierres en saillie, cordon, archères à la
     bougie, mâchicoulis sous une galerie en encorbellement, bandeau, toit conique très pointu d'ardoise violette
-    (≈ 96) et épi doré à fanion uni, lierre, bannières unies avant et revers, lanterne au-dessus des vantaux ;
+    (≈ 111) et épi doré à fanion uni, lierre, bannières unies avant et revers, lanterne au-dessus des vantaux ;
     vantaux de bois cerclés de fer ouverts vers le village (+Z local) le long du couloir (|x| 47-49) ; piliers de
     liaison avec l'enceinte (|x| 71-77). Rien en |x| < 47. Avant (-Z local) = côté des arrivants."""
     v = variant % 4
@@ -1044,15 +1044,18 @@ def arche_effondree(b, variant=0, largeur=30, hauteur=26):
 # Aqueduc ruiné (refBC3)
 # ---------------------------------------------------------------------------
 
-def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rupture=(100.0, 164.0)):
+def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rupture=(100.0, 164.0), affaisse=None):
     """Aqueduc ruiné le long de X local, en travers du couloir. Piles de 10 × 10 sur socles (piles du couloir de
     |x| = ouverture/2 à ouverture/2 + 10, socles à 0,5 près), les autres au pas de 32 ; arche centrale surbaissée
     au-dessus du couloir (naissances à `dessous`, rien sous `dessous` au-dessus de |x| < ouverture/2), arches
-    latérales de 22 en plein cintre (dessous ≈ 44), claveaux alternés clairs ; tympans en retrait, corniche,
-    tablier, deux parapets bas et canal d'eau sombre jusqu'à `hauteur`. Rupture (x local de rupture[0] à
-    rupture[1]) : tablier et arcs disparus, piles réduites à des moignons, bouts cassés en escalier, éboulis,
-    cascade qui tombe du canal brisé dans une flaque, cicatrices magiques violettes.
-    Variantes : 0 conforme au plan ; 1 intact ; 2 rupture à gauche (miroir) ; 3 comme 0, plus de lierre."""
+    latérales de 22 en plein cintre (dessous ≈ 44) ; tympans en retrait, corniche, tablier, deux parapets bas
+    édentés (une travée sur trois a perdu le sien hors du couloir) et canal d'eau sombre jusqu'à `hauteur`. Pierre
+    sombre (gris-violet foncé, ombre, noire) : seuls les claveaux et l'archivolte de l'arche centrale sont clairs,
+    la ligne qui encadre le château. Ruptures (`rupture` : (x0, x1) ou liste de tronçons en x local ; la première
+    est la grande brèche) : tablier et arcs disparus, piles réduites à des moignons, bouts cassés, éboulis,
+    cicatrices magiques violettes ; la grande brèche a sa cascade qui tombe du canal brisé dans une flaque.
+    `affaisse` : {(x0, x1) d'une travée : affaissement} (tablier, parapets et canal plus bas sur cette travée).
+    Variantes : 0 conforme au plan ; 1 intact ; 2 ruptures en miroir ; 3 comme 0, plus de lierre."""
     v = variant % 4
     rng = _rng(b, 6, v, lieu=False)
     X = largeur / 2.0
@@ -1070,55 +1073,61 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
     while u + wp / 2 <= X - 20.0:
         centres.append(u)
         u += 32.0
-    sgn_r = -1 if v == 2 else 1
-    rup = None if v == 1 else (min(rupture), max(rupture))
+    if v == 1 or rupture is None:
+        rups = []
+    else:
+        liste = [rupture] if isinstance(rupture[0], (int, float)) else list(rupture)
+        rups = [(min(r_), max(r_)) for r_ in liste]
+        if v == 2:
+            rups = [(-hi, -lo) for (lo, hi) in rups]
+    affaisse = {} if v == 1 or not affaisse else {tuple(sorted(k_)): float(d_) for k_, d_ in affaisse.items()}
 
     def casse(x):
-        """Vrai si x (local) tombe dans la rupture."""
-        return rup is not None and rup[0] < sgn_r * x < rup[1]
-
-    def dans_rupture(xa, xb):
-        if rup is None:
-            return False
-        a, bb = sorted((sgn_r * xa, sgn_r * xb))
-        return a >= rup[0] - 1e-6 and bb <= rup[1] + 1e-6
-
-    def coupe_rupture(xa, xb):
-        """Partie de [xa, xb] hors rupture (une seule, ou None si tout est dedans, ou l'intervalle si rien)."""
-        if rup is None:
-            return (xa, xb)
-        lo, hi = sgn_r * rup[0], sgn_r * rup[1]
-        lo, hi = min(lo, hi), max(lo, hi)
-        if xb <= lo or xa >= hi:
-            return (xa, xb)
-        if xa < lo:
-            return (xa, lo)
-        if xb > hi:
-            return (hi, xb)
+        """Indice de la rupture où tombe x (local), ou None."""
+        for i_, (lo, hi) in enumerate(rups):
+            if lo < x < hi:
+                return i_
         return None
 
+    def coupe_rupture(xa, xb):
+        """Partie de [xa, xb] hors ruptures (None si tout est dedans, l'intervalle si rien n'est coupé)."""
+        for (lo, hi) in rups:
+            if xb <= lo or xa >= hi:
+                continue
+            if xa < lo:
+                return (xa, lo)
+            if xb > hi:
+                return (hi, xb)
+            return None
+        return (xa, xb)
+
     lierre = 0.7 if v == 3 else 0.5
+    SOMBRES_P = (0.4, 0.15, 0.25, 0.2)         # poids de SOMBRES : foncé, noire, ombre, pierre
 
     # ---- piles ----
-    moignons = []
+    moignons = {}
     with b.group("Piles"):
         for s in (-1, 1):
             for k, u in enumerate(centres):
                 xc = s * u
-                if casse(xc):
-                    moignons.append(xc)
+                ir = casse(xc)
+                if ir is not None:
+                    moignons.setdefault(ir, []).append(xc)
                     continue
                 b.box((xc - wp / 2 - 0.5, 0.0, -dz - 0.5), (xc + wp / 2 + 0.5, 3.0, dz + 0.5), vary("pierre_ombre", rng, 0.04),
                       studs="top", name="Socle")
                 nv = (3.0, 12.0, 22.0, y_imp - 1.0)
                 for j in range(3):
-                    noms = ("pierre_ombre", "pierre_fonce", "pierre") if j == 0 else PIERRES
-                    b.box((xc - wp / 2, nv[j], -dz), (xc + wp / 2, nv[j + 1], dz),
-                          _ton(rng, noms, (0.35, 0.45, 0.2) if j == 0 else (0.45, 0.2, 0.35), 0.04), name="Pile")
+                    if j == 0:
+                        col = _ton(rng, ("pierre_ombre", "pierre_fonce", "pierre"), (0.35, 0.45, 0.2), 0.04)
+                    else:
+                        col = _ton(rng, SOMBRES, SOMBRES_P, 0.04)
+                    b.box((xc - wp / 2, nv[j], -dz), (xc + wp / 2, nv[j + 1], dz), col, name="Pile")
                 ia, ib = xc - wp / 2 - 0.4, xc + wp / 2 + 0.4
                 if k == 0:                                     # piles du couloir : imposte affleurante côté couloir
                     ia, ib = (xc - wp / 2, ib) if s > 0 else (ia, xc + wp / 2)
-                b.box((ia, y_imp - 1.0, -dz - 0.4), (ib, y_imp, dz + 0.4), c("pierre_pale"), name="Imposte")
+                b.box((ia, y_imp - 1.0, -dz - 0.4), (ib, y_imp, dz + 0.4), c("pierre_pale") if k == 0 else
+                      vary("pierre", rng, 0.03), name="Imposte")
         # culées pleines aux deux bouts (elles s'enfoncent dans les falaises)
         u_fin = centres[-1] + wp / 2
         for s in (-1, 1):
@@ -1126,25 +1135,28 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
             b.box((xa, 0.0, -dz - 0.5), (xb, 3.0, dz + 0.5), vary("pierre_ombre", rng, 0.04), studs="top", name="Socle")
             xa, xb = sorted((s * u_fin, s * X))
             for (ya, yb) in ((3.0, 18.0), (18.0, 36.0), (36.0, y_cor)):
-                b.box((xa, ya, -dz), (xb, yb, dz), _ton(rng, PIERRES, (0.45, 0.2, 0.35), 0.04), name="Culee")
-        # moignons dans la rupture
-        for i, xc in enumerate(sorted(moignons, key=abs)):
-            hm = (30.0, 18.0, 24.0, 20.0)[i % 4]
-            b.box((xc - wp / 2 - 0.5, 0.0, -dz - 0.5), (xc + wp / 2 + 0.5, 3.0, dz + 0.5), vary("pierre_ombre", rng, 0.04),
-                  studs="top", name="Socle")
-            b.box((xc - wp / 2, 3.0, -dz), (xc + wp / 2, hm * 0.55, dz), _ton(rng, SOMBRES), studs="top", name="Moignon")
-            b.box((xc - wp / 2, hm * 0.55, -dz), (xc + 0.5, hm * 0.85, dz), _ton(rng, PIERRES), studs="top", name="Moignon")
-            b.box((xc + 0.5, hm * 0.55, -dz + 1.0), (xc + wp / 2, hm - 0.5, dz), _ton(rng, PIERRES), studs="top", name="Moignon")
-            b.part("block", (4.2, 2.6, 6.0), (xc - 2.0, hm * 0.85 + 0.9, -1.0), rot_z(14.0) @ rot_y(9.0),
-                   _ton(rng, SOMBRES), studs="top", name="Moignon")
+                b.box((xa, ya, -dz), (xb, yb, dz), _ton(rng, SOMBRES, SOMBRES_P, 0.04), name="Culee")
+        # moignons dans les ruptures
+        for ir, lst in sorted(moignons.items()):
+            for i, xc in enumerate(sorted(lst, key=abs)):
+                hm = (30.0, 18.0, 24.0, 20.0)[i % 4] if ir == 0 else (22.0, 16.0)[i % 2]
+                b.box((xc - wp / 2 - 0.5, 0.0, -dz - 0.5), (xc + wp / 2 + 0.5, 3.0, dz + 0.5),
+                      vary("pierre_ombre", rng, 0.04), studs="top", name="Socle")
+                b.box((xc - wp / 2, 3.0, -dz), (xc + wp / 2, hm * 0.55, dz), _ton(rng, SOMBRES), studs="top", name="Moignon")
+                b.box((xc - wp / 2, hm * 0.55, -dz), (xc + 0.5, hm * 0.85, dz), _ton(rng, SOMBRES), studs="top",
+                      name="Moignon")
+                b.box((xc + 0.5, hm * 0.55, -dz + 1.0), (xc + wp / 2, hm - 0.5, dz), _ton(rng, SOMBRES), studs="top",
+                      name="Moignon")
+                b.part("block", (4.2, 2.6, 6.0), (xc - 2.0, hm * 0.85 + 0.9, -1.0), rot_z(14.0) @ rot_y(9.0),
+                       _ton(rng, SOMBRES), studs="top", name="Moignon")
 
     # ---- arches ----
     claves = []
     with b.group("Arches"):
-        # arche centrale surbaissée au-dessus du couloir
+        # arche centrale surbaissée au-dessus du couloir : la seule ligne claire de l'aqueduc
         claves += _arc(b, rng, -o2, o2, dessous, f_cen, "seg", t_cen - 1.0, -dz - 0.4, dz + 0.4, 33, y_cor,
                        y_pied=y_imp, dedans=True, claveaux=("pierre_claire", "pierre_fonce"),
-                       mur=("pierre", "pierre_fonce", "pierre"), z_mur=(-zt + 0.2, zt - 0.2),
+                       mur=("pierre_fonce", "pierre_ombre", "pierre"), z_mur=(-zt + 0.2, zt - 0.2),
                        archivolte=(1.0, "pierre_pale", 0.25))
         # mousse qui pend de l'arche centrale (toujours au-dessus de 37 au-dessus du couloir)
         for (xm_, zs, drop) in ((-31.0, 1, 3.5), (-9.0, 1, 4.5), (17.0, 1, 3.0), (-22.0, -1, 4.0), (6.0, -1, 3.5),
@@ -1181,7 +1193,8 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
                 else:
                     rempl = y_cor
                 claves += _arc(b, rng, xl, xr, y_imp, (xr - xl) / 2, "seg", t_lat, -dz, dz, 9, rempl, z_mur=(-zt, zt),
-                               x_coupe=coupe, mur=("pierre", "pierre_fonce", "pierre_fonce", "pierre_claire"))
+                               x_coupe=coupe, claveaux=("pierre", "pierre_ombre"),
+                               mur=("pierre_fonce", "pierre_ombre", "pierre_noire", "pierre"))
         # remplissages au-dessus des piles, entre les extrados de deux arches voisines
         reach_c = _portee(-o2, o2, f_cen, "seg", t_cen)
         lat = []
@@ -1192,95 +1205,119 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
             for k, u in enumerate(centres):
                 ga = reach_c if k == 0 else lat[k - 1][0] + lat[k - 1][1]
                 gb = lat[k][0] - lat[k][1] if k < len(lat) else u + wp / 2
-                if gb - ga < 0.2 or casse(s * u):
+                if gb - ga < 0.2 or casse(s * u) is not None:
                     continue
                 xa, xb = sorted((s * ga, s * gb))
-                b.box((xa, y_imp, -dz), (xb, y_cor, dz), _ton(rng, PIERRES, (0.4, 0.35, 0.25), 0.04), name="Pilastre")
+                b.box((xa, y_imp, -dz), (xb, y_cor, dz), _ton(rng, SOMBRES, SOMBRES_P, 0.04), name="Pilastre")
 
     # ---- corniche, tablier, parapets, canal ----
-    x_bout = {}
-    if rup is not None:
-        lo, hi = sgn_r * rup[0], sgn_r * rup[1]
-        x_bout = {"g": min(lo, hi), "d": max(lo, hi)}
+    def sections(a, bb):
+        """Tronçons du tablier [(xa, xb)] entre les ruptures : marge `a` au bord intérieur (côté couloir) de chaque
+        brèche, `bb` au bord extérieur (signes en miroir pour une brèche à gauche)."""
+        out, cur = [], -X
+        for (lo, hi) in sorted(rups):
+            ga, gb = (a, bb) if lo > 0 else (-bb, -a)
+            out.append((cur, lo + ga))
+            cur = hi + gb
+        out.append((cur, X))
+        return out
 
-    def sections(marge_g, marge_d):
-        """Tronçons du tablier [(xa, xb)], raccourcis ou allongés de part et d'autre de la rupture."""
-        if rup is None:
-            return [(-X, X)]
-        return [(-X, x_bout["g"] + marge_g), (x_bout["d"] + marge_d, X)]
+    baies = sorted(set([-X] + [s * u for s in (-1, 1) for u in centres] + [X]))
+    travees = list(zip(baies[:-1], baies[1:]))
 
-    def m(a, bb):
-        """Marges de cassure (côté droit de la brèche puis côté gauche) selon le sens de la rupture."""
-        return (a, bb) if sgn_r > 0 else (-bb, -a)
+    def chute(xa, xb):
+        """Affaissement de la travée qui contient [xa, xb]."""
+        xm_ = 0.5 * (xa + xb)
+        for (ta, tb), d_ in affaisse.items():
+            if ta - 1e-6 <= xm_ <= tb + 1e-6:
+                return d_
+        return 0.0
+
+    def morceaux(xa_s, xb_s):
+        """Tronçon [xa_s, xb_s] coupé aux travées : [(i, xa, xb, affaissement)]."""
+        out = []
+        for i, (ta, tb) in enumerate(travees):
+            xa, xb = max(ta, xa_s), min(tb, xb_s)
+            if xb - xa >= 0.3:
+                out.append((i, xa, xb, chute(ta, tb)))
+        return out
 
     with b.group("Tablier"):
-        for (xa, xb) in sections(*m(-1.8, 2.0)):
-            b.box((xa, y_cor, -dz - 1.0), (xb, y_tab, dz + 1.0), vary("pierre_pale", rng, 0.03), studs="top", name="Corniche")
-        baies = [-X] + [s * u for s in (-1, 1) for u in centres] + [X]
-        baies = sorted(set(baies))
-        for (xa_s, xb_s) in sections(*m(0.6, -1.4)):
-            for i in range(len(baies) - 1):
-                xa, xb = max(baies[i], xa_s), min(baies[i + 1], xb_s)
-                if xb - xa < 0.3:
-                    continue
-                b.box((xa, y_tab, -dz), (xb, y_par, dz), _ton(rng, PIERRES, (0.5, 0.25, 0.25), 0.04), name="Tablier")
-        for (zs, marges) in ((-1, m(-1.0, 1.0)), (1, m(2.2, -2.6))):
+        for (xa, xb) in sections(-1.8, 2.0):
+            b.box((xa, y_cor, -dz - 1.0), (xb, y_tab, dz + 1.0), vary("pierre_fonce", rng, 0.03), studs="top", name="Corniche")
+        for (xa_s, xb_s) in sections(0.6, -1.4):
+            for (i, xa, xb, d_) in morceaux(xa_s, xb_s):
+                b.box((xa, y_tab, -dz), (xb, y_par - d_, dz), _ton(rng, SOMBRES, SOMBRES_P, 0.04), name="Tablier")
+        for (zs, marges) in ((-1, (-1.0, 1.0)), (1, (2.2, -2.6))):
             for (xa_s, xb_s) in sections(*marges):
-                for i in range(len(baies) - 1):
-                    xa, xb = max(baies[i], xa_s), min(baies[i + 1], xb_s)
-                    if xb - xa < 0.3:
-                        continue
+                for (i, xa, xb, d_) in morceaux(xa_s, xb_s):
+                    if min(abs(xa), abs(xb)) >= 60.0 and (i + (1 if zs > 0 else 0)) % 3 == 0:
+                        continue                                # parapet tombé (une travée sur trois)
                     za, zb_ = sorted((zs * dz, zs * (dz - 1.4)))
-                    b.box((xa, y_par, za), (xb, hauteur, zb_), _ton(rng, ("pierre_claire", "pierre", "pierre_pale"),
-                                                                     (0.45, 0.35, 0.2), 0.04), studs="top", name="Parapet")
-        for (xa, xb) in sections(*m(1.0, 3.0)):
-            b.box((xa, y_par, -(dz - 1.4)), (xb, y_par + 0.8, dz - 1.4), c("eau"), name="Canal")
+                    b.box((xa, y_par - d_, za), (xb, hauteur - d_, zb_), _ton(rng, ("pierre_fonce", "pierre_ombre", "pierre"),
+                                                                             (0.45, 0.3, 0.25), 0.04), studs="top",
+                          name="Parapet")
+        for (xa_s, xb_s) in sections(1.0, 3.0):
+            runs = []
+            for (i, xa, xb, d_) in morceaux(xa_s, xb_s):
+                if runs and abs(runs[-1][2] - d_) < 1e-6 and abs(runs[-1][1] - xa) < 1e-6:
+                    runs[-1][1] = xb
+                else:
+                    runs.append([xa, xb, d_])
+            for (xa, xb, d_) in runs:
+                b.box((xa, y_par - d_, -(dz - 1.4)), (xb, y_par - d_ + 0.8, dz - 1.4), c("eau"), name="Canal")
 
     # ---- cascade, flaque, éboulis, cicatrices ----
-    if rup is not None:
-        xg = x_bout["g"] if sgn_r > 0 else x_bout["d"]
-        sx = 1 if sgn_r > 0 else -1
-        with b.group("Cascade"):
-            eau = dict(material="Glass", transparency=0.15, collide=False, shadow=False)
-            clair = tuple(int(round(x + (y - x) * 0.3)) for x, y in zip(c("eau_claire"), c("blanc")))
-            for (a0, a1, ya, yb, hz) in ((1.0, 3.4, 40.0, y_par + 0.8, 3.1), (1.4, 4.4, 20.5, 40.4, 3.4),
-                                         (1.8, 5.6, 0.4, 20.9, 3.8)):
-                xa, xb = sorted((xg + sx * a0, xg + sx * a1))
-                b.box((xa, ya, -hz), (xb, yb, hz), clair, name="Cascade", **eau)
-            xa, xb = sorted((xg + sx * 0.4, xg + sx * 1.6))
-            b.box((xa, y_par + 0.3, -3.3), (xb, y_par + 1.3, 3.3), _ecume(), name="Ecume", **DECO)
-            for (a0, a1, hz, yh) in ((0.4, 6.0, 3.6, 1.4), (1.6, 4.8, 4.6, 2.4)):
-                xa, xb = sorted((xg + sx * a0, xg + sx * a1))
-                b.box((xa, 0.2, -hz), (xb, yh, hz), _ecume(), name="Ecume", **DECO)
-            xa, xb = sorted((xg - sx * 4.0, xg + sx * 9.0))
-            b.box((xa, 0.0, -6.5), (xb, 0.2, 6.5), c("eau"), name="Flaque", **DECO)
+    for ir, (lo, hi) in enumerate(rups):
+        sx = 1 if lo > 0 else -1                    # sens vers l'extérieur
+        xg = lo if lo > 0 else hi                   # bord intérieur (côté couloir)
+        xd = hi if lo > 0 else lo                   # bord extérieur
+        if ir == 0:
+            with b.group("Cascade"):
+                eau = dict(material="Glass", transparency=0.15, collide=False, shadow=False)
+                clair = tuple(int(round(x + (y - x) * 0.3)) for x, y in zip(c("eau_claire"), c("blanc")))
+                for (a0, a1, ya, yb, hz) in ((1.0, 3.4, 40.0, y_par + 0.8, 3.1), (1.4, 4.4, 20.5, 40.4, 3.4),
+                                             (1.8, 5.6, 0.4, 20.9, 3.8)):
+                    xa, xb = sorted((xg + sx * a0, xg + sx * a1))
+                    b.box((xa, ya, -hz), (xb, yb, hz), clair, name="Cascade", **eau)
+                xa, xb = sorted((xg + sx * 0.4, xg + sx * 1.6))
+                b.box((xa, y_par + 0.3, -3.3), (xb, y_par + 1.3, 3.3), _ecume(), name="Ecume", **DECO)
+                for (a0, a1, hz, yh) in ((0.4, 6.0, 3.6, 1.4), (1.6, 4.8, 4.6, 2.4)):
+                    xa, xb = sorted((xg + sx * a0, xg + sx * a1))
+                    b.box((xa, 0.2, -hz), (xb, yh, hz), _ecume(), name="Ecume", **DECO)
+                xa, xb = sorted((xg - sx * 4.0, xg + sx * 9.0))
+                b.box((xa, 0.0, -6.5), (xb, 0.2, 6.5), c("eau"), name="Flaque", **DECO)
         with b.group("Bouts"):
-            for (xe, sgn_e) in ((xg, sx), (x_bout["d"] if sgn_r > 0 else x_bout["g"], -sx)):
+            for (xe, sgn_e) in ((xg, sx), (xd, -sx)):
                 b.part("block", (3.2, 2.6, 5.4), (xe - sgn_e * 0.6, y_tab - 0.6, -1.9), rot_z(-sgn_e * 24.0) @ rot_y(8.0),
-                       _ton(rng, PIERRES), studs="top", name="BlocPenche")
+                       _ton(rng, SOMBRES), studs="top", name="BlocPenche")
+        n_pts = 15 if ir == 0 else 9
         pts = []
-        for i in range(15):
-            u = float(rng.uniform(rup[0] + 5.0, rup[1] - 4.0))
-            pts.append((sgn_r * u, float(rng.uniform(-6.0, 6.0))))
+        for i in range(n_pts):
+            u = float(rng.uniform(abs(xg) + 5.0, abs(xd) - 4.0))
+            pts.append((sx * u, float(rng.uniform(-6.0, 6.0))))
         with b.group("Eboulis"):
-            _eboulis(b, rng, pts[:5], PIERRES, (1.2, 2.2), claveaux=5)
-            for (x, z) in pts[5:9]:
+            nc = 5 if ir == 0 else 3
+            _eboulis(b, rng, pts[:nc], SOMBRES, (1.2, 2.2))
+            for (x, z) in pts[nc:nc + 4]:
                 _bloc_pose(b, (x, z), (float(rng.uniform(4.0, 6.5)), float(rng.uniform(2.5, 3.5)), float(rng.uniform(5.0, 8.0))),
-                           _ton(rng, PIERRES), yaw=float(rng.uniform(0, 90)),
+                           _ton(rng, SOMBRES), yaw=float(rng.uniform(0, 90)),
                            tilt=(float(rng.uniform(-18, 18)), float(rng.uniform(-18, 18))), name="Bloc", **DECO)
-            _eboulis(b, rng, pts[9:], SOMBRES, (1.0, 2.2))
+            _eboulis(b, rng, pts[nc + 4:], SOMBRES, (1.0, 2.2))
         with b.group("Cicatrices"):
-            for xc in sorted(moignons, key=abs)[:1]:
+            stubs = sorted(moignons.get(ir, []), key=abs)
+            for xc in stubs[:1]:
                 with b.at((xc, 0.0, dz), yaw=180.0):
-                    _cicatrice(b, rng, 0.8, 7.0, 15.5, 0.0, 1.6)
-            avant = [u for u in centres if u < rup[0]]
-            apres = [u for u in centres if u > rup[1]]
-            if apres:
-                with b.at((sgn_r * apres[0], 0.0, dz), yaw=180.0):
-                    _cicatrice(b, rng, -0.6, 12.0, 22.0, 0.0, 1.4)
-            if avant:
-                with b.at((sgn_r * avant[-1], 0.0, -dz)):
-                    _cicatrice(b, rng, 0.5, 15.0, 24.0, 0.0, 1.3)
+                    _cicatrice(b, rng, 0.8, 7.0, 15.5 if ir == 0 else 11.0, 0.0, 1.6)
+            if ir == 0:
+                avant = [u for u in centres if u < abs(xg)]
+                apres = [u for u in centres if u > abs(xd)]
+                if apres:
+                    with b.at((sx * apres[0], 0.0, dz), yaw=180.0):
+                        _cicatrice(b, rng, -0.6, 12.0, 22.0, 0.0, 1.4)
+                if avant:
+                    with b.at((sx * avant[-1], 0.0, -dz)):
+                        _cicatrice(b, rng, 0.5, 15.0, 24.0, 0.0, 1.3)
 
     # ---- lierre et mousse qui pendent des arches (jamais au-dessus du couloir sous `dessous`) ----
     with b.group("Lierre"):
@@ -1293,13 +1330,13 @@ def aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rup
                 if rng.random() < 0.5:
                     continue
                 drop = float(rng.uniform(2.0, 5.5))
-                za, zb_ = sorted((zs * (dz + 0.25), zs * (dz - 0.1)))
+                za, zb_ = sorted((zs * (dz + 0.45), zs * (dz - 0.1)))      # devant la clé (saillie 0,3) de 0,15
                 b.box((xa + 0.2, y0 - drop, za), (min(xb - 0.2, xa + 1.6), y0 + 1.0, zb_), vary("mousse", rng, 0.08),
                       name="Mousse", **DECO)
         for s in (-1, 1):
             for u in centres:
                 xc = s * u
-                if casse(xc) or rng.random() > lierre + 0.2:
+                if casse(xc) is not None or rng.random() > lierre + 0.2:
                     continue
                 zs = 1 if rng.random() < 0.65 else -1
                 hl = float(rng.uniform(8.0, 22.0))

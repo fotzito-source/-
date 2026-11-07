@@ -287,8 +287,8 @@ def crane_demon(b, variant: int = 0, hauteur: float = 64) -> dict:
 
     Origine : centre de l'emprise au niveau du plateau de la colline (y = 0) ; la face regarde -Z local.
     Volume en voxels de 2 studs (tranches horizontales en gradins) : dessus aplati, arrière allongé, arcades
-    zygomatiques larges, lourdes arcades sourcilières au-dessus de deux orbites rondes très profondes (petite braise
-    cramoisie au fond), cavité nasale en cœur renversé, mâchoire supérieure à longs crocs ; deux cornes massives qui
+    zygomatiques larges, lourdes arcades sourcilières au-dessus de deux orbites rondes très profondes (braise
+    cramoisie au fond, sur un halo sombre), cavité nasale en cœur renversé, mâchoire supérieure à longs crocs ; deux cornes massives qui
     partent des côtés, s'écartent presque à l'horizontale puis montent et se recourbent (l'une crochue vers
     l'intérieur, l'autre cassée) ; fissures, coulures sombres, mousse ; terre et mousse qui l'enterrent jusqu'aux
     pommettes ; longues défenses d'os qui sortent de la colline ; étendard cramoisi uni et déchiré au sommet.
@@ -329,13 +329,12 @@ def crane_demon(b, variant: int = 0, hauteur: float = 64) -> dict:
                   noyau=0.07, name="Coulure")
         _fissures(b, codes, xe, ye, ze, lignes, k, c("fissure"))
 
-    # --- petite braise cramoisie, sourde, au fond de chaque orbite ------------------------------------
+    # --- braise cramoisie au fond de chaque orbite (lisible de loin : le regard du démon) ------------------
     with b.group("Braises"):
         for s in (-1, 1):
             cx = s * 11.8
-            b.box(S((cx - 2.3, 25.2, -18.3)), S((cx + 2.3, 27.6, -18.0)), c("cramoisi_fonce"), name="Halo", **DECO)
-            b.box(S((cx - 1.2, 25.7, -18.7)), S((cx + 1.2, 26.9, -18.3)), mix(c("cramoisi"), c("lueur_cramoisie"), 0.5),
-                  name="Braise", **NEON)
+            b.box(S((cx - 4.2, 23.6, -18.3)), S((cx + 4.2, 29.2, -18.0)), c("cramoisi_fonce"), name="Halo", **DECO)
+            b.box(S((cx - 2.6, 24.6, -18.7)), S((cx + 2.6, 28.2, -18.3)), c("lueur_cramoisie"), name="Braise", **NEON)
 
     # --- dents : mâchoire supérieure proéminente, quatre longs crocs (un cassé) ---------------------------
     j8 = int(np.searchsorted(ye, 8.0))
@@ -725,14 +724,16 @@ def _baie(b, R, y0, h, w, lueur, pierre, arc=2.4, prof=1.3) -> None:
 
 def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118) -> dict:
     """Tour aux grimoires : tour ronde de pierre claire (la plus claire du bourg), talus, trois étages séparés de
-    cordons, hautes baies en arc lumineuses en quinconce, grande porte en arc surmontée de la planche GRIMOIRES,
-    couronne de mâchicoulis et balcon, toit conique très élancé d'ardoise violette et épi doré, deux échauguettes ;
+    cordons, hautes baies en arc lumineuses en quinconce, grande porte en arc surmontée de la planche GRIMOIRES (sur
+    deux potences), couronne de mâchicoulis et balcon à 80, toit conique en aiguille d'ardoise violette jusqu'à
+    `hauteur` (≈ 1,6 × le diamètre) et épi doré, deux échauguettes ;
     spirale de grimoires volants (magie voulue, alignée sur la tour) qui monte autour d'elle et sort de ses baies,
     lucioles dorées le long de la spirale. Avant (porte) vers -Z local. Tout reste à moins de 24 de l'axe."""
     rng = _rng(variant, 404)
     R = float(rayon)
     H = float(hauteur)
-    y_cour = H * 0.68                     # haut du corps, couronne de mâchicoulis et balcon (≈ 80)
+    y_cour = min(80.0, H * 0.68)          # haut du corps, couronne de mâchicoulis et balcon (80) ; toit au-dessus
+    Hb = y_cour / 0.68                    # hauteur de référence du corps (baies et cordons)
     pale = shade(c("pierre_pale"), 1.14)
     pierres = (pale, shade(c("pierre_pale"), 1.08), shade(c("pierre_pale"), 1.11), shade(c("pierre_pale"), 1.06))
     with b.group("Corps"):
@@ -741,7 +742,7 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
         y = 5.6
         n_ = 0
         joints = [0.0, 4.4, 5.6, 8.4, 9.6]
-        cordons = [H * 0.235, H * 0.465]
+        cordons = [Hb * 0.235, Hb * 0.465]
         while y < y_cour - 6.5 - 0.01:
             prochain = min([cd for cd in cordons if cd > y + 1] + [y_cour - 6.5])
             h = min(5.5, prochain - y)
@@ -755,8 +756,8 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
                 joints.append(y)
         b.cyl((0, y + (y_cour - 0.4 - y) / 2, 0), R, y_cour - 0.4 - y, vary(pale, rng, 0.012), name="Assise")
         joints.append(y_cour - 0.4)
-    niveaux_baies = [(H * 0.1, (45, 135, -135, -45)), (H * 0.255, (0, 90, 180, -90)), (H * 0.4, (45, 135, -135, -45)),
-                     (H * 0.53, (0, 90, 180, -90))]
+    niveaux_baies = [(Hb * 0.1, (45, 135, -135, -45)), (Hb * 0.255, (0, 90, 180, -90)), (Hb * 0.4, (45, 135, -135, -45)),
+                     (Hb * 0.53, (0, 90, 180, -90))]
     hb, arc_b = 8.5, 2.4
 
     def hors_joint(y0):
@@ -825,6 +826,8 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
         b.wedge((0.0, 10.0, zf + 1.5), (4.4, 13.0, zo), shade(c("pierre_pale"), 0.95), down="+x", name="Arc")
         planche = b.box((-5.0, 13.4, zo + 0.4), (5.0, 15.6, zo - 0.1), c("bois_fonce"), name="Enseigne", **DECO)
         planche.label = {"face": "Front", "text": "GRIMOIRES", "color": c("dorure"), "bg": None, "font": "serif"}
+        for sx in (-1, 1):                                   # potences de fer qui tiennent la planche au mur
+            b.box((sx * 4.0 - 0.15, 15.0, -(R - 0.6)), (sx * 4.0 + 0.15, 15.3, zo + 0.4), c("fer"), name="Potence", **FIN)
         b.box((-5.5, 0, -(R + 4.6)), (5.5, 0.8, -(R + 0.8)), c("pierre_fonce"), studs="top", name="Marche")
         b.box((-4.5, 0.8, -(R + 2.9)), (4.5, 1.2, -(R + 0.8)), c("pierre"), studs="top", name="Marche")
         for sx in (-1, 1):                                   # lanternes de part et d'autre de la porte
@@ -846,9 +849,9 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
                 b.box((-1.1, y_cour, -(R + 1.5)), (1.1, y_cour + 1.6, -(R + 2.5)), c("pierre_pale"), name="Merlon",
                       **DECO)
         b.cyl((0, y_cour + 0.6, 0), R + 0.2, 1.2, c("pierre_pale"), name="Arase")
-        # toit : anneaux de cylindres qui rétrécissent (profil légèrement concave : très élancé), studs sur les gradins
+        # toit : anneaux de cylindres qui rétrécissent (profil légèrement concave : aiguille ≈ 1,6 × le diamètre)
         y0 = y_cour + 1.2
-        n_t = 13
+        n_t = 16
         ht = (H - y0) / n_t
         for i in range(n_t):
             t = (i + 0.5) / n_t
@@ -872,7 +875,7 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
                     r = 4.0 * (1 - t) ** 1.3 + 0.25
                     b.cyl((0, y_cour + 4.5 + (i + 0.5) * 2.0, zc_), r, 2.0, c(("ardoise", "ardoise_fonce")[i % 2]),
                           studs="top", name="ToitEchauguette")
-                b.cyl((0, y_cour + 15.6, zc_), 0.25, 1.6, c("or"), name="Epi", **DECO)
+                b.cyl((0, y_cour + 15.3, zc_), 0.25, 1.6, c("or"), name="Epi", **DECO)
 
     # lierre sombre qui grimpe sur le bas du corps (coulées irrégulières de petites plaques)
     with b.group("Lierre"):
@@ -940,10 +943,8 @@ def tour_grimoires(b, variant: int = 0, rayon: float = 16, hauteur: float = 118)
             p = rad * (R + 1.1) + np.array([0.0, yc_ + 0.5, 0.0])
             side = np.array([math.cos(a), 0.0, math.sin(a)])
             dos = rad * math.cos(math.radians(28)) + np.array([0.0, math.sin(math.radians(28)), 0.0])
-            up = np.cross(dos, side)
-            if up[1] < 0:
-                up = -up
-            R0 = np.column_stack([side, up, dos])
+            up = np.cross(side, dos)                         # y > 0
+            R0 = np.column_stack([np.cross(up, dos), up, dos])   # repère direct (det = +1)
             couv = c(CUIRS[(n_ * 2 + variant) % len(CUIRS)])
             _grimoire(b, p, R0, couv, c("lueur_doree") if n_ % 2 == 0 else c("page"), s=2.2, ouvert=26.0,
                       lumineux=n_ % 2 == 0)
@@ -980,7 +981,8 @@ def montagne_capitale(b, variant: int = 0, largeur: float = 70, hauteur: float =
     raide = 0.62 + 0.38 * (1 - np.clip(np.cos(TH), 0, 1)) ** 1.5
     D = np.hypot(X - sx, Z - sz) / (W2 * lob * raide)
     paliers = [Hp * f for f in (0.13, 0.26, 0.39, 0.52, 0.64, 0.76, 0.88, 1.0)]
-    tons = ("lointain_fonce", "lointain_fonce", "lointain", "lointain", "lointain", "lointain_clair", "lointain_clair",
+    # bas en jupe de forêt sombre et de roche noire (la montagne ne flotte plus en lilas pâle), haut bleu-violet
+    tons = ("sapin_fonce", "roche_noire", "sapin_fonce", "lointain_fonce", "lointain_fonce", "lointain", "lointain",
             "lointain_clair")
     masques = []
     for n_, yt in enumerate(paliers):
@@ -1017,6 +1019,14 @@ def montagne_capitale(b, variant: int = 0, largeur: float = 70, hauteur: float =
             hh = float(rng.uniform(8, 14))
             b.boxc((x, yt - hh * 0.35, z), (float(rng.uniform(5, 8)), hh, float(rng.uniform(4, 7))),
                    vary("lointain_fonce", rng, 0.04), yaw=float(rng.uniform(15, 75)), studs="top", name="Eperon")
+        # trois hautes aiguilles de roche sombre qui montent des gradins du bas (silhouette escarpée, refBC5)
+        for (ax_, az_, w_, hh, yaw_) in ((-0.62, 0.18, 6.0, 0.62, 18.0), (0.1, -0.68, 5.0, 0.5, 52.0),
+                                         (-0.35, -0.5, 4.5, 0.42, 33.0)):
+            x, z = sx + ax_ * W2, sz + az_ * W2
+            b.boxc((x, Hp * hh / 2, z), (w_, Hp * hh, w_ * 0.8), vary("roche_noire", rng, 0.05), yaw=yaw_, studs="top",
+                   name="Aiguille")
+            b.boxc((x + 0.4, Hp * hh + 2.2, z), (w_ * 0.55, 4.4, w_ * 0.45), vary("lointain_fonce", rng, 0.04),
+                   yaw=yaw_ + 30.0, studs="top", name="Aiguille")
     # château clair sur le plateau
     cx, cz = sx, sz
     y = Hp

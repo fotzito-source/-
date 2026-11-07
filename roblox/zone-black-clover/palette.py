@@ -33,11 +33,11 @@ P = {
     "labour": "#6B4934",           # sillons des champs labourés
     "labour_fonce": "#4F3526",
     "labour_clair": "#80593F",
-    "ble": "#B8933F",              # blé doré terni (refBC1)
+    "ble": "#A0843E",              # blé doré terni (refBC1), éteint
     "ble_clair": "#CDA850",
     "ble_fonce": "#9A7A34",
     "foin": "#A88A48",
-    "cendre": "#5A5658",           # cendre du champ de bataille
+    "cendre": "#4C484C",           # cendre du champ de bataille
     "cendre_fonce": "#403D42",
     "brulis": "#2B2628",           # sol calciné des cratères
 
@@ -127,16 +127,16 @@ P = {
     "pourpre": "#6E2A6A",
 
     # Lueurs (toujours en Neon, avec parcimonie : <= ~900 pièces Neon pour toute la zone)
-    "lueur_violette": "#B36BFF",
+    "lueur_violette": "#8C3BFF",  # violet profond (le Neon éclaircit : jamais pastel)
     "lueur_violette_pale": "#D6A8FF",
-    "lueur_cramoisie": "#FF2F55",
+    "lueur_cramoisie": "#FF1430",  # cramoisi sang
     "lueur_verte": "#9DFF5C",      # vert maladif (orbes, chaudrons)
     "lueur_doree": "#FFD66B",      # lucioles dorées (refBC2)
     "feu": "#FF8A2B",
     "feu_coeur": "#FFD45E",
-    "feu_violet": "#C46BFF",
-    "feu_cramoisi": "#FF3B3B",
-    "cristal": "#A564FF",
+    "feu_violet": "#A247FF",
+    "feu_cramoisi": "#FF1E1E",
+    "cristal": "#8336F0",
     "cristal_fonce": "#6A35C2",
 
     # Grimoires (couvertures unies, pages crème)

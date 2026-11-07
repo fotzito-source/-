@@ -330,7 +330,7 @@ def _falaise_chateau(b, rng, L2, D, xt) -> dict:
                         w = float(rng.uniform(4, 7)) / (k + 1)
                         um = min((u0 + u1) / 2 + float(rng.uniform(-2, 2)), L2 - 0.8 * w - 0.5)
                         zc = zf + dz + float(rng.uniform(3, 16))
-                        b.part("block", (w, hp_ + 2, w * 0.8), (s * um, h + hp_ / 2 - 1 + k * hp_ * 0.8, zc),
+                        b.part("block", (w, hp_ + 2, w * 0.8), (s * um, h + hp_ / 2 - 1, zc),
                                rot_y(float(rng.uniform(0, 90))) @ rot_z(float(rng.uniform(-14, 14))), roche(rng),
                                studs="top", name="Pic")
                 if zf >= ZF - 0.01 and rng.random() < 0.55:
@@ -346,14 +346,14 @@ def _falaise_chateau(b, rng, L2, D, xt) -> dict:
                     w = min((v1 - v0) / 2 - 0.3, float(rng.uniform(3, 6)))
                     x0, x1 = _sx(s, v0 - 0.05, v0 + w)
                     down = "+x" if s > 0 else "-x"
-                    b.wedge((x0, g - 0.2, za), (x1, h - float(rng.uniform(0.5, 2.5)), D), roche(rng), down=down,
+                    b.wedge((x0, g - 0.2, za + 0.15), (x1, h - float(rng.uniform(0.5, 2.5)), D - 0.15), roche(rng), down=down,
                             studs="top", name="Rampe")
                 else:
                     za = max(hauts[i + 1][0], hauts[i][0])
                     w = min((u1 - u0) / 2 - 0.3, float(rng.uniform(3, 6)))
                     x0, x1 = _sx(s, u1 - w, u1 + 0.05)
                     down = "-x" if s > 0 else "+x"
-                    b.wedge((x0, h - 0.2, za), (x1, g - float(rng.uniform(0.5, 2.5)), D), roche(rng), down=down,
+                    b.wedge((x0, h - 0.2, za + 0.15), (x1, g - float(rng.uniform(0.5, 2.5)), D - 0.15), roche(rng), down=down,
                             studs="top", name="Rampe")
         with b.group("Eperons"):
             for i in range(1, len(cols), 3):
@@ -516,7 +516,7 @@ def _tour_porte(b, rng, s, xo, xt, hp, D) -> None:
     x0, x1 = _sx(s, xo, xt)
     b.wedge((x0, 0, ZF - 2.0), (x1, 10, ZF), cc, down="-z", studs="top", name="Talus")
     b.box((x0, 0, ZF), (x1, H, ZT), ch, name="Tour")
-    for (u0, u1) in ((xo + 0.05, xo + 2.6), (xt - 2.6, xt - 0.05)):
+    for (u0, u1) in ((xo + 0.2, xo + 2.6), (xt - 2.6, xt - 0.2)):
         _bx(b, s, u0, u1, 4, 84, ZF - 1.4, ZF + 0.1, cc, name="Contrefort")
         xa, xb = _sx(s, u0, u1)
         b.wedge((xa, 84, ZF - 1.4), (xb, 87, ZF), ca, down="-z", studs="top", name="Larmier")
@@ -551,34 +551,42 @@ def _tunnel(b, xo, xt, hp, D, YC) -> None:
 
 
 def _donjon(b, D) -> None:
-    """Donjon central en retrait de 9 sur la façade (z -16 → 23, 42 de large), au-dessus de la porte : contreforts à
-    larmiers, lancettes, couronne et la plus haute flèche (≈ 162)."""
+    """Donjon central en retrait de 9 sur la façade (z -16 → 23, 42 de large), au-dessus de la porte : la masse
+    dominante du château (corps jusqu'à 140, 24 au-dessus des couronnes des tours de porte), cordon, oculus
+    cramoisi et lancettes, contreforts à larmiers, couronne et la plus haute flèche (≈ 199) ; arcs-boutants vers les
+    tours de porte."""
     z0, z1 = -16.0, D - 2.0
+    YD = 140.0
     ch, cc, ca = c("chateau"), c("chateau_clair"), c("chateau_arete")
-    b.box((-21, YG, z0), (21, 116, z1), cc, name="Donjon")
+    b.box((-21, YG, z0), (21, YD, z1), cc, name="Donjon")
     for s in (-1, 1):
-        _bx(b, s, 17.5, 21.5, YG, 110, z0 - 2.5, z0, ch, name="Contrefort")
+        _bx(b, s, 17.5, 21.5, YG, YD - 6.0, z0 - 2.5, z0, ch, name="Contrefort")
         x0, x1 = _sx(s, 17.5, 21.5)
-        b.wedge((x0, 110, z0 - 2.5), (x1, 113, z0), ca, down="-z", studs="top", name="Larmier")
+        b.wedge((x0, YD - 6.0, z0 - 2.5), (x1, YD - 3.0, z0), ca, down="-z", studs="top", name="Larmier")
         f = "+x" if s > 0 else "-x"
         with _face(b, f, s * 21.0):
-            _lancette(b, _u(f, 0, 2.0), 100.0, 1.6, 12.0)
+            _lancette(b, _u(f, 0, 2.0), YD - 16.0, 1.6, 12.0)
     with _face(b, "-z", z0):
         for u, h in ((-9.0, 11.0), (0.0, 13.0), (9.0, 11.0)):
-            _lancette(b, u, 101.0, 2.6, h)
+            _lancette(b, u, YD - 15.0, 2.6, h)
+        # second rang : cordon, oculus cramoisi entre deux lancettes (la façade du donjon n'est jamais nue)
+        b.box((-17.5, YD - 25.0, -0.4), (17.5, YD - 24.0, 0.1), ca, name="Cordon")
+        _oculus(b, 0.0, YD - 32.0, 3.2)
+        for u in (-9.0, 9.0):
+            _lancette(b, u, YD - 40.0, 1.6, 10.0)
     with _face(b, "+z", z1):
         for u in (-8.0, 8.0):
-            _lancette(b, u, 100.0, 1.6, 10.0, appui=False)
-    _couronne(b, -21, 21, z0, z1, 116, 27.0, w_tambour=12.0, h_tambour=11.0, h_pinacle=7.0, saillie=1.2,
+            _lancette(b, u, YD - 16.0, 1.6, 10.0, appui=False)
+    _couronne(b, -21, 21, z0, z1, YD, 38.0, w_tambour=12.0, h_tambour=13.0, h_pinacle=7.0, saillie=1.2,
               cz_tambour=z0 + 7.5)
     with b.group("ArcsBoutants"):
         for s in (-1, 1):
             for zc in (-9.0, 6.0):
-                pa = (s * 21.0, 110.0, zc)                    # tête contre le donjon
+                pa = (s * 21.0, YD - 6.0, zc)                 # tête contre le donjon
                 pb = (s * 51.5, 97.5, max(zc, -12.0))         # pied sur le parapet de la tour de porte
                 _poutre(b, pa, pb, 1.6, ca, ep_z=1.4, ext=0.4, name="ArcBoutant")
                 m = ((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2 - 1.2, (pa[2] + pb[2]) / 2)
-                _poutre(b, (s * 24.0, 107.5, zc), m, 1.1, ch, ext=0.3, name="ArcBoutant", **DECO)
+                _poutre(b, (s * 24.0, YD - 8.5, zc), m, 1.1, ch, ext=0.3, name="ArcBoutant", **DECO)
 
 
 def _toit(b, s, u0, u1, z0, z1, y, h, col=None) -> None:
@@ -723,7 +731,7 @@ def chateau_demon(b, variant: int = 0, largeur: float = 478, profondeur: float =
     for s in (-1, 1):
         with b.group("Aile"):
             _aile(b, rng, s, xt, D, cols[s])
-    return {"emprise": (largeur, profondeur), "hauteur": 163}
+    return {"emprise": (largeur, profondeur), "hauteur": 199}
 
 
 # ---------------------------------------------------------------------------
@@ -752,9 +760,11 @@ def _prisme(b, p0, d, L, w, col, neon=False, roll=45.0, coupe=0.32, name="Crista
     b.part("wedge", (w, Lt, w), p0 + d * (Lb + Lt / 2), R, col, name=name, **kw)
 
 
-def _segment_veine(b, p, q, ep, tors, col, centre, veine=False, ext=None, name="Branche", **kw) -> None:
+def _segment_veine(b, p, q, ep, tors, col, centre, veine=False, ext=None, name="Branche", larg_veine=0.5,
+                   long_veine=0.8, **kw) -> None:
     """Segment organique (bloc tendu de p à q, section ep, torsion `tors`), avec en option une veine Neon violette
-    collée sur la face la plus éloignée de `centre` (saillie 0,2)."""
+    collée sur la face la plus éloignée de `centre` (saillie 0,2 ; largeur `larg_veine`, longueur `long_veine` × celle
+    du segment : 1,0 et plus pour une veine continue d'un segment à l'autre)."""
     p, q = _v(p), _v(q)
     n, R = _repere(q - p)
     if tors:
@@ -767,7 +777,7 @@ def _segment_veine(b, p, q, ep, tors, col, centre, veine=False, ext=None, name="
         out -= R[:, 0] * float(np.dot(out, R[:, 0]))
         cands = [(R[:, 1], 1), (-R[:, 1], 1), (R[:, 2], 2), (-R[:, 2], 2)]
         nrm, ax = max(cands, key=lambda t: float(np.dot(t[0], out)))
-        size = [n * 0.8, 0.5, 0.5]
+        size = [n * long_veine, larg_veine, larg_veine]
         size[ax] = 0.3
         b.part("block", tuple(size), m + nrm * (ep / 2 + 0.05), R, c("lueur_violette"), name="Veine", **NEON)
 
@@ -777,11 +787,13 @@ def _segment_veine(b, p, q, ep, tors, col, centre, veine=False, ext=None, name="
 # ---------------------------------------------------------------------------
 
 def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
-    """Arbre noir colossal du royaume démoniaque : tronc de quatre brins torsadés (Ø ≈ 24 au pied, ≈ 8 vers 84), cœur
-    cramoisi lumineux dans une loge du tronc (côté couloir, vers 20), six maîtresses branches en griffes et une
-    flèche centrale jusqu'à `hauteur`, rameaux crochus, cosses cramoisies pendues, rares touffes violettes, sept
-    racines en arcs qui replongent dans le sol (rayon ≤ 34), veines violettes (Neon) le long du tronc et des
-    branches. Avant vers -Z local (posé yaw 90 à droite du couloir)."""
+    """Arbre noir colossal du royaume démoniaque : tronc de quatre brins torsadés (Ø ≈ 30 au pied, ≈ 12 vers 84), cœur
+    cramoisi lumineux dans une loge du tronc (côté couloir, vers 20), sept maîtresses branches en griffes et une
+    flèche centrale jusqu'à `hauteur` ; quatre longues griffes basses tendues vers le couloir (pointes à ≈ 55-60 de
+    l'axe, l'une devant l'aile droite du château) d'où pendent des vrilles de racines ; rameaux crochus, cosses
+    cramoisies pendues, sept racines en arcs qui replongent dans le sol (rayon ≤ 34) ; veine violette (Neon)
+    continue sur la face du tronc tournée vers le couloir et sous les longues griffes. Avant vers -Z local (posé
+    yaw 90 à droite du couloir)."""
     rng = np.random.default_rng(777 + 13 * variant)
     H = float(hauteur)
     k = H / 150.0
@@ -793,29 +805,40 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
     a0 = -135.0 - tw * yh / Ht + 90.0 * (variant % 2)
     N = 7
     centre_axe = np.array([0.0, 0.0, 0.0])
+    sous_griffe = np.array([0.0, 200.0 * k, 60.0 * k])     # les veines des griffes regardent le bas et le couloir
+
+    def rayon_tronc(t):
+        return (9.5 - 6.0 * t) * k
 
     def brin(kb, i):
         t = i / N
-        r = (7.5 - 5.5 * t) * k
         a = math.radians(a0 + 90.0 * kb + tw * t)
+        r = rayon_tronc(t)
         return np.array([r * math.cos(a), Ht * t - 0.6 * (i == 0), r * math.sin(a)])
 
+    def ecart(a_deg, cible=-90.0):
+        return abs((a_deg - cible + 180.0) % 360.0 - 180.0)
+
     with b.group("Tronc"):
-        for kb in range(4):
-            for i in range(N):
+        for i in range(N):
+            # brin tourné vers le couloir (-Z local) à cette hauteur : il porte la veine continue
+            face = min(range(4), key=lambda kb: ecart(a0 + 90.0 * kb + tw * (i + 0.5) / N))
+            for kb in range(4):
                 p, q = brin(kb, i), brin(kb, i + 1)
-                ep = (9.6 - 5.4 * (i + 0.5) / N) * k
+                ep = (11.0 - 6.0 * (i + 0.5) / N) * k
                 col = (ra, rc, ra, ob)[kb]
                 ax = np.array([0.0, (p[1] + q[1]) / 2, 0.0])
-                _segment_veine(b, p, q, ep, 45.0 * i + 20 * kb, col, ax, veine=(i + kb) % 3 == 0 and i < 6,
-                               ext=0.35 * ep, name="Tronc")
+                devant = kb == face
+                _segment_veine(b, p, q, ep, 45.0 * i + 20 * kb, col, ax,
+                               veine=devant or ((i + kb) % 3 == 0 and i < 6), ext=0.35 * ep, name="Tronc",
+                               larg_veine=0.7 if devant else 0.5, long_veine=1.05 if devant else 0.8)
         # cœur cramoisi dans sa loge
         af = math.radians(-90.0)
-        rh = 6.4 * k
-        b.ball((rh * math.cos(af) * 0.95, yh, rh * math.sin(af) * 0.95), 4.0 * k, c("cramoisi_fonce"), name="Loge")
-        b.ball((rh * math.cos(af) * 1.12, yh + 0.2, rh * math.sin(af) * 1.12), 3.0 * k, c("lueur_cramoisie"), name="Coeur",
+        rh = 8.3 * k
+        b.ball((rh * math.cos(af) * 0.95, yh, rh * math.sin(af) * 0.95), 4.4 * k, c("cramoisi_fonce"), name="Loge")
+        b.ball((rh * math.cos(af) * 1.2, yh + 0.2, rh * math.sin(af) * 1.2), 3.2 * k, c("lueur_cramoisie"), name="Coeur",
                **NEON)
-        b.ball((rh * math.cos(af) * 1.3, yh + 2.9 * k, rh * math.sin(af) * 1.3), 1.1 * k, c("cramoisi"), name="Coeur",
+        b.ball((rh * math.cos(af) * 1.42, yh + 3.0 * k, rh * math.sin(af) * 1.42), 1.1 * k, c("cramoisi"), name="Coeur",
                **DECO)
     with b.group("Racines"):
         n_r = 7
@@ -823,13 +846,13 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
             psi = math.radians(a0 + 25 + 360.0 * r_ / n_r + float(rng.uniform(-12, 12)))
             dr = float(rng.uniform(-0.12, 0.12))
             reach = float(rng.uniform(26, 33)) * k
-            prof = [(5.5, 4.0), (12.0, 9.5 + float(rng.uniform(-1.5, 2.5))), (19.0, 8.0), (25.5, 3.5), (reach / k, -1.2)]
+            prof = [(7.0, 4.5), (13.5, 10.0 + float(rng.uniform(-1.5, 2.5))), (20.0, 8.0), (26.0, 3.5), (reach / k + 1.0, -1.2)]
             pts = []
             for j, (rr, yy) in enumerate(prof):
                 ps = psi + dr * j
                 pts.append(np.array([rr * k * math.cos(ps), yy * k, rr * k * math.sin(ps)]))
             for j in range(4):
-                ep = (5.0, 4.0, 3.2, 2.4)[j] * k
+                ep = (5.6, 4.4, 3.4, 2.5)[j] * k
                 _segment_veine(b, pts[j], pts[j + 1], ep, 30.0 * j, (ra, rc)[j % 2], centre_axe,
                                veine=(j == 1 and r_ % 2 == 0), name="Racine")
             e = pts[-1]
@@ -842,7 +865,7 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
         cible = [(1.5, Ht + 18 * k), (-1.5, Ht + 36 * k), (2.0, H - 22 * k), (0.5, H - 8 * k), (-1.0, H)]
         for j, (dx, yy) in enumerate(cible):
             q = np.array([dx * k, yy, -0.8 * dx * k])
-            _segment_veine(b, p, q, (5.0, 3.9, 2.9, 2.0, 1.2)[j] * k, 25.0 * j, (rc, ra)[j % 2], centre_axe,
+            _segment_veine(b, p, q, (6.0, 4.6, 3.3, 2.2, 1.3)[j] * k, 25.0 * j, (rc, ra)[j % 2], centre_axe,
                            veine=j in (0, 2), name="Fleche")
             p = q
         pointes.append(p)
@@ -855,32 +878,41 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
                 q3 = a + d3 * L3 * k
                 _poutre(b, a, q3, (1.0 - 0.3 * m) * k, ob, ext=0.25, name="Griffe", **FIN)
                 a = q3
-        # maîtresses branches en griffes, jamais vers le château (+x local) : de 75° à 285° autour de l'axe
-        angles = [75.0 + 35.0 * i + float(rng.uniform(-8, 8)) for i in range(7)]
-        hauts_b = (58, 82, 66, 90, 62, 86, 74)
-        for nb, phd in enumerate(angles):
+        # maîtresses branches en griffes, jamais vers le château (+x local) : de 75° à 285° autour de l'axe ; les trois
+        # dernières (vers le couloir) et une huitième, basse, à 302° (devant l'aile droite du château) sont allongées
+        specs = []
+        for i in range(7):
+            phd = 75.0 + 35.0 * i + float(rng.uniform(-8, 8))
+            specs.append((phd, (58, 82, 66, 90, 62, 86, 74)[i], i % 2 == 1, (1.0, 1.0, 1.0, 1.0, 1.2, 1.22, 1.28)[i]))
+        specs.append((302.0, 70, False, 1.3))
+        for nb, (phd, hb_, haute, allonge) in enumerate(specs):
             phi = math.radians(phd)
-            haute = nb % 2 == 1
+            longue = allonge > 1.0
             els = (62, 48, 32, 12, -24) if haute else (48, 36, 22, 4, -30)
-            Ls = (20, 17, 14, 11, 8) if haute else (17, 14.5, 12, 9.5, 7)
-            eps = (6.4, 5.1, 3.9, 2.9, 1.9)
-            yb = hauts_b[nb] * k
-            rt = (7.5 - 5.5 * min(1.0, yb / Ht)) * k
+            Ls = tuple(L_ * allonge for L_ in ((20, 17, 14, 11, 8) if haute else (17, 14.5, 12, 9.5, 7)))
+            eps = (7.2, 5.7, 4.3, 3.1, 2.0) if longue else (6.4, 5.1, 3.9, 2.9, 1.9)
+            yb = hb_ * k
+            rt = rayon_tronc(min(1.0, yb / Ht))
             p = np.array([rt * 0.6 * math.cos(phi), yb, rt * 0.6 * math.sin(phi)])
             ph = phi
             pod = None
+            rmax = (62.0 if longue else 49.0) * k
             for j in range(5):
                 ph += math.radians(float(rng.uniform(-9, 9)))
                 el = math.radians(els[j] + float(rng.uniform(-5, 5)))
                 d = np.array([math.cos(ph) * math.cos(el), math.sin(el), math.sin(ph) * math.cos(el)])
                 q = p + d * Ls[j] * k
                 rq = math.hypot(q[0], q[2])
-                if rq > 49.0 * k:                    # houppier dans un rayon de 55 (griffes comprises)
-                    q[0] *= 49.0 * k / rq
-                    q[2] *= 49.0 * k / rq
-                _segment_veine(b, p, q, eps[j] * k, 35.0 * j, (ra, rc)[(j + nb) % 2], centre_axe,
-                               veine=(j == 1) or (j == 0 and nb % 3 == 0), name="Branche")
-                if j in (1, 2, 3) and not (j == 3 and nb % 2):          # rameaux secondaires en griffes
+                if rq > rmax:                        # houppier dans un rayon de 55 (griffes longues : 68)
+                    q[0] *= rmax / rq
+                    q[2] *= rmax / rq
+                if longue:
+                    _segment_veine(b, p, q, eps[j] * k, 35.0 * j, (ra, rc)[(j + nb) % 2], sous_griffe, veine=j < 4,
+                                   name="Branche", larg_veine=0.7, long_veine=1.0)
+                else:
+                    _segment_veine(b, p, q, eps[j] * k, 35.0 * j, (ra, rc)[(j + nb) % 2], centre_axe,
+                                   veine=(j == 1) or (j == 0 and nb % 3 == 0), name="Branche")
+                if j in (1, 2, 3) and not (j == 3 and nb % 2) and nb < 7:      # rameaux secondaires en griffes
                     ps_ = q
                     ph2 = ph + math.radians((44.0 if (j + nb) % 2 else -44.0) + float(rng.uniform(-10, 10)))
                     for m, (L2, el2, e2) in enumerate(((9.0, 42, 2.6), (7.0, 16, 1.8), (5.0, -26, 1.1))):
@@ -894,6 +926,12 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
                         ps_ = q2
                         ph2 += math.radians(12.0 if (j + nb) % 2 else -12.0)
                     pointes.append(ps_)
+                if longue and j in (1, 3):           # vrilles de racines noires qui pendent sous les griffes
+                    L1, L2 = float(rng.uniform(5.0, 8.0)) * k, float(rng.uniform(4.0, 6.5)) * k
+                    t1 = q + np.array([float(rng.uniform(-1.0, 1.0)), -L1 - eps[j] * k * 0.4, float(rng.uniform(-1.0, 1.0))])
+                    t2 = t1 + np.array([float(rng.uniform(-1.6, 1.6)), -L2, float(rng.uniform(-1.6, 1.6))])
+                    _poutre(b, q, t1, 0.95 * k, ra, ext=0.25, name="Vrille", **DECO)
+                    _poutre(b, t1, t2, 0.6 * k, rc, ext=0.15, name="Vrille", **FIN)
                 if j == 3:
                     pod = q
                 p = q
@@ -901,11 +939,11 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
             for sg in (-1, 0, 1):
                 ph3 = ph + sg * math.radians(34)
                 a = p
-                for m, (L3, el3) in enumerate(((4.2, 12 + 10 * (sg == 0)), (3.4, -42))):
+                for m, (L3, el3) in enumerate(((4.2 * (1.3 if longue else 1.0), 12 + 10 * (sg == 0)), (3.4, -42))):
                     d3 = np.array([math.cos(ph3) * math.cos(math.radians(el3)), math.sin(math.radians(el3)),
                                    math.sin(ph3) * math.cos(math.radians(el3))])
                     q3 = a + d3 * L3 * k
-                    _poutre(b, a, q3, (1.2 - 0.4 * m) * k, ob, ext=0.25, name="Griffe", **FIN)
+                    _poutre(b, a, q3, (1.3 - 0.45 * m) * k, ob, ext=0.25, name="Griffe", **FIN)
                     a = q3
             pointes.append(p)
             # cosse cramoisie pendue sous la branche (tige + boule)
@@ -913,7 +951,7 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
                 b.box((pod[0] - 0.2, pod[1] - 4.6 * k, pod[2] - 0.2), (pod[0] + 0.2, pod[1] - 0.8, pod[2] + 0.2), ra,
                       name="Tige", **FIN)
                 b.ball((pod[0], pod[1] - 5.6 * k, pod[2]), 1.4 * k, c("lueur_cramoisie"), name="Cosse", **NEON)
-    return {"emprise": (68, 68), "hauteur": H}
+    return {"emprise": (2 * 68 * k, 2 * 68 * k), "hauteur": H}
 
 
 # ---------------------------------------------------------------------------
@@ -935,11 +973,28 @@ def _arbre_mort_mini(b, rng, x, y, z, h) -> None:
     b.boxc((x + 0.2, y + 0.2, z), (1.6, 0.4, 1.4), c("racine"), yaw=30, name="Souche", **DECO)
 
 
+def _cone_renverse(b, rng, cx, y, cz, larg, prof, h, n, name="Roche") -> float:
+    """Cône de roche renversé en gradins tournés (n blocs qui rétrécissent) sous (cx, y, cz), terminé par une pointe
+    en diamant. Renvoie le y de la pointe."""
+    for i in range(n):
+        f = 1.0 - 0.8 * i / n
+        hh = h / n * (1.15 - 0.1 * i)
+        yaw = (18.0 if i % 2 else -14.0) + float(rng.uniform(-8, 8))
+        b.boxc((cx + 0.03 * larg * (i % 2), y - hh / 2, cz - 0.02 * larg * (i % 2)), (larg * f, hh, prof * f), roche(rng),
+               yaw=yaw, name=name)
+        y -= hh
+    s_ = max(1.2, 0.3 * larg)
+    b.part("block", (s_, s_, s_), (cx, y - 0.3 * s_, cz), rot_x(45) @ rot_z(35.26), c("basalte"), name="Pointe")
+    return y - 0.3 * s_ - 0.85 * s_
+
+
 def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
-    """Îlot de roche noire qui flotte par magie (origine au centre du dessus) : dessus presque plat à studs, cône
-    renversé en gradins tournés jusqu'à une pointe, cristaux violets pendus dessous, décor selon la variante (v0 arbre
-    mort, v1 colonne brisée, v2 petit obélisque à glyphe, v3 grappe de cristaux). Chaque ancre (décalage aligné sur le
-    monde vers un point du sol) reçoit un anneau sous le bord, une chaîne tendue et un ancrage de pierre noire au sol."""
+    """Îlot de roche noire qui flotte par magie (origine au centre du dessus) : dessus presque plat à studs, gros cône
+    renversé en gradins tournés et deux (trois au-delà de 26) cônes secondaires décalés, chacun à pointe ; racines
+    noires qui pendent du dessous, cristaux violets pendus (Neon), décor selon la variante (v0 arbre mort, v1 colonne
+    brisée, v2 petit obélisque à glyphe, v3 grappe de cristaux). Chaque ancre (décalage aligné sur le monde vers un
+    point d'appui : sol ou dessus d'une falaise) reçoit un anneau sous le bord, une chaîne tendue en biais et un
+    ancrage de pierre noire."""
     v = variant % 4
     rng = np.random.default_rng(311 + 17 * v)
     t = float(taille)
@@ -948,26 +1003,32 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
     with b.group("Ilot"):
         b.box((-rx, -1.4, -rz), (rx, 0, rz), dessus, studs="top", name="Dessus")
         b.boxc((0.06 * t, -1.0, -0.05 * t), (0.7 * t, 1.6, 0.56 * t), roche(rng), yaw=32, studs="top", name="Rebord")
-        y = -1.4
-        n = 5
         depth = 0.8 * t
-        for i in range(n):
-            f = 0.94 - 0.17 * i
-            hh = depth / n * (1.15 - 0.08 * i)
-            yaw = (18.0 if i % 2 else -14.0) + float(rng.uniform(-8, 8))
-            b.boxc((0.04 * t * (i % 2), y - hh / 2, -0.03 * t * (i % 2)), (t * f, hh, 0.8 * t * f), roche(rng), yaw=yaw,
-                   name="Roche")
-            y -= hh
-        s = 0.16 * t
-        b.part("block", (s, s, s), (0, y - 0.3 * s, 0), rot_x(45) @ rot_z(35.26), c("basalte"), name="Pointe")
-        # cristaux pendus sous la roche
-        for i in range(3 if t >= 13 else 2):
+        y_bas = _cone_renverse(b, rng, 0.0, -1.4, 0.0, 0.94 * t, 0.75 * t, depth, 5)
+        # cônes secondaires décalés (silhouette d'îlot arraché, pas de toupie)
+        sec = [(0.3, 0.22, 0.42, 0.5), (-0.32, -0.12, 0.36, 0.42)] + ([(0.05, -0.3, 0.3, 0.36)] if t >= 26 else [])
+        bouts = [(0.0, y_bas, 0.0)]
+        for i, (ox, oz, fl, fp) in enumerate(sec):
+            yb_ = _cone_renverse(b, rng, ox * t, -1.4 - 0.12 * t, oz * t, fl * t, 0.8 * fl * t, fp * t, 3)
+            bouts.append((ox * t, yb_, oz * t))
+        # racines noires qui pendent du bord du dessous
+        for i in range(4):
+            a = math.radians(25 + 90 * i + float(rng.uniform(-15, 15)))
+            p0 = _v((0.36 * t * math.cos(a), -1.4 - 0.1 * t, 0.3 * t * math.sin(a)))
+            p1 = p0 + _v((0.06 * t * math.cos(a), -0.2 * t, 0.06 * t * math.sin(a)))
+            p2 = p1 + _v((0.04 * t * math.cos(a + 0.6), -0.16 * t, 0.04 * t * math.sin(a + 0.6)))
+            _poutre(b, p0 + _v((0, 0.6, 0)), p1, 0.07 * t, c("racine"), ext=0.2, name="Racine", **DECO)
+            _poutre(b, p1, p2, 0.045 * t, c("racine_claire"), ext=0.15, name="Racine", **FIN)
+        # cristaux pendus sous la roche (sous le cône principal et sous les cônes secondaires)
+        for i in range(3):
             a = math.radians(40 + 120 * i + float(rng.uniform(-20, 20)))
             r = 0.24 * t
             p0 = _v((r * math.cos(a), -1.4 - depth * (0.2 + 0.15 * i), 0.8 * r * math.sin(a)))
             d = _v((0.45 * math.cos(a), -1.0, 0.45 * math.sin(a)))
-            _prisme(b, p0, d, (0.46 - 0.07 * i) * t, (0.13 - 0.015 * i) * t, c("cristal") if i != 1 else c("cristal_fonce"),
+            _prisme(b, p0, d, (0.42 - 0.07 * i) * t, (0.11 - 0.015 * i) * t, c("cristal") if i != 1 else c("cristal_fonce"),
                     neon=i != 1)
+        for (bx_, by_, bz_) in bouts[1:3]:
+            _prisme(b, (bx_, by_ + 0.4 * t * 0.1 + 1.0, bz_), (0.2, -1.0, 0.1), 0.2 * t, 0.06 * t, c("cristal"), neon=True)
         for i in range(2):
             a = math.radians(200 + 110 * i + 40 * v)
             b.boxc((0.32 * t * math.cos(a), 0.45, 0.26 * t * math.sin(a)), (1.6 - 0.4 * i, 0.9, 1.3 - 0.3 * i),
@@ -976,7 +1037,7 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
                name="Mousse", **FIN)
         # décor du dessus
         if v == 0:
-            _arbre_mort_mini(b, rng, -0.2 * t, 0.0, 0.05 * t, 0.55 * t)
+            _arbre_mort_mini(b, rng, -0.2 * t, 0.0, 0.05 * t, min(9.0, 0.45 * t))
         elif v == 1:
             b.cyl((0.18 * t, 3.2, 0.05 * t), 1.5, 6.4, c("chateau_clair"), name="Colonne")
             b.box((0.18 * t - 1.9, 6.4, 0.05 * t - 1.9), (0.18 * t + 1.9, 7.4, 0.05 * t + 1.9), c("chateau_arete"),
@@ -991,7 +1052,7 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
             for i in range(2):
                 a = math.radians(30 + 160 * i)
                 _prisme(b, (0.6 * math.cos(a), -0.3, 0.6 * math.sin(a)), (0.3 * math.cos(a), 1.0, 0.3 * math.sin(a)),
-                        (3.8 - 1.2 * i), (1.1 - 0.25 * i), c("cristal") if i == 0 else c("cristal_fonce"), neon=i == 0)
+                        (4.6 - 1.4 * i), (1.3 - 0.3 * i), c("cristal") if i == 0 else c("cristal_fonce"), neon=i == 0)
     with b.group("Chaines"):
         fer = c("fer_fonce")
         for (dx, dy, dz) in ancres:
@@ -1009,7 +1070,8 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
             gz = dz - uz * 1.3
             b.boxc((gx, dy + 0.75, gz), (1.2, 0.5, 0.2), c("lueur_violette"), yaw=-math.degrees(math.atan2(uz, ux)) + 90,
                    name="Glyphe", **NEON)
-            mobilier.chaine(b, E - _v((0, 1.2, 0)), A + _v((0, 1.2, 0)), maillon=3.0, epaisseur=0.4)
+            L = float(np.linalg.norm(A - E))
+            mobilier.chaine(b, E - _v((0, 1.2, 0)), A + _v((0, 1.2, 0)), maillon=max(3.0, L / 30.0), epaisseur=0.45)
     return {"emprise": (t, t), "hauteur": 0.8 * t}
 
 
@@ -1118,17 +1180,21 @@ GLYPHES = ((0.35, 1.0, 0.0), (0.9, 0.35, 0.0), (0.55, 0.55, 45.0), (0.35, 0.7, 0
 
 
 def obelisque(b, variant: int = 0, hauteur: float = 16) -> dict:
-    """Obélisque noir : socle à deux gradins (5 × 5), fût effilé en trois tronçons (2,2 → 1,4), bande de glyphes
-    abstraits lumineux (barres, points, losanges ; aucune lettre ni étoile), arête claire ébréchée ; coupe de fer à
-    flammes violettes (v0, v3) ou cramoisies (v1, fissure cramoisie), ou pyramidion sombre à pointe violette (v2)."""
+    """Obélisque noir : socle à deux gradins, fût effilé en trois tronçons (largeur ∝ hauteur : 2,9 → 2,0 pour 28),
+    bande de glyphes abstraits lumineux (barres, points, losanges ; aucune lettre ni étoile), arête claire ébréchée ;
+    grande coupe de fer à flammes violettes (v0, v3) ou cramoisies (v1, fissure cramoisie), ou pyramidion sombre à
+    pointe violette (v2)."""
     v = variant % 4
     H = float(hauteur)
+    g = max(1.0, min(1.35, H / 21.0))                  # épaisseur du fût selon la hauteur
+    f = 1.5 if H >= 22 else 1.0                        # coupe et flammes agrandies sur les grands obélisques
     lueur = c("lueur_cramoisie") if v == 1 else c("lueur_violette")
     with b.group("Obelisque"):
-        b.box((-2.5, 0, -2.5), (2.5, 1.0, 2.5), c("basalte"), studs="top", name="Socle")
-        b.box((-1.9, 1.0, -1.9), (1.9, 2.0, 1.9), c("chateau_arete"), studs="top", name="Socle")
+        sw = 2.5 * g
+        b.box((-sw, 0, -sw), (sw, 1.0, sw), c("basalte"), studs="top", name="Socle")
+        b.box((-sw + 0.6, 1.0, -sw + 0.6), (sw - 0.6, 2.0, sw - 0.6), c("chateau_arete"), studs="top", name="Socle")
         ys = (2.0, 2.0 + 0.36 * (H - 2.5), 2.0 + 0.68 * (H - 2.5), H - 0.5)
-        ws = (2.2, 1.85, 1.5)
+        ws = tuple(w_ * g for w_ in (2.2, 1.85, 1.5))
         cols = (c("obsidienne"), c("chateau"), c("obsidienne"))
         for i in range(3):
             w = ws[i] / 2
@@ -1138,9 +1204,11 @@ def obelisque(b, variant: int = 0, hauteur: float = 16) -> dict:
                       name="Cordon", **DECO)
         # glyphes sur la face avant du tronçon médian
         w = ws[1] / 2
+        pas = 1.25 * g
         for j, (gw, gh, rot) in enumerate(GLYPHES[v % 3: v % 3 + 3]):
-            y = ys[1] + 0.9 + j * 1.25
-            b.part("block", (gw, gh, 0.25), (0, y, -w - 0.05), rot_z(rot) if rot else None, lueur, name="Glyphe", **NEON)
+            y = ys[1] + 0.9 * g + j * pas
+            b.part("block", (gw * g, gh * g, 0.25), (0, y, -w - 0.05), rot_z(rot) if rot else None, lueur, name="Glyphe",
+                   **NEON)
         # arête ébréchée (ou fissure cramoisie)
         w0 = ws[0] / 2
         if v == 1:
@@ -1153,19 +1221,23 @@ def obelisque(b, variant: int = 0, hauteur: float = 16) -> dict:
                   name="Eclat", **DECO)
         top = ys[3]
         if v == 2:
-            b.box((-0.85, top, -0.85), (0.85, top + 0.4, 0.85), c("chateau_arete"), name="Corniche")
-            _fleche(b, 0.0, top + 0.4, 0.0, 2.0, 2.6, c("obsidienne"), ep=0.3, rot45=False, studs=False, name="Pyramidion")
-            b.ball((0, top + 3.2, 0), 0.35, c("lueur_violette"), name="Pointe", **NEON)
+            b.box((-0.85 * f, top, -0.85 * f), (0.85 * f, top + 0.4, 0.85 * f), c("chateau_arete"), name="Corniche")
+            _fleche(b, 0.0, top + 0.4, 0.0, 2.0 * f, 2.6 * f, c("obsidienne"), ep=0.3, rot45=False, studs=False,
+                    name="Pyramidion")
+            b.ball((0, top + 0.4 + 2.6 * f + 0.2, 0), 0.35 * f, c("lueur_violette"), name="Pointe", **NEON)
         else:
             fer = c("fer_fonce")
-            b.box((-0.6, top, -0.6), (0.6, top + 0.6, 0.6), fer, name="Pied")
-            b.box((-1.3, top + 0.6, -1.3), (1.3, top + 1.3, 1.3), fer, name="Coupe")
+            b.box((-0.6 * f, top, -0.6 * f), (0.6 * f, top + 0.6 * f, 0.6 * f), fer, name="Pied")
+            yc = top + 0.6 * f
+            b.box((-1.3 * f, yc, -1.3 * f), (1.3 * f, yc + 0.7 * f, 1.3 * f), fer, name="Coupe")
+            yr = yc + 0.7 * f
             for sx in (-1, 1):
-                b.box((sx * 1.3 - 0.15, top + 1.3, -1.3), (sx * 1.3 + 0.15, top + 1.8, 1.3), fer, name="Rebord", **FIN)
+                b.box((sx * 1.3 * f - 0.15, yr, -1.3 * f), (sx * 1.3 * f + 0.15, yr + 0.5 * f, 1.3 * f), fer, name="Rebord",
+                      **FIN)
             ext, coeur = (c("feu_cramoisi"), c("feu")) if v == 1 else (c("feu_violet"), c("lueur_violette_pale"))
-            b.boxc((0, top + 2.1, 0), (1.5, 1.6, 1.5), ext, yaw=45, name="Flamme", **NEON)
-            b.boxc((0, top + 3.0, 0), (0.7, 2.2, 0.7), coeur, yaw=20, name="Flamme", **NEON)
-    return {"emprise": (5, 5), "hauteur": H + 3}
+            b.boxc((0, yr + 0.8 * f, 0), (1.5 * f, 1.6 * f, 1.5 * f), ext, yaw=45, name="Flamme", **NEON)
+            b.boxc((0, yr + 1.7 * f, 0), (0.7 * f, 2.2 * f, 0.7 * f), coeur, yaw=20, name="Flamme", **NEON)
+    return {"emprise": (2 * sw, 2 * sw), "hauteur": H + 4.5 * f}
 
 
 def racine_geante(b, variant: int = 0, longueur: float = 24, hauteur: float = 10) -> dict:

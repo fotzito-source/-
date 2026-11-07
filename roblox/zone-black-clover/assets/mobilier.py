@@ -257,11 +257,11 @@ def chaudron(b, variant: int = 0) -> dict:
             b.boxc((1.5 * math.cos(a), 0.4, 1.5 * math.sin(a)), (1.0, 0.8, 1.0), c("pierre_fonce"), yaw=k * 25, studs="top",
                    name="Pierre")
         b.box((-0.6, 0, -0.6), (0.6, 0.4, 0.6), c("feu"), name="Braises", **NEON)
-        b.cyl((0, 1.9, 0), 1.35, 1.8, c("fer_fonce"), name="Cuve")
-        b.cyl((0, 1.1, 0), 1.0, 0.4, c("fer_fonce"), name="Fond")
-        b.cyl((0, 2.9, 0), 1.5, 0.3, c("fer"), name="Bord")
-        b.cyl((0, 3.08, 0), 1.2, 0.12, c(teinte), name="Potion", **NEON)
-        for (x, y, z, r) in ((0.4, 3.3, -0.2, 0.32), (-0.5, 3.4, 0.3, 0.24), (0.1, 3.7, 0.4, 0.16)):
+        b.cyl((0, 1.7, 0), 1.35, 1.8, c("fer_fonce"), name="Cuve")
+        b.cyl((0, 0.9, 0), 1.0, 0.4, c("fer_fonce"), name="Fond")
+        b.cyl((0, 2.7, 0), 1.5, 0.3, c("fer"), name="Bord")
+        b.cyl((0, 2.88, 0), 1.2, 0.12, c(teinte), name="Potion", **NEON)
+        for (x, y, z, r) in ((0.4, 3.1, -0.2, 0.32), (-0.5, 3.2, 0.3, 0.24), (0.1, 3.5, 0.4, 0.16)):
             b.ball((x, y, z), r, c(teinte), name="Bulle", **NEON)
     return {"emprise": (4.0, 4.0), "hauteur": 3.9}
 
@@ -273,53 +273,57 @@ def chaudron(b, variant: int = 0) -> dict:
 ORBES = ("lueur_violette", "lueur_verte", "lueur_doree", "lueur_cramoisie")
 
 
-def baton_mage(b, variant: int = 0) -> dict:
+def baton_mage(b, variant: int = 0, taille: float = 1.0) -> dict:
     """Bâton de mage planté dans le sol, légèrement penché, orbe lumineux (Neon) tenu au sommet.
     v0 : orbe violet, tête fourchue ; v1 : orbe vert, crosse recourbée ; v2 : orbe doré, anneau ; v3 : orbe
-    cramoisi, couronne d'épines. Hauteur ≈ 9. Reste dans un rayon de 1,6 autour de l'origine."""
+    cramoisi, couronne d'épines. Hauteur ≈ 9 × taille (taille 2,2 : grand bâton de ≈ 20 à orbe de 2,4). Reste dans
+    un rayon de 1,6 × taille autour de l'origine ; il penche vers +X+Z local (v0, v2) ou -X-Z local (v1, v3)."""
     v = variant % 4
+    k = float(taille)
     bois = (c("bois_noir"), c("bois_mort"), c("bois_fonce"), c("racine"))[v]
     orbe = c(ORBES[v])
     t = math.radians((7, -9, 5, -6)[v])
     d = np.array([math.sin(t) * 0.7, math.cos(t), math.sin(t) * 0.7])
     d /= np.linalg.norm(d)
-    p = lambda s: d * s                                     # noqa: E731  point du fût à la hauteur s
+    p = lambda s: d * s * k                                 # noqa: E731  point du fût à la hauteur s
+    V = lambda *xyz: np.array(xyz, float) * k               # noqa: E731  décalage mis à l'échelle
     with b.group("BatonMage"):
-        b.box((-0.9, 0, -0.9), (0.9, 0.3, 0.9), c("terre_fonce"), studs="top", name="Butte")
-        _poutre(b, p(-0.2), p(7.6), 0.32, bois, name="Fut")
+        b.box((-0.9 * k, 0, -0.9 * k), (0.9 * k, 0.3 * k, 0.9 * k), c("terre_fonce"), studs="top", name="Butte")
+        _poutre(b, p(-0.2), p(7.6), 0.32 * k, bois, name="Fut")
         for s in (2.5, 5.8):
-            _poutre(b, p(s - 0.2), p(s + 0.2), 0.48, c("toile_ecru") if s < 3 else c("cuir_brun"), name="Ligature", **DECO)
+            _poutre(b, p(s - 0.2), p(s + 0.2), 0.48 * k, c("toile_ecru") if s < 3 else c("cuir_brun"), name="Ligature",
+                    **DECO)
         top = p(7.6)
         if v == 0:
-            for k in (-1, 1):
-                q = top + np.array([0.45 * k, 0.9, 0.0])
-                _poutre(b, top, q, 0.22, bois, name="Fourche", **DECO)
-                _poutre(b, q, q + np.array([-0.15 * k, 0.7, 0]), 0.18, bois, name="Fourche", **FIN)
-            b.ball(top + np.array([0, 1.05, 0]), 0.55, orbe, name="Orbe", **NEON)
-            h = top[1] + 1.8
+            for kk in (-1, 1):
+                q = top + V(0.45 * kk, 0.9, 0.0)
+                _poutre(b, top, q, 0.22 * k, bois, name="Fourche", **DECO)
+                _poutre(b, q, q + V(-0.15 * kk, 0.7, 0), 0.18 * k, bois, name="Fourche", **FIN)
+            b.ball(top + V(0, 1.05, 0), 0.55 * k, orbe, name="Orbe", **NEON)
+            h = top[1] + 1.8 * k
         elif v == 1:
-            q1 = top + np.array([0.0, 1.0, 0.0])
-            q2 = q1 + np.array([-0.9, 0.7, 0.0])
-            q3 = q2 + np.array([-0.7, -0.6, 0.0])
-            _poutre(b, top, q1, 0.3, bois, name="Crosse", **DECO)
-            _poutre(b, q1, q2, 0.28, bois, name="Crosse", **DECO)
-            _poutre(b, q2, q3, 0.24, bois, name="Crosse", **DECO)
-            b.ball(q3 + np.array([0.15, -0.65, 0]), 0.5, orbe, name="Orbe", **NEON)
-            h = q2[1] + 0.3
+            q1 = top + V(0.0, 1.0, 0.0)
+            q2 = q1 + V(-0.9, 0.7, 0.0)
+            q3 = q2 + V(-0.7, -0.6, 0.0)
+            _poutre(b, top, q1, 0.3 * k, bois, name="Crosse", **DECO)
+            _poutre(b, q1, q2, 0.28 * k, bois, name="Crosse", **DECO)
+            _poutre(b, q2, q3, 0.24 * k, bois, name="Crosse", **DECO)
+            b.ball(q3 + V(0.15, -0.65, 0), 0.5 * k, orbe, name="Orbe", **NEON)
+            h = q2[1] + 0.3 * k
         elif v == 2:
-            b.cyl(top + np.array([0, 1.1, 0]), 0.95, 0.18, c("laiton"), axis="z", name="Anneau", **DECO)
-            b.ball(top + np.array([0, 1.1, 0]), 0.6, orbe, name="Orbe", **NEON)
-            h = top[1] + 2.1
+            b.cyl(top + V(0, 1.1, 0), 0.95 * k, 0.18 * k, c("laiton"), axis="z", name="Anneau", **DECO)
+            b.ball(top + V(0, 1.1, 0), 0.6 * k, orbe, name="Orbe", **NEON)
+            h = top[1] + 2.1 * k
         else:
-            b.ball(top + np.array([0, 0.85, 0]), 0.6, orbe, name="Orbe", **NEON)
-            for k in range(4):
-                a = math.radians(45 + 90 * k)
-                base = top + np.array([0.4 * math.cos(a), 0.2, 0.4 * math.sin(a)])
-                _poutre(b, base, base + np.array([0.5 * math.cos(a), 1.5, 0.5 * math.sin(a)]), 0.16, c("epine"),
+            b.ball(top + V(0, 0.85, 0), 0.6 * k, orbe, name="Orbe", **NEON)
+            for kk in range(4):
+                a = math.radians(45 + 90 * kk)
+                base = top + V(0.4 * math.cos(a), 0.2, 0.4 * math.sin(a))
+                _poutre(b, base, base + V(0.5 * math.cos(a), 1.5, 0.5 * math.sin(a)), 0.16 * k, c("epine"),
                         name="Epine", **FIN)
-            h = top[1] + 1.8
-        b.ball(top, 0.3, c("laiton") if v != 3 else c("cramoisi"), name="Bague", **DECO)
-    return {"emprise": (1.8, 1.8), "hauteur": round(float(h), 2)}
+            h = top[1] + 1.8 * k
+        b.ball(top, 0.3 * k, c("laiton") if v != 3 else c("cramoisi"), name="Bague", **DECO)
+    return {"emprise": (1.8 * k, 1.8 * k), "hauteur": round(float(h), 2)}
 
 
 def epee_plantee(b, variant: int = 0) -> dict:
@@ -359,7 +363,7 @@ def bouclier(b, variant: int = 0) -> dict:
     with b.group("Bouclier"):
         if v in (0, 2):
             R = rot_z(-70) if v == 0 else rot_z(-90)
-            y = 1.3 if v == 0 else 0.2
+            y = 0.62 if v == 0 else 0.2
             b.part("cyl", (0.2, 2.8, 2.8), (0.25 if v == 0 else 0, y, 0), R, fond, name="Disque")
             b.part("cyl", (0.12, 3.1, 3.1), (0.25 - 0.17 if v == 0 else 0, y - 0.06 if v == 0 else 0.06, 0), R, c("fer_fonce"),
                    name="Cerclage", **DECO)
@@ -398,7 +402,8 @@ def armes_abandonnees(b, variant: int = 0) -> dict:
         # lance couchée
         _segment(b, (-3.2, 0.2, 2.2), (3.0, 0.2, -2.6 if v != 2 else 2.4), 0.12, c("bois"), name="Hampe", **DECO)
         q = np.array([3.0, 0.2, -2.6 if v != 2 else 2.4])
-        b.part("wedge", (0.3, 0.2, 0.9), q + np.array([0.3, 0, -0.25 if v != 2 else 0.25]), None, c("acier"), name="Fer", **FIN)
+        b.part("wedge", (0.3, 0.2, 0.9), q + np.array([0.3, -0.1, -0.25 if v != 2 else 0.25]), None, c("acier"), name="Fer",
+               **FIN)
     return {"emprise": (7.0, 6.0), "hauteur": 5.4}
 
 
@@ -478,7 +483,7 @@ def puits(b, variant: int = 0) -> dict:
             if v == 1 and k in (2, 3):
                 continue
             a = 2 * math.pi * k / 8
-            hk = 2.4 if not (v == 1 and k == 4) else 1.4
+            hk = (2.4 if k % 2 == 0 else 2.5) if not (v == 1 and k == 4) else 1.4
             b.boxc((2.0 * math.cos(a), hk / 2, 2.0 * math.sin(a)), (1.75, hk, 0.9), vary("moellon", rng, 0.1),
                    yaw=-math.degrees(a) + 90, studs="top", name="Margelle")
         b.cyl((0, 1.0, 0), 1.6, 0.2, c("eau"), name="Eau", **DECO)
@@ -489,7 +494,7 @@ def puits(b, variant: int = 0) -> dict:
         for x in (-2.0, 2.0):
             b.box((x - 0.25, 2.4, -0.25), (x + 0.25, 6.4, 0.25), c("bois_fonce"), name="Poteau")
         b.cyl((0, 5.0, 0), 0.3, 4.0, c("bois"), axis="x", name="Treuil", **DECO)
-        b.box((1.8, 4.9, -0.1), (2.0, 5.1, -0.9), c("fer_fonce"), name="Manivelle", **FIN)
+        b.box((2.25, 4.9, -0.1), (2.45, 5.1, -0.9), c("fer_fonce"), name="Manivelle", **FIN)   # contre le poteau
         b.box((-0.05, 3.2, -0.05), (0.05, 4.8, 0.05), c("chaine"), name="Corde", **FIN)
         b.cyl((0, 2.9, 0), 0.4, 0.7, c("bois_clair"), name="Seau", **DECO)
         toit = c("chaume_fonce") if v == 0 else c("ardoise")
@@ -510,17 +515,17 @@ def charrette(b, variant: int = 0) -> dict:
         for sx in (-1, 1):
             b.part("block", (0.25, 0.9, 5.0), (sx * 1.5, y + 0.65 - (0.24 * sx if v == 1 else 0), 0.4), R, c("bois_fonce"),
                    name="Ridelle", collide=False)
-        b.cyl((0, 1.1, 0.8), 0.18, 3.6, c("fer_fonce"), axis="x", name="Essieu", **DECO)
+        b.cyl((0, 1.22, 0.8), 0.18, 3.6, c("fer_fonce"), axis="x", name="Essieu", **DECO)
         b.cyl((-1.9, 1.1, 0.8), 1.1, 0.3, c("bois_fonce"), axis="x", name="Roue")
         if v == 1:
             b.cyl((2.6, 0.15, -0.6), 1.1, 0.3, c("bois_fonce"), axis="y", name="RoueTombee", **DECO)
         else:
             b.cyl((1.9, 1.1, 0.8), 1.1, 0.3, c("bois_fonce"), axis="x", name="Roue")
         for sx in (-0.9, 0.9):
-            _poutre(b, (sx, 1.4, -2.0), (sx * 0.8, 0.2, -4.6), 0.25, c("bois_fonce"), name="Brancard", **DECO)
+            _poutre(b, (sx, 1.4, -2.0), (sx * 0.8, 0.12, -4.6), 0.25, c("bois_fonce"), name="Brancard", **DECO)
         if v == 0:
             for i, (x, z) in enumerate(((-0.7, 1.6), (0.7, 1.4), (0.0, -0.4))):
-                b.boxc((x, y + 0.8, z), (1.2, 0.9, 1.5), c("toile_ecru") if i != 1 else c("toile_grise"), yaw=10 * i,
+                b.boxc((x, y + 0.65, z), (1.2, 0.9, 1.5), c("toile_ecru") if i != 1 else c("toile_grise"), yaw=10 * i,
                        name="Sac", **DECO)
         elif v == 2:
             b.box((-1.3, y + 0.2, -1.6), (1.3, y + 1.8, 2.6), c("foin"), studs="top", name="Foin", **DECO)
@@ -576,7 +581,7 @@ def panneau_pied(b, texte: str = "MARCHÉ", variant: int = 0) -> dict:
     fond, encre = (c(n) for n in FONDS_ENSEIGNE[variant % len(FONDS_ENSEIGNE)])
     w = min(max(1.6 + 0.8 * len(texte), 4.0), 9.0) / 2
     with b.group("Panneau"):
-        for x in (-w + 0.3, w - 0.3):
+        for x in (-w + 0.5, w - 0.5):
             b.box((x - 0.25, 0, -0.25), (x + 0.25, 4.6, 0.25), c("bois_fonce"), name="Pied")
         p1 = b.box((-w, 2.4, -0.3), (w, 4.2, -0.05), fond, name="Planche", **DECO)
         p2 = b.box((-w, 2.4, 0.05), (w, 4.2, 0.3), fond, name="Planche", **DECO)
@@ -687,7 +692,7 @@ def banniere(b, variant: int = 0, hauteur: float = 10.0) -> dict:
     with b.group("Banniere"):
         b.box((-0.9, 0, -0.9), (0.9, 0.6, 0.9), c("pierre_fonce"), studs="top", name="Socle")
         b.box((-0.22, 0.6, -0.22), (0.22, h + 0.4, 0.22), c("bois_noir"), name="Mat")
-        b.box((-2.1, h - 0.3, -0.18), (2.1, h, 0.18), c("fer_fonce"), name="Traverse", **DECO)
+        b.box((-2.1, h - 0.3, -0.12), (2.1, h, 0.12), c("fer_fonce"), name="Traverse", **DECO)
         b.box((-1.8, h - 0.3 - L, 0.24), (1.8, h - 0.3, 0.4), toile, name="Toile", **FIN)
         b.box((-1.8, h - 0.9, 0.4), (1.8, h - 0.5, 0.52), c("toile_or"), name="Lisere", **FIN)
         if v in (1, 3):
@@ -764,12 +769,20 @@ def pierre_runique(b, variant: int = 0) -> dict:
         b.boxc((0.1, hh * 0.6 + hh * 0.2, 0), (1.7, hh * 0.4, 1.0), c("pierre_fonce"), yaw=6, name="Menhir")
         b.wedge((-0.85, hh, -0.5), (0.95, hh + 0.9, 0.5), c("pierre_fonce"), down="-x", name="Sommet")
         b.box((-0.9, hh - 0.2, -0.45), (0.2, hh + 0.05, 0.45), c("mousse"), studs="top", name="Mousse", **DECO)
-        # marques : barres et points abstraits, en saillie de 0,1 sur la face avant
-        marques = ((-0.5, 1.2, 0.2, 1.2), (0.3, 1.0, 0.7, 0.2), (0.5, 1.5, 0.2, 0.7), (-0.4, 2.8, 0.7, 0.2),
-                   (0.0, 3.4, 0.2, 0.9), (0.4, 4.4, 0.5, 0.2), (-0.3, 4.6, 0.2, 0.2))
-        for (x, y, w, h_) in marques:
-            b.box((x - w / 2, y, -0.72), (x + w / 2, y + h_, -0.6) if y < hh * 0.6 else (x + w / 2, y + h_, -0.6),
-                  lueur, name="Marque", **NEON)
+        # marques abstraites : losanges, points et traits obliques (±25°), à 0,3 au moins l'une de l'autre (aucune
+        # lettre : ni L, ni T, ni Y, ni +), en saillie de 0,12 sur la face avant (bloc du haut : tourné de 6°)
+        marques = ((-0.45, 1.3, "losange"), (0.35, 1.1, 25.0), (0.4, 2.2, "point"), (-0.35, 2.6, -25.0),
+                   (0.1, 3.0, "losange"), (-0.4, 4.3, "point"), (0.35, 4.75, 25.0))
+        for (x, y, kind) in marques:
+            haut = y >= hh * 0.6
+            with b.at((0.1, 0, 0) if haut else (0, 0, 0), yaw=6 if haut else 0):
+                ctr = (x - 0.1 if haut else x, y, (-0.5 if haut else -0.6) - 0.05)
+                if kind == "losange":
+                    b.part("block", (0.4, 0.4, 0.14), ctr, rot_z(45), lueur, name="Marque", **NEON)
+                elif kind == "point":
+                    b.part("block", (0.3, 0.3, 0.14), ctr, None, lueur, name="Marque", **NEON)
+                else:
+                    b.part("block", (0.2, 0.8, 0.14), ctr, rot_z(kind), lueur, name="Marque", **NEON)
         if v == 2:
             b.box((1.8, 0, -0.5), (3.2, 3.4, 0.5), c("pierre_noire"), name="Menhir2")
             b.box((2.3, 1.4, -0.6), (2.7, 2.6, -0.5), lueur, name="Marque", **NEON)
@@ -834,9 +847,11 @@ def nuee_grimoires(b, variant: int = 0, rayon: float = 5.0, hauteur: float = 10.
 LUCIOLES = ("lueur_doree", "lueur_violette", "lueur_verte", "lueur_cramoisie")
 
 
-def lucioles(b, variant: int = 0, rayon: float = 10.0, hauteur: float = 12.0, nombre: int = 24) -> dict:
+def lucioles(b, variant: int = 0, rayon: float = 10.0, hauteur: float = 12.0, nombre: int = 24,
+             rayon_x: float | None = None, rayon_min: float = 0.0) -> dict:
     """Nuage de lucioles (petits cubes Neon) dans un cylindre de rayon `rayon`, de y = 0 à y = hauteur
     (refBC2). v0 doré, v1 violet, v2 vert, v3 cramoisi. Origine : centre du bas du nuage. ≤ 40 lucioles.
+    `rayon_x` : demi-largeur en X (nuage aplati le long d'une façade) ; `rayon_min` : couronne (autour d'un toit).
     Au-dessus du couloir, poser le nuage à y ≥ 31 (rien sous 30 au-dessus de |x| < 46)."""
     v = variant % 4
     nombre = max(1, min(int(nombre), 40))
@@ -845,12 +860,13 @@ def lucioles(b, variant: int = 0, rayon: float = 10.0, hauteur: float = 12.0, no
     pale = mix(col, (255, 255, 255), 0.45)
     with b.group("Lucioles"):
         for i in range(nombre):
-            r = rayon * math.sqrt(float(rng.random()))
+            r = math.sqrt(rayon_min ** 2 + (rayon ** 2 - rayon_min ** 2) * float(rng.random()))
             a = float(rng.uniform(0, 2 * math.pi))
             s = float(rng.choice((0.35, 0.45, 0.6)))
-            b.boxc((r * math.cos(a), float(rng.uniform(0, hauteur)), r * math.sin(a)), (s, s, s), pale if i % 5 == 0 else col,
-                   yaw=float(rng.uniform(0, 90)), name="Luciole", **NEON)
-    return {"emprise": (2 * rayon, 2 * rayon), "hauteur": hauteur}
+            fx = 1.0 if rayon_x is None else rayon_x / rayon
+            b.boxc((r * math.cos(a) * fx, float(rng.uniform(0, hauteur)), r * math.sin(a)), (s, s, s),
+                   pale if i % 5 == 0 else col, yaw=float(rng.uniform(0, 90)), name="Luciole", **NEON)
+    return {"emprise": (2 * (rayon if rayon_x is None else rayon_x), 2 * rayon), "hauteur": hauteur}
 
 
 # ---------------------------------------------------------------------------
@@ -868,7 +884,7 @@ def arbre_mort(b, variant: int = 0, hauteur: float = 12.0) -> dict:
     with b.group("ArbreMort"):
         for k in range(3):                                   # racines
             a = math.radians(30 + 120 * k + float(rng.uniform(-20, 20)))
-            _poutre(b, (0, 0.8, 0), (2.2 * math.cos(a), 0.0, 2.2 * math.sin(a)), 0.6, tronc, name="Racine")
+            _poutre(b, (0, 0.8, 0), (2.2 * math.cos(a), 0.0, 2.2 * math.sin(a)), 0.6, tronc, name="Racine", **DECO)
         lean = (0.12, 0.3, 0.05, 0.08)[v]
         p0 = np.array([0.0, -0.2, 0.0])
         p1 = np.array([lean * h * 0.4, h * (0.45 if v != 3 else 0.55), 0.1])

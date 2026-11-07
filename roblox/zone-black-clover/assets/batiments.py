@@ -522,7 +522,7 @@ def _fenetre(b, x, y, w, h, z, *, verre="fenetre", allumee=False, linteau="bois_
             b.box((xa, y - 0.1, z - 0.25), (xb, y + h + 0.1, z + 0.05), col(volets), name="Volet", **DECO)
     if planches:
         for (dy, ang) in ((0.28, 8.0), (0.7, -6.0)):
-            b.part("block", (w + 0.5, 0.4, 0.14), (x, y + h * dy, z - 0.25), rot_z(ang), col(planches),
+            b.part("block", (w + 0.5, 0.4, 0.14), (x, y + h * dy, z - 0.19), rot_z(ang), col(planches),
                    name="Planche", **DECO)
 
 
@@ -612,17 +612,40 @@ def _lucarne(b, rng, ys, w, h, prof, toit, mur, *, allumee=False, cadre="bois_no
 # 1) Chaumière
 # ---------------------------------------------------------------------------
 
-def chaumiere(b, variant=0, largeur=14, profondeur=12):
+def chaumiere(b, variant=0, largeur=14, profondeur=12, lumieres="toutes"):
     """Chaumière basse d'un niveau et combles (hauteur ≤ 15) : murs de moellons sombres en pixels, chaînes d'angle
     claires, chaume épais en gradins (ardoise moussue en v2), petites fenêtres profondes (une allumée), porte de
-    planches à pentures, cheminée de pierre penchée. ≤ 60 pièces."""
+    planches à pentures, cheminée de pierre penchée. `lumieres` : "toutes" ou "eteintes" (maison abandonnée : la
+    fenêtre éclairée devient une vitre noire condamnée de planches). ≤ 60 pièces."""
     n0 = len(b.parts)
     with b.group("Chaumiere"):
-        return _budget(b, n0, 60, lambda niv: _chaumiere(b, variant % 5, float(largeur), float(profondeur), niv))
+        return _budget(b, n0, 60, lambda niv: _chaumiere(b, variant % 5, float(largeur), float(profondeur), niv,
+                                                         lumieres))
 
 
-def _chaumiere(b, v, L, P, niv):
+def _eclairage(lumieres, garder):
+    """Filtre des fenêtres allumées : `allumee=al(True)` reste allumée selon le mode ("toutes", "faible" : les
+    `garder` premières, "eteintes" : aucune) ; une fenêtre éteinte reçoit des planches une fois sur deux."""
+    etat = {"n": 0}
+
+    def al(defaut=True):
+        if not defaut:
+            return False
+        etat["n"] += 1
+        return lumieres == "toutes" or (lumieres == "faible" and etat["n"] <= garder)
+
+    def condamne(defaut=True):
+        """Options d'une fenêtre qui aurait été allumée et ne l'est plus : vitre noire, planches clouées."""
+        if not defaut or al(True):
+            return {"allumee": defaut}
+        return {"allumee": False, "verre": "noir", "planches": "bois_gris" if etat["n"] % 2 else None}
+
+    return al, condamne
+
+
+def _chaumiere(b, v, L, P, niv, lumieres="toutes"):
     rng = _rng(b, "chaumiere", v, L, P)
+    _, condamne = _eclairage(lumieres, 0)
     x0, x1 = -L / 2 + 0.5, L / 2 - 0.5
     zf, zb = -P / 2, P / 2 - 0.5
     mur = _mur(rng)
@@ -647,7 +670,7 @@ def _chaumiere(b, v, L, P, niv):
 
     if v == 0:
         porte(1.2 * s, 2.2, 4.1, bois="cramoisi_fonce")
-        fen(-3.3 * s, 1.8, 1.8, 1.7, allumee=True, meneau="bois_noir", appui="moellon_clair")
+        fen(-3.3 * s, 1.8, 1.8, 1.7, meneau="bois_noir", appui="moellon_clair", **condamne())
         fen(4.0 * s, 1.9, 1.4, 1.5, appui="moellon_clair", planches="bois_gris" if niv < 2 else None)
     elif v == 1:
         porte(2.6 * s, 2.2, 4.0)
@@ -655,10 +678,10 @@ def _chaumiere(b, v, L, P, niv):
     elif v == 2:
         porte(-1.2 * s, 2.2, 4.1)
         fen(3.0 * s, 1.8, 1.8, 1.7, appui="moellon_clair", volets="cramoisi_fonce" if niv < 2 else None)
-        fen(-4.3 * s, 1.9, 1.4, 1.5, allumee=True, appui="moellon_clair")
+        fen(-4.3 * s, 1.9, 1.4, 1.5, appui="moellon_clair", **condamne())
     elif v == 3:
         porte(-1.4 * s, 2.0, 4.0, bois=shade(col("toile_nuit"), 0.85))
-        fen(2.4 * s, 1.8, 1.6, 1.6, allumee=True, meneau="bois_noir", appui="moellon_clair")
+        fen(2.4 * s, 1.8, 1.6, 1.6, meneau="bois_noir", appui="moellon_clair", **condamne())
     else:
         porte(1.2 * s, 2.2, 4.1, noire=True, linteau="bois_brule")
         fen(-3.3 * s, 1.8, 1.8, 1.7, appui="moellon_fonce", planches="bois_gris", linteau="bois_brule")
@@ -684,7 +707,7 @@ def _chaumiere(b, v, L, P, niv):
                          boudins=niv < 3)
         haut = R["haut"]
         # fenêtre du comble, allumée
-        _fenetre(b, 0, H + 1.6, 1.3, 1.5, zf, allumee=True, linteau="bois_noir", appui=None)
+        _fenetre(b, 0, H + 1.6, 1.3, 1.5, zf, linteau="bois_noir", appui=None, **condamne())
         # lucarne sur le pan gauche (-x), au milieu de la profondeur
         if niv < 2:
             xd = x0 + 2.3
@@ -800,7 +823,7 @@ def _etage(b, x0, x1, y, h, z, zb, zprev, enduit, bois, fenetres, motif, panneau
     """Étage à colombages (plan de façade z, en encorbellement sur zprev) : hourdis (un bloc), sablière qui fait le
     tour, gorge sous l'encorbellement, poteaux, lisse d'allège, fenêtres [(x, w, allumee)] de la lisse jusqu'à
     haut_fen sous le plafond, écharpes dans les panneaux [(xa, xb)] selon le motif ("croix", "echarpe", "chevron")."""
-    b.box((x0, y, z), (x1, y + h, zb), enduit, name="Hourdis")
+    b.box((x0, y + 0.1, z), (x1, y + h, zb), enduit, name="Hourdis")
     b.box((x0 - 0.15, y, z - 0.3), (x1 + 0.15, y + 0.6, zb + 0.15), bois, name="Sabliere")
     if gorge and zprev - z > 0.05:
         b.wedge_under((x0, y - 0.6, z - 0.3), (x1, y, zprev), bois, down="-z", name="Gorge", **DECO)
@@ -849,18 +872,21 @@ def _cote_entree(b) -> int:
 # 2) Maison de pierre
 # ---------------------------------------------------------------------------
 
-def maison_pierre(b, variant=0, largeur=16, profondeur=14, etages=2, enseigne=None):
+def maison_pierre(b, variant=0, largeur=16, profondeur=14, etages=2, enseigne=None, lumieres="toutes"):
     """Maison de pierre à deux niveaux (≈ 26 de haut) : pignon d'ardoise très pentu sur rue (v1 : toit en pavillon),
     lucarne, cheminée, volets, porte sous un petit auvent, lanterne murale ; enseigne en drapeau à l'étage.
-    FORGE : grande baie au rez avec foyer rougeoyant, hotte et enclume ; AUBERGE : tonneaux à la porte. ≤ 90 pièces."""
+    FORGE : grande baie au rez avec foyer rougeoyant, hotte et enclume ; AUBERGE : tonneaux à la porte.
+    `lumieres` : "toutes", "faible" (deux fenêtres à la bougie seulement) ou "eteintes" (maison abandonnée : vitres
+    noires, planches clouées, lanterne murale décrochée ; le foyer d'une forge reste rougeoyant). ≤ 90 pièces."""
     n0 = len(b.parts)
     with b.group("MaisonPierre"):
         return _budget(b, n0, 90, lambda niv: _maison_pierre(b, variant % 4, float(largeur), float(profondeur),
-                                                             max(1, int(etages)), enseigne, niv), niveaux=5)
+                                                             max(1, int(etages)), enseigne, niv, lumieres), niveaux=5)
 
 
-def _maison_pierre(b, v, L, P, n, enseigne, niv):
+def _maison_pierre(b, v, L, P, n, enseigne, niv, lumieres="toutes"):
     rng = _rng(b, "pierre", v, L, P, n, enseigne)
+    al, condamne = _eclairage(lumieres, 2)
     sx = _cote_entree(b)
     x0, x1 = -L / 2 + 0.5, L / 2 - 0.5
     zf, zb = -P / 2, P / 2 - 0.5
@@ -930,8 +956,10 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         xp = 0.0
         _porte(b, xp, 2.4, 4.6, zf, bois="bois_fonce")
         for xw in (-4.6, 4.6):
-            _fenetre(b, xw, 1.9, 1.8, 2.2, zf, allumee=(xw * sx > 0), meneau="bois_noir" if xw * sx > 0 else None,
-                     linteau="pierre_pale", appui="pierre_pale", planches="bois_gris" if xw * sx < 0 else None)
+            kw_ = condamne(xw * sx > 0)
+            kw_.setdefault("planches", "bois_gris" if xw * sx < 0 else None)
+            _fenetre(b, xw, 1.9, 1.8, 2.2, zf, meneau="bois_noir" if xw * sx > 0 else None, linteau="pierre_pale",
+                     appui="pierre_pale", **kw_)
             eviter.append((xw - 1.5, 1.3, xw + 1.5, 4.7))
         eviter.append((-1.9, 0, 1.9, 5.5))
         xl = -2.4
@@ -941,12 +969,12 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         eviter.append((xp - 1.9, 0, xp + 1.9, 5.5))
         if v == 2:
             for xw in (-4.4, 4.4):
-                _fenetre(b, xw, 1.9, 2.0, 2.2, zf, allumee=True, meneau="bois_noir", linteau="bois_noir",
-                         appui="moellon_clair")
+                _fenetre(b, xw, 1.9, 2.0, 2.2, zf, meneau="bois_noir", linteau="bois_noir", appui="moellon_clair",
+                         **condamne())
                 eviter.append((xw - 1.5, 1.3, xw + 1.5, 4.7))
             xl = -2.4
         else:
-            _fenetre(b, -4.2, 1.9, 1.8, 2.2, zf, allumee=True, meneau="bois_noir", appui="moellon_clair")
+            _fenetre(b, -4.2, 1.9, 1.8, 2.2, zf, meneau="bois_noir", appui="moellon_clair", **condamne())
             _fenetre(b, 5.0, 2.0, 1.4, 2.0, zf, appui="moellon_clair", planches="bois_gris" if niv < 2 else None)
             eviter += [(-5.7, 1.3, -2.7, 4.7), (3.9, 1.3, 6.1, 4.6)]
             xl = xp - 2.4
@@ -958,7 +986,8 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         for s_ in (-1, 1):
             b.wedge_under((xp + s_ * 1.6 - 0.15, hp + 0.0, zf - 1.1), (xp + s_ * 1.6 + 0.15, hp + 0.75, zf + 0.05),
                           col("bois_noir"), down="-z", name="Console", **DECO)
-    _lanterne(b, xl, 4.9, zf, niv=0 if niv < 2 else 1)
+    if lumieres != "eteintes":
+        _lanterne(b, xl, 4.9, zf, niv=0 if niv < 2 else 1)
     if auberge and niv < 4:
         with b.at((xp + (2.8 if xp <= 0 else -2.8), 0, zf - 1.3)):
             mobilier.tonneaux(b, variant=1)
@@ -971,7 +1000,7 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         bois = vary(c("bois_noir"), rng, 0.04)
         enduit = vary(c("enduit_ocre"), rng, 0.03)
         zj = zf - 1.0
-        fen = [(-3.6, 2.0, False), (3.6, 2.0, True)]
+        fen = [(-3.6, 2.0, False), (3.6, 2.0, al(True))]
         _etage(b, x0, x1, H1, He, zj, zb, zf, enduit, bois, fen, "croix", [(x0 + 0.55, -4.75), (4.75, x1 - 0.55)],
                poteaux=(x0 + 0.3, -2.5, 0.0, 2.5, x1 - 0.3) if niv < 2 else None)
         zg = zj
@@ -979,13 +1008,16 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         zg = zf
         if v == 1:
             for xw, vol in ((-3.6, True), (0.0, False), (3.6, True)):
-                al = xw * sx > 1.0
-                _fenetre(b, xw, H1 + 1.6, 1.6 if vol else 1.4, 2.4, zf, allumee=al, linteau="pierre_pale",
-                         appui="pierre_pale", volets="cramoisi_fonce" if (vol and niv < 2) else None)
+                kw_ = condamne(xw * sx > 1.0)
+                _fenetre(b, xw, H1 + 1.6, 1.6 if vol else 1.4, 2.4, zf, linteau="pierre_pale",
+                         appui="pierre_pale", volets="cramoisi_fonce" if (vol and niv < 2 and not kw_.get("planches"))
+                         else None, **kw_)
         else:
-            for xw, al in ((-4.2, False), (3.0, True)):
-                _fenetre(b, xw, H1 + 1.6, 1.8, 2.4, zf, allumee=al, linteau="bois_noir", appui=clair,
-                         volets=("bois_fonce" if v == 0 else "cramoisi_fonce") if niv < 1 else None)
+            for xw, al_ in ((-4.2, False), (3.0, True)):
+                kw_ = condamne(al_)
+                _fenetre(b, xw, H1 + 1.6, 1.8, 2.4, zf, linteau="bois_noir", appui=clair,
+                         volets=("bois_fonce" if v == 0 else "cramoisi_fonce") if (niv < 1 and not kw_.get("planches"))
+                         else None, **kw_)
         if niv < 2 and n >= 2:
             _pierres(b, rng, 3, (x0 + 1.5, x1 - 1.5), (H1 + 0.6, H - 0.6), zf, base=mur, eviter=
                      [(-6.6, H1, -1.8, H), (-0.1, H1, 6.2, H), (-1.2, H1 + 2.5, 0.2, H1 + 5.5)])
@@ -1015,7 +1047,7 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
             zd = zf - 0.6 + 1.9
             ys = ye + 1.9 * 1.25
             with b.at((0.0, 0, zd)):
-                _lucarne(b, rng, ys, 2.8, 2.4, 3.0, ardoise, mur, allumee=True, rd=1.6)
+                _lucarne(b, rng, ys, 2.8, 2.4, 3.0, ardoise, mur, allumee=al(True), rd=1.6)
         yc = _cheminee(b, rng, 2.6 * sx, (zf + zb) / 2 + 1.2, yr - 3.0, yr + 2.4, "pierre_fonce", penche=2.5 * sx)
         haut = max(haut, yc)
     else:
@@ -1024,8 +1056,8 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
                          deb=0.4, rives="bois_noir" if niv < 2 else None)
         haut = R["haut"]
         # fenêtres du comble
-        _fenetre(b, 0, H + 1.6, 1.4, 1.9, zg, allumee=(v != 0), linteau="bois_noir" if not colomb else None,
-                 appui=None)
+        _fenetre(b, 0, H + 1.6, 1.4, 1.9, zg, linteau="bois_noir" if not colomb else None, appui=None,
+                 **condamne(v != 0))
         if not colomb and niv < 2:
             # porte de grenier dans le pignon, poutre de palan et poulie
             yg = H + 5.4
@@ -1767,7 +1799,7 @@ def _enduit(nom, rng):
     return vary(shade(mix(base, c("pierre_fonce"), 0.16), 0.88), rng, 0.03)
 
 
-def maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=None):
+def maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=None, fioles=False):
     """Maison haute et étroite du bourg (≈ 6 + 5,5 × étages + toit ≈ 35-42) : rez de pierre sombre à devanture
     éclairée (étalage et marchandises), étages à colombages noirs (poteaux, sablières, croix de Saint-André ou
     écharpes) sur enduit sourd, chacun en encorbellement vers la rue (≤ 2,5 en tout), pignon d'ardoise à ≈ 59° avec
@@ -1775,14 +1807,15 @@ def maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=Non
     bougie), lanterne murale, enseigne en drapeau au rez si demandée. Variantes : v0 enduit gris ; v1 ocre, toit à
     lucarnes sur rue ; v2 sang-de-bœuf, pignon essenté d'ardoise ; v3 vert éteint, dernier étage de travers ; v4 crème
     sali, oriel sur deux étages ; v5 gris-violet, tourelle d'angle à toit conique (angle côté sortie, porte dessous,
-    enseigne entre la porte et la devanture). ≤ 95 pièces."""
+    enseigne entre la porte et la devanture, flèche en aiguille). `fioles` : maison de mage, rangée de fioles
+    lumineuses (Neon vert, violet, doré) sur la lisse de la fenêtre du premier étage tournée vers l'entrée. ≤ 95 pièces."""
     n0 = len(b.parts)
     with b.group("MaisonHaute"):
         return _budget(b, n0, 95, lambda niv: _maison_haute(b, variant % 6, float(largeur), float(profondeur),
-                                                            max(1, int(etages)), enseigne, niv), niveaux=6)
+                                                            max(1, int(etages)), enseigne, niv, fioles), niveaux=6)
 
 
-def _maison_haute(b, v, L, P, n, enseigne, niv):
+def _maison_haute(b, v, L, P, n, enseigne, niv, fioles=False):
     S = _STYLES_HAUTE[v]
     rng = _rng(b, "haute", v, L, P, n, enseigne)
     sx = _cote_entree(b)
@@ -1886,6 +1919,11 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
         if niv >= 3:
             pot = [x0 + 0.3, x1 - 0.3]
         _etage(b, x0, x1, y, He, z, zb, zprev, enduit, bois, fen, motif, pan, poteaux=pot, gorge=niv < 5)
+        if fioles and k == 0 and niv < 4:
+            # fioles de mage posées sur la lisse de la fenêtre côté entrée (Neon)
+            xf = sx * xw
+            for (dxf, cf, hf) in ((-0.6, "lueur_verte", 0.9), (0.0, "lueur_violette", 1.2), (0.6, "lueur_doree", 0.8)):
+                b.cyl((xf + dxf, y + 1.7 + hf / 2, z - 0.3), 0.24, hf, col(cf), name="Fiole", **NEON)
         zprev = z
     H = H0 + He * n
     zn = zf - J[-1]
@@ -1916,7 +1954,8 @@ def _maison_haute(b, v, L, P, n, enseigne, niv):
             for yy in (H0, H0 + He * 2):
                 b.cyl((xt, yy + 0.25, zt), 2.25, 0.5, bois, name="Bandeau", **DECO)
         yy = yt1
-        for i, (r, h) in enumerate(((2.55, 1.0), (2.15, 1.0), (1.72, 1.0), (1.3, 1.0), (0.9, 1.1), (0.55, 1.3))):
+        for i, (r, h) in enumerate(((2.55, 1.2), (2.2, 1.3), (1.85, 1.4), (1.5, 1.5), (1.15, 1.6), (0.8, 1.8),
+                                    (0.5, 2.0))):
             b.cyl((xt, yy + h / 2, zt), r, h, vr(("ardoise_fonce", "ardoise")[i % 2], rng, 0.03), studs="top",
                   name="ToitTourelle")
             yy += h
@@ -2029,12 +2068,12 @@ def _taverne(b, v, L, P, niv):
                       appui="pierre" if niv < 2 else None)
     b.box((xp - 1.75, 0.3, zf - 0.1), (xp + 1.75, 5.0, zf + 0.05), clair, name="Encadrement", **DECO)
     b.cyl((xp, 5.0, zf - 0.025), 1.75, 0.15, clair, axis="z", name="Encadrement", **DECO)
-    b.box((xp - 1.3, 0.3, zf - 0.22), (xp + 1.3, 5.0, zf + 0.05), col("bois_fonce"), name="Porte", **DECO)
-    b.cyl((xp, 5.0, zf - 0.085), 1.3, 0.27, col("bois_fonce"), axis="z", name="Porte", **DECO)
+    b.box((xp - 1.3, 0.3, zf - 0.36), (xp + 1.3, 5.0, zf + 0.05), col("bois_fonce"), name="Porte", **DECO)
+    b.cyl((xp, 5.0, zf - 0.155), 1.3, 0.41, col("bois_fonce"), axis="z", name="Porte", **DECO)
     b.box((xp - 2.1, 0, zf - 0.6), (xp + 2.1, 0.3, zf + 0.05), vr("pierre_fonce", rng, 0.03), studs="top", name="Seuil")
     if niv < 2:
         for yy in (1.4, 3.8):
-            b.box((xp - 1.15, yy, zf - 0.34), (xp + 0.6, yy + 0.22, zf - 0.2), col("fer_fonce"), name="Penture", **FIN)
+            b.box((xp - 1.15, yy, zf - 0.48), (xp + 0.6, yy + 0.22, zf - 0.34), col("fer_fonce"), name="Penture", **FIN)
     # auvent d'ardoise sur deux poteaux et deux jambes de force, lanterne pendue dessous
     zp = zf - 2.55
     for s_ in (-1, 1):
@@ -2179,7 +2218,7 @@ def _halle(b, v, L, P, niv):
     pl = b.box((-3.2, yp - 1.9, zpf - 0.72), (3.2, yp - 0.5, zpf - 0.52), vr("bois_fonce", rng, 0.03), name="Planche", **DECO)
     pl.label = {"face": "Front", "text": "MARCHÉ", "color": col("dorure"), "bg": None, "font": "serif"}
     for xx in (-2.6, 2.6):
-        b.box((xx - 0.05, yp - 0.5, zpf - 0.67), (xx + 0.05, yp, zpf - 0.57), col("chaine"), name="Chainette", **FIN)
+        b.box((xx - 0.05, yp - 0.5, zpf - 0.62), (xx + 0.05, yp, zpf - 0.48), col("chaine"), name="Chainette", **FIN)
     # étals intérieurs
     for (xa, xb, zc) in ((-10.0, -3.2, zpf + 3.2), (2.6, 9.4, zpb - 3.2)):
         b.box((xa, 0.35, zc - 1.0), (xb, 2.9, zc + 1.0), vr("bois", rng, 0.04), name="Comptoir")

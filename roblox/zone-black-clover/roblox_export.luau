@@ -6,7 +6,12 @@
 	Écrit :
 	  - ZoneBlackClover.rbxm (binaire) et ZoneBlackClover.rbxmx (XML) : le modèle à insérer dans votre jeu
 	    (Explorer › clic droit › Insert from File…) ;
-	  - ZoneBlackClover-demo.rbxl : une place de démonstration (zone + éclairage + point d'apparition).
+	  - ZoneBlackClover-demo.rbxl : une place de démonstration (zone + éclairage + point d'apparition
+	    + ambiance sombre branchée dans StarterPlayer › StarterPlayerScripts).
+
+	Ambiance : le modèle porte ses bornes (attributs BornesMin / BornesMax, dans le repère du pivot) et
+	le ModuleScript Outils.Ambiance, qui assombrit l'éclairage du joueur tant qu'il est dans la zone.
+	Le LocalScript Outils.AmbianceZone8 (inactif dans le modèle) est à déplacer dans StarterPlayerScripts.
 
 	Studs : par défaut, les studs intégrés de Roblox (matériau Plastic + SurfaceType.Studs sur les
 	faces concernées) : aucune image à importer, aucune instance en plus, teinte = Part.Color.
@@ -16,6 +21,7 @@
 ]]
 
 local fs = require("@lune/fs")
+local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 local serde = require("@lune/serde")
@@ -118,6 +124,10 @@ local function studFaces(p): { string }
 end
 
 local counts = { parts = 0, textures = 0, labels = 0, studFaces = 0 }
+-- Boîte englobante de toutes les pièces, dans le repère du modèle (son pivot est l'origine du plan) :
+-- elle délimite la zone pour l'ambiance (attributs BornesMin / BornesMax).
+local bornesMin = { math.huge, math.huge, math.huge }
+local bornesMax = { -math.huge, -math.huge, -math.huge }
 
 for _, p in data.parts do
 	local part
@@ -135,6 +145,12 @@ for _, p in data.parts do
 	part.Size = Vector3.new(p.size[1], p.size[2], p.size[3])
 	local r = p.rot
 	part.CFrame = CFrame.new(p.pos[1], p.pos[2], p.pos[3], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9])
+	-- demi-étendue de la pièce sur chaque axe : |R| × demi-taille (boîte de la pièce, prudente pour cylindres et boules)
+	for a = 1, 3 do
+		local h = (math.abs(r[3 * a - 2]) * p.size[1] + math.abs(r[3 * a - 1]) * p.size[2] + math.abs(r[3 * a]) * p.size[3]) / 2
+		bornesMin[a] = math.min(bornesMin[a], p.pos[a] - h)
+		bornesMax[a] = math.max(bornesMax[a], p.pos[a] + h)
+	end
 	part.Color = Color3.fromRGB(p.color[1], p.color[2], p.color[3])
 	part.Material = MATERIALS[p.material] or Enum.Material.SmoothPlastic
 	for _, s in SURFACES do
@@ -256,8 +272,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 	local surfaces = textureId == nil
 	if not surfaces and opts.mode == "materiau" then
 		local ms = game:GetService("MaterialService")
-		local mv = ms:FindFirstChild("StudsBlackClover") or Instance.new("MaterialVariant")
-		mv.Name = "StudsBlackClover"
+		local mv = ms:FindFirstChild("StudsZone8") or Instance.new("MaterialVariant")
+		mv.Name = "StudsZone8"
 		mv.BaseMaterial = Enum.Material.SmoothPlastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
@@ -277,7 +293,7 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				end
 				n += 1
 			elseif opts.mode == "materiau" then
-				part.MaterialVariant = "StudsBlackClover"
+				part.MaterialVariant = "StudsZone8"
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -297,15 +313,213 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 			end
 		end
 	end
-	print(("Zone Black Clover : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
+	print(("Zone 8 (royaume des mages) : %d %s"):format(n, if surfaces then "pièces en studs intégrés"
 		elseif opts.mode == "materiau" then "pièces en matériau stud" else "textures stud posées"))
 end
 ]]
 module.Parent = outils
 
+-- Ambiance sombre (effet local, côté joueur) ------------------------------------------
+local ambiance = Instance.new("ModuleScript")
+ambiance.Name = "Ambiance"
+ambiance.Source = [==[
+--[=[
+	Ambiance sombre de la zone, propre à chaque joueur (rien ne change sur le serveur ni chez les autres).
+
+	Tant que le personnage est dans la zone, l'éclairage glisse vers un crépuscule violet et cramoisi ;
+	dès qu'il en sort, les valeurs d'origine reviennent à l'identique.
+
+	Branchement : le LocalScript Outils.AmbianceZone8, déplacé dans StarterPlayer › StarterPlayerScripts :
+	    local zone = workspace:WaitForChild("ZoneBlackClover", math.huge)
+	    require(zone:WaitForChild("Outils"):WaitForChild("Ambiance"))(zone)
+
+	- La zone est la boîte BornesMin → BornesMax (attributs du modèle, en studs, comptés depuis son pivot :
+	  le centre de l'entrée, au sol). Elle suit le modèle déplacé avec PivotTo et ne dépend pas des pièces
+	  chargées (StreamingEnabled).
+	- Attribut AmbianceActive du modèle à false : effet coupé, l'éclairage d'origine revient.
+	- Réglages : table REGLAGES ci-dessous (seules les propriétés listées sont modifiées).
+]=]
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local REGLAGES = {
+	duree = 2, -- durée du fondu (secondes)
+	periode = 0.2, -- délai entre deux relevés de la position du joueur (secondes)
+	marge = 6, -- pour ressortir, il faut dépasser la boîte de 6 studs : pas de clignotement en bordure
+	Lighting = {
+		ClockTime = 18.2, -- soleil couché
+		Brightness = 1.2,
+		Ambient = Color3.fromRGB(54, 36, 74),
+		OutdoorAmbient = Color3.fromRGB(100, 66, 122),
+	},
+	Atmosphere = { -- brume violette, cramoisie à l'opposé du soleil
+		Color = Color3.fromRGB(122, 84, 156),
+		Decay = Color3.fromRGB(104, 34, 64),
+		Density = 0.38,
+		Haze = 1.8,
+		Glare = 0.6,
+	},
+	ColorCorrectionEffect = { -- teinte ajoutée par-dessus celle du jeu
+		TintColor = Color3.fromRGB(236, 212, 250),
+		Brightness = -0.04,
+		Contrast = 0.12,
+		Saturation = 0.05,
+	},
+}
+
+local INFO = TweenInfo.new(REGLAGES.duree, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+local suivies = {} -- zones déjà surveillées : un second appel pour la même zone ne fait rien
+
+local function dansBoite(p: Vector3, a: Vector3, b: Vector3, m: number): boolean
+	return p.X > a.X - m and p.X < b.X + m and p.Y > a.Y - m and p.Y < b.Y + m and p.Z > a.Z - m and p.Z < b.Z + m
+end
+
+return function(zone: Model?)
+	local modele = zone or script.Parent.Parent :: Model
+	local joueur = Players.LocalPlayer
+	assert(joueur, "Ambiance : à appeler depuis un LocalScript (StarterPlayer › StarterPlayerScripts)")
+	assert(modele:GetAttribute("BornesMin") and modele:GetAttribute("BornesMax"), "Ambiance : attributs BornesMin / BornesMax absents")
+	if suivies[modele] then
+		return
+	end
+	suivies[modele] = true
+	local conteneur, nom = modele.Parent, modele.Name
+	local dedans = false -- le joueur est-il dans la zone ?
+	local enCours = {} -- fondus en cours
+	local etat = nil -- nil : éclairage d'origine ; sinon { cibles, origine, crees }
+
+	-- Anime chaque objet vers ses valeurs ; `fin` n'est appelée que si le fondu va jusqu'au bout.
+	local function fondu(valeurs, fin: (() -> ())?)
+		for _, t in enCours do
+			t:Cancel() -- les valeurs restent où elles en sont : le fondu suivant part de là
+		end
+		table.clear(enCours)
+		for objet, props in valeurs do
+			local t = TweenService:Create(objet, INFO, props)
+			table.insert(enCours, t)
+			t:Play()
+		end
+		if fin then
+			enCours[1].Completed:Connect(function(lecture)
+				if lecture == Enum.PlaybackState.Completed then
+					fin()
+				end
+			end)
+		end
+	end
+
+	local function entrer()
+		if not etat then
+			-- Atmosphere du jeu si elle existe, sinon une nouvelle (transparente au départ) ; teinte neutre au
+			-- départ. Ce qui est créé ici est détruit au retour à l'éclairage d'origine.
+			local crees = {}
+			local function creer(classe: string, props): Instance
+				local objet = Instance.new(classe)
+				objet.Name = "AmbianceZone8"
+				for k, v in props do
+					(objet :: any)[k] = v
+				end
+				objet.Parent = Lighting
+				table.insert(crees, objet)
+				return objet
+			end
+			local A = REGLAGES.Atmosphere
+			local brume = Lighting:FindFirstChildOfClass("Atmosphere")
+				or creer("Atmosphere", { Color = A.Color, Decay = A.Decay, Density = 0, Haze = 0, Glare = 0 })
+			local teinte = creer("ColorCorrectionEffect",
+				{ TintColor = Color3.new(1, 1, 1), Brightness = 0, Contrast = 0, Saturation = 0 })
+			local cibles = { [Lighting] = REGLAGES.Lighting, [brume] = A, [teinte] = REGLAGES.ColorCorrectionEffect }
+			local origine = {}
+			for objet, props in cibles do
+				origine[objet] = {}
+				for k in props do
+					origine[objet][k] = (objet :: any)[k]
+				end
+			end
+			etat = { cibles = cibles, origine = origine, crees = crees }
+		end
+		fondu(etat.cibles)
+	end
+
+	local function sortir()
+		local crees = etat.crees
+		fondu(etat.origine, function()
+			if not dedans then -- (l'événement peut arriver un peu après : le joueur est peut-être déjà revenu)
+				for _, objet in crees do
+					objet:Destroy()
+				end
+				etat = nil
+			end
+		end)
+	end
+
+	task.spawn(function()
+		while true do
+			-- Avec StreamingEnabled, le modèle peut être déchargé puis renvoyé (nouvelle instance) : on le retrouve.
+			if not modele.Parent and conteneur then
+				modele = conteneur:FindFirstChild(nom) or modele
+			end
+			local perso = joueur.Character -- relu à chaque relevé : suit les réapparitions
+			local racine = perso and perso:FindFirstChild("HumanoidRootPart")
+			if racine then
+				local p = modele:GetPivot():PointToObjectSpace(racine.Position) -- position dans le repère de la zone
+				local marge = if dedans then REGLAGES.marge else 0
+				local ici = modele.Parent ~= nil
+					and modele:GetAttribute("AmbianceActive") ~= false
+					and dansBoite(p, modele:GetAttribute("BornesMin"), modele:GetAttribute("BornesMax"), marge)
+				if ici ~= dedans then
+					dedans = ici
+					if ici then
+						entrer()
+					else
+						sortir()
+					end
+				end
+			end
+			task.wait(REGLAGES.periode)
+		end
+	end)
+end
+]==]
+ambiance.Parent = outils
+
+-- LocalScript de lancement : inactif dans le modèle (Workspace), il sert dès qu'on le place dans StarterPlayerScripts
+local lanceur = Instance.new("LocalScript")
+lanceur.Name = "AmbianceZone8"
+lanceur.Source = [==[
+-- Ambiance sombre de la zone 8 (royaume des mages) : dans la zone, le ciel passe à un crépuscule violet et
+-- cramoisi ; à la sortie, l'éclairage d'origine revient. Effet propre à chaque joueur.
+-- À placer dans StarterPlayer › StarterPlayerScripts (rangé dans le modèle de la zone, il ne s'exécute pas).
+-- Réglages : ModuleScript Outils.Ambiance du modèle. Couper l'effet : attribut AmbianceActive du modèle à false
+-- (ou supprimer ce script). Zone renommée ou rangée dans un dossier : adaptez le chemin ci-dessous.
+-- La zone est attendue sans limite de temps : avec StreamingEnabled, elle n'arrive qu'à l'approche du joueur.
+local zone = workspace:WaitForChild("ZoneBlackClover", math.huge)
+require(zone:WaitForChild("Outils"):WaitForChild("Ambiance"))(zone)
+]==]
+lanceur.Parent = outils
+
+-- Contrôle : chaque script intégré doit compiler (une erreur de syntaxe arrête l'export)
+for _, s in { module, ambiance, lanceur } do
+	local ok, err = pcall(luau.compile, s.Source)
+	assert(ok, ("script %s : %s"):format(s.Name, tostring(err)))
+end
+
 zone:SetAttribute("Version", meta.version or "1")
 zone:SetAttribute("LargeurCouloir", meta.largeur_couloir or 60)
 zone:SetAttribute("Longueur", meta.longueur or 400)
+-- Bornes de la zone (repère du pivot), arrondies au dixième vers l'extérieur ; AmbianceActive = false coupe l'ambiance.
+local function versBas(v: number): number
+	return math.floor(v * 10 + 1e-6) / 10
+end
+local function versHaut(v: number): number
+	return math.ceil(v * 10 - 1e-6) / 10
+end
+assert(counts.parts > 0, "parts.json ne contient aucune pièce")
+zone:SetAttribute("BornesMin", Vector3.new(versBas(bornesMin[1]), versBas(bornesMin[2]), versBas(bornesMin[3])))
+zone:SetAttribute("BornesMax", Vector3.new(versHaut(bornesMax[1]), versHaut(bornesMax[2]), versHaut(bornesMax[3])))
+zone:SetAttribute("AmbianceActive", true)
 
 -- Écriture du modèle -------------------------------------------------------------
 if not fs.isDir(outDir) then
@@ -381,6 +595,14 @@ rays.Intensity = 0.04
 rays.Spread = 0.6
 rays.Parent = lighting
 
+-- Ambiance sombre : le LocalScript de lancement tourne depuis StarterPlayer › StarterPlayerScripts, comme dans
+-- votre jeu ; il attend workspace.ZoneBlackClover puis appelle Outils.Ambiance.
+local starterPlayer = game:GetService("StarterPlayer")
+local scriptsJoueur = Instance.new("StarterPlayerScripts")
+scriptsJoueur.Parent = starterPlayer
+Instance.new("StarterCharacterScripts").Parent = starterPlayer
+copy.Outils.AmbianceZone8:Clone().Parent = scriptsJoueur
+
 local placePath = outDir .. "/ZoneBlackClover-demo.rbxl"
 fs.writeFile(placePath, roblox.serializePlace(game))
 
@@ -394,9 +616,20 @@ for _, d in back[1]:GetDescendants() do
 end
 local place = roblox.deserializePlace(fs.readFile(placePath))
 assert(nParts == counts.parts, "relecture : nombre de pièces différent")
-assert(place:GetService("Workspace"):FindFirstChild(zone.Name), "relecture : zone absente de la place")
+local zonePlace = place:GetService("Workspace"):FindFirstChild(zone.Name)
+assert(zonePlace, "relecture : zone absente de la place")
 local pivot = back[1].WorldPivotData
 assert(pivot ~= nil and pivot.Position.Magnitude < 1e-6, "relecture : pivot du modèle absent ou déplacé")
+-- ambiance : bornes, module et LocalScript relus dans le modèle et dans la place
+local bmin, bmax = back[1]:GetAttribute("BornesMin"), back[1]:GetAttribute("BornesMax")
+assert(typeof(bmin) == "Vector3" and typeof(bmax) == "Vector3", "relecture : attributs BornesMin / BornesMax absents")
+assert(zonePlace:GetAttribute("BornesMax") == bmax, "relecture : bornes absentes de la zone de la place")
+local moduleLu = back[1].Outils:FindFirstChild("Ambiance")
+assert(moduleLu and moduleLu:IsA("ModuleScript") and moduleLu.Source == ambiance.Source, "relecture : module Outils.Ambiance")
+local spsLu = place:GetService("StarterPlayer"):FindFirstChildOfClass("StarterPlayerScripts")
+local lanceurLu = spsLu and spsLu:FindFirstChild("AmbianceZone8")
+assert(lanceurLu and lanceurLu:IsA("LocalScript") and lanceurLu.Source == lanceur.Source,
+	"relecture : LocalScript AmbianceZone8 absent de StarterPlayerScripts")
 
 print(serde.encode("json", {
 	modele = modelPath,
@@ -406,4 +639,6 @@ print(serde.encode("json", {
 	textures_posees = counts.textures,
 	panneaux = counts.labels,
 	pivot = { pivot.Position.X, pivot.Position.Y, pivot.Position.Z },
+	bornes = { min = { bmin.X, bmin.Y, bmin.Z }, max = { bmax.X, bmax.Y, bmax.Z } },
+	ambiance = "Outils.Ambiance + StarterPlayerScripts.AmbianceZone8",
 }, false))
