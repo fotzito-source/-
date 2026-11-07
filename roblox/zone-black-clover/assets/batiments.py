@@ -466,8 +466,8 @@ def _lierre(b, rng, x, y_haut, z, n=4, sens=1, larg=1.6):
     for i in range(n):
         w = float(rng.uniform(0.7, 1.0)) * larg
         h = float(rng.uniform(1.4, 2.4))
-        b.box((xc - w / 2, y - h, z - 0.12 - 0.08 * i), (xc + w / 2, y, z + 0.05), tons[i % 3], name="Lierre", **DECO)
-        xc += sens * float(rng.uniform(-0.3, 0.6)) * larg * 0.5
+        b.box((xc - w / 2, y - h, z - 0.36 - 0.1 * i), (xc + w / 2, y, z + 0.05), tons[i % 3], name="Lierre", **DECO)
+        xc += sens * float(rng.uniform(0.0, 0.3)) * larg * 0.5
         y -= h * float(rng.uniform(0.55, 0.8))
         if y < 0.8:
             break
@@ -668,9 +668,8 @@ def _chaumiere(b, v, L, P, niv):
         eviter += [(x0 - 0.3, 0, x0 + 1.4, H), (x1 - 1.4, 0, x1 + 0.3, H)]
     if niv < 2:
         _pierres(b, rng, 6 if niv == 0 else 3, (x0 + 1.4, x1 - 1.4), (0.9, H - 0.4), zf, eviter, base=mur)
-    if v in (0, 2) and niv < 2:
-        xl_ = (x0 + 1.75) if v == 0 else (x1 - 1.75)
-        _lierre(b, rng, xl_, H - 0.1, zf, n=3, sens=1 if v == 0 else -1, larg=1.3)
+    if v == 0 and niv < 2:
+        _lierre(b, rng, x0 + 1.15, H - 0.1, zf, n=3, sens=-1, larg=1.3)
 
     # --- toits
     if pignon:
