@@ -269,7 +269,7 @@ def _croupe(b, rng, x0, x1, z0, z1, ye, pente, toit, *, ep=0.6, ext=0.4, name="T
 
 def _toit_gouttereau(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, deb_av=0.8, deb_ar=0.6, rive=0.4,
                      comble="plein", ep_pignon=0.9, av=None, ar=None, faitage="ardoise", gradins=0.0,
-                     couleur_gradins=None):
+                     couleur_gradins=None, boudins=False):
     """Toit à deux pans dont le GOUTTEREAU regarde la rue (faîtage le long de X) sur des murs x0..x1 / zf..zb de
     hauteur H. comble : "plein" (deux coins pleine profondeur couleur `mur`), "pignons" (deux pignons minces, comble
     vide pour un toit crevé) ou None. av / ar : morceaux de pan [(xa, xb, t0, t1)] (t de l'égout 0 au faîtage 1),
@@ -313,6 +313,25 @@ def _toit_gouttereau(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, deb
             A2, B2 = _decale(A, B, gradins)
             _pan_z(b, A2[0], A2[1], B2[0], B2[1], xa, xb, 0.55 + gradins, vr(cg, rng, 0.03),
                    ext_a=0.25 if sens > 0 else 0.0, ext_b=0.25 if sens < 0 else 0.0, name="Gradin")
+    if boudins:
+        # égout de chaume arrondi : un boudin le long de chaque égout entier
+        e_tot = ep + max(gradins, 0.0)
+        for (E, sens, morceaux) in ((E_av, 1, av), (E_ar, -1, ar)):
+            bas = [m_ for m_ in morceaux if m_[2] <= 0.0]
+            if not bas:
+                continue
+            xa = min(m_[0] for m_ in bas) + 0.12
+            xb = max(m_[1] for m_ in bas) - 0.12
+            A, B = (E, Rg) if sens > 0 else (Rg, E)
+            du, dy = B[0] - A[0], B[1] - A[1]
+            L_ = math.hypot(du, dy)
+            nu, ny = -dy / L_, du / L_
+            if ny < 0:
+                nu, ny = -nu, -ny
+            cz = E[0] + nu * (gradins - ep) / 2
+            cy = E[1] + ny * (gradins - ep) / 2
+            b.cyl(((xa + xb) / 2, cy, cz), e_tot / 2 + 0.06, xb - xa, shade(col(couleur_gradins or toit), 0.88), axis="x",
+                  name="Egout")
     if faitage == "ardoise":
         b.box((x0 - rive - 0.25, yr - 0.75 * pente - 0.3, zm - 0.75), (x1 + rive + 0.25, yr + 0.5, zm + 0.75),
               shade(t, 0.72), studs="top", name="Faitage")
@@ -328,7 +347,7 @@ def _toit_gouttereau(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, deb
 
 def _toit_pignon(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, rive_av=0.5, rive_ar=0.4, deb=0.5,
                  comble="plein", ep_pignon=0.9, gauche=None, droite=None, faitage="ardoise", gradins=0.0,
-                 couleur_gradins=None, rives=None):
+                 couleur_gradins=None, rives=None, boudins=False):
     """Toit à deux pans dont le PIGNON regarde la rue (faîtage le long de Z) sur des murs x0..x1 / zf..zb de
     hauteur H. comble : "plein", "pignons" ou None (voir _toit_gouttereau). gauche / droite : morceaux de pan
     [(za, zb, t0, t1)] côté x0 / côté x1. rives : couleur des planches de rive du pignon avant (None : aucune).
@@ -379,6 +398,24 @@ def _toit_pignon(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, rive_av
             A2, B2 = _decale(A, B, 0.12)
             _pan_x(b, A2[0], A2[1], B2[0], B2[1], za - 0.25, za + 0.2, ep + 0.25, rc, ext_a=ea, ext_b=eb,
                    studs="none", name="Rive", **DECO)
+    if boudins:
+        e_tot = ep + max(gradins, 0.0)
+        for (E, sens, morceaux) in ((E_g, 1, gauche), (E_d, -1, droite)):
+            bas = [m_ for m_ in morceaux if m_[2] <= 0.0]
+            if not bas:
+                continue
+            z0 = min(m_[0] for m_ in bas) + 0.12
+            z1 = max(m_[1] for m_ in bas) - 0.12
+            A, B = (E, Rg) if sens > 0 else (Rg, E)
+            du, dy = B[0] - A[0], B[1] - A[1]
+            L_ = math.hypot(du, dy)
+            nu, ny = -dy / L_, du / L_
+            if ny < 0:
+                nu, ny = -nu, -ny
+            cx = E[0] + nu * (gradins - ep) / 2
+            cy = E[1] + ny * (gradins - ep) / 2
+            b.cyl((cx, cy, (z0 + z1) / 2), e_tot / 2 + 0.06, z1 - z0, shade(col(couleur_gradins or toit), 0.88), axis="z",
+                  name="Egout")
     if faitage == "ardoise":
         b.box((xm - 0.75, yr - 0.75 * pente - 0.3, za - 0.35), (xm + 0.75, yr + 0.5, zz + 0.35), shade(t, 0.72),
               studs="top", name="Faitage")
@@ -395,15 +432,18 @@ def _toit_pignon(b, rng, x0, x1, zf, zb, H, pente, toit, mur, *, ep=0.6, rive_av
 # Éléments de façade (plan z, extérieur vers -z)
 # ---------------------------------------------------------------------------
 
-def _pierres(b, rng, n, xr, yr, z0, eviter, couleurs=PIXELS, prot=0.14, name="Pierre"):
+def _pierres(b, rng, n, xr, yr, z0, eviter, couleurs=None, prot=0.14, name="Pierre", base=None):
     """Pierres isolées en saillie (« pixels » de 3-4 tons) sur une façade (plan z0, extérieur -z), hors des
-    rectangles `eviter` [(x0, y0, x1, y1)]."""
+    rectangles `eviter` [(x0, y0, x1, y1)]. Sans `couleurs`, les tons sont tirés du mur `base` (plus sombres et plus
+    clairs que lui, pour que les pierres se lisent de loin)."""
+    if couleurs is None:
+        couleurs = PIXELS if base is None else (shade(base, 0.7), shade(base, 0.82), shade(base, 1.14), shade(base, 1.24))
     poses: list = []
     essais = 0
     while len(poses) < n and essais < 40 * max(1, n):
         essais += 1
-        w = float(rng.choice((1.0, 1.4, 1.8, 2.2)))
-        h = float(rng.choice((0.6, 0.8, 1.0)))
+        w = float(rng.choice((1.2, 1.6, 2.0, 2.6)))
+        h = float(rng.choice((0.6, 0.8, 1.0, 1.2)))
         if xr[1] - xr[0] < w + 0.2 or yr[1] - yr[0] < h + 0.1:
             break
         x = round(float(rng.uniform(xr[0] + w / 2, xr[1] - w / 2)) * 10) / 10
@@ -416,6 +456,26 @@ def _pierres(b, rng, n, xr, yr, z0, eviter, couleurs=PIXELS, prot=0.14, name="Pi
         b.box((r[0], r[1], z0 - prot), (r[2], r[3], z0 + 0.05), vr(couleurs[int(rng.integers(len(couleurs)))], rng, 0.03),
               name=name, **DECO)
     return poses
+
+
+def _lierre(b, rng, x, y_haut, z, n=4, sens=1, larg=1.6):
+    """Lierre qui dégouline d'un point haut (x, y_haut) d'un mur (plan z, extérieur -z) : n plaques de feuillage de
+    deux verts, décalées, chacune un peu plus saillante que la précédente (aucune face coplanaire)."""
+    tons = (col("lierre"), col("lierre_clair"), shade(col("lierre"), 0.8))
+    xc, y = x, y_haut
+    for i in range(n):
+        w = float(rng.uniform(0.7, 1.0)) * larg
+        h = float(rng.uniform(1.4, 2.4))
+        b.box((xc - w / 2, y - h, z - 0.12 - 0.08 * i), (xc + w / 2, y, z + 0.05), tons[i % 3], name="Lierre", **DECO)
+        xc += sens * float(rng.uniform(-0.3, 0.6)) * larg * 0.5
+        y -= h * float(rng.uniform(0.55, 0.8))
+        if y < 0.8:
+            break
+
+
+def _pale(base, f=1.3):
+    """Pierre d'angle plus claire que le mur."""
+    return shade(base, f)
 
 
 def _chaine(b, rng, xc, zc, sx, y0, y1, couleur, prot=0.22, h=1.3, a=1.2, c_=0.7, pas=1):
@@ -563,7 +623,8 @@ def _chaumiere(b, v, L, P, niv):
     pignon = v == 1
     H = 4.8 if pignon else 5.4
     zbc = zf + min(6.6, P - 5.0) if v == 3 else zb              # v3 : corps le long de la rue, aile derrière
-    chaume_toit, chaume_clair = vr("chaume_fonce", rng, 0.03), vr("chaume", rng, 0.03)
+    chaume_toit = vary(mix(c("chaume_fonce"), c("bois_fonce"), 0.22), rng, 0.03)
+    chaume_clair = vary(mix(c("chaume"), c("chaume_fonce"), 0.25), rng, 0.03)
     b.box((x0, 0, zf), (x1, H, zbc), mur, name="Mur")
     b.box((x0 - 0.2, 0, zf - 0.2), (x1 + 0.2, 0.7, zbc + 0.2), vr("moellon_fonce", rng, 0.04), studs="top",
           name="Soubassement")
@@ -579,7 +640,7 @@ def _chaumiere(b, v, L, P, niv):
 
     sombre = col("bois_noir")
     if v == 0:
-        porte(1.2 * s, 2.2, 4.1)
+        porte(1.2 * s, 2.2, 4.1, bois="cramoisi_fonce")
         fen(-3.3 * s, 1.8, 1.8, 1.7, allumee=True, meneau="bois_noir", appui="moellon_clair")
         fen(4.0 * s, 1.9, 1.4, 1.5, appui="moellon_clair", planches="bois_gris" if niv < 2 else None)
     elif v == 1:
@@ -590,7 +651,7 @@ def _chaumiere(b, v, L, P, niv):
         fen(3.0 * s, 1.8, 1.8, 1.7, appui="moellon_clair", volets="cramoisi_fonce" if niv < 2 else None)
         fen(-4.3 * s, 1.9, 1.4, 1.5, allumee=True, appui="moellon_clair")
     elif v == 3:
-        porte(-1.4 * s, 2.0, 4.0)
+        porte(-1.4 * s, 2.0, 4.0, bois=shade(col("toile_nuit"), 0.85))
         fen(2.4 * s, 1.8, 1.6, 1.6, allumee=True, meneau="bois_noir", appui="moellon_clair")
     else:
         porte(1.2 * s, 2.2, 4.1, noire=True, linteau="bois_brule")
@@ -603,15 +664,19 @@ def _chaumiere(b, v, L, P, niv):
     # chaînes d'angle et pierres en saillie
     if niv < 3:
         for (xc, sx) in ((x0, 1), (x1, -1)):
-            _chaine(b, rng, xc, zf, sx, 0.7, H - 0.05, "moellon_clair", h=1.55, a=1.1, c_=0.7)
+            _chaine(b, rng, xc, zf, sx, 0.7, H - 0.05, _pale(mur), h=1.18, a=1.1, c_=0.7)
         eviter += [(x0 - 0.3, 0, x0 + 1.4, H), (x1 - 1.4, 0, x1 + 0.3, H)]
     if niv < 2:
-        _pierres(b, rng, 4 if niv == 0 else 2, (x0 + 1.4, x1 - 1.4), (0.9, H - 0.4), zf, eviter)
+        _pierres(b, rng, 6 if niv == 0 else 3, (x0 + 1.4, x1 - 1.4), (0.9, H - 0.4), zf, eviter, base=mur)
+    if v in (0, 2) and niv < 2:
+        xl_ = (x0 + 1.75) if v == 0 else (x1 - 1.75)
+        _lierre(b, rng, xl_, H - 0.1, zf, n=3, sens=1 if v == 0 else -1, larg=1.3)
 
     # --- toits
     if pignon:
         R = _toit_pignon(b, rng, x0, x1, zf, zb, H, 1.1, chaume_toit, mur, ep=1.15, rive_av=0.9, rive_ar=0.6, deb=0.5,
-                         faitage="chaume", gradins=0.32 if niv < 2 else 0.0, couleur_gradins=chaume_clair)
+                         faitage="chaume", gradins=0.32 if niv < 2 else 0.0, couleur_gradins=chaume_clair,
+                         boudins=niv < 3)
         haut = R["haut"]
         # fenêtre du comble, allumée
         _fenetre(b, 0, H + 1.6, 1.3, 1.5, zf, allumee=True, linteau="bois_noir", appui=None)
@@ -624,7 +689,7 @@ def _chaumiere(b, v, L, P, niv):
         yc = _cheminee(b, rng, x1 - 2.2, zb - 2.6, H + 2.0, min(14.1, R["yr"] + 1.2), "moellon_fonce", penche=-3.0)
         haut = max(haut, yc)
     elif v == 2:
-        ardoise = vr("ardoise", rng, 0.03)
+        ardoise = vary(mix(c("ardoise_fonce"), c("ardoise_bleue"), 0.4), rng, 0.03)
         R = _toit_gouttereau(b, rng, x0, x1, zf, zbc, H, 1.3, ardoise, mur, ep=0.55, deb_av=0.7, deb_ar=0.6, rive=0.4,
                              faitage="ardoise")
         haut = R["haut"]
@@ -634,7 +699,8 @@ def _chaumiere(b, v, L, P, niv):
             Rg = (R["zm"], R["yr"])
             for (xa, xb, t0, t1) in ((x0 + 0.6, x0 + 3.4, 0.04, 0.3), (1.0, 3.6, 0.15, 0.4), (x1 - 2.6, x1 + 0.2, 0.55, 0.8)):
                 A, B = _decale(_lerp(E, Rg, t0), _lerp(E, Rg, t1), 0.12)
-                _pan_z(b, A[0], A[1], B[0], B[1], xa, xb, 0.3, vr("mousse", rng, 0.05), name="Mousse", **DECO)
+                _pan_z(b, A[0], A[1], B[0], B[1], xa, xb, 0.3, vary(mix(c("mousse"), c("herbe_morte"), 0.35), rng, 0.05),
+                       name="Mousse", **DECO)
         yc = _cheminee(b, rng, x0 + 2.0, R["zm"] + 0.8, H + 3.0, min(14.1, R["yr"] + 1.0), "moellon_fonce", penche=4.0)
         haut = max(haut, yc)
     elif v == 4:
@@ -644,7 +710,7 @@ def _chaumiere(b, v, L, P, niv):
         ar = [(-0.5 * s, x1 + rv + 0.1, 0.0, 1.0)]
         R = _toit_gouttereau(b, rng, x0, x1, zf, zb, H, 1.1, chaume_toit, mur, ep=1.15, deb_av=0.9, deb_ar=0.7, rive=rv,
                              comble="pignons", av=av, ar=ar, faitage=None, gradins=0.32 if niv < 2 else 0.0,
-                             couleur_gradins=chaume_clair)
+                             couleur_gradins=chaume_clair, boudins=niv < 3)
         zm, yr, k = R["zm"], R["yr"], R["k"]
         # boudin de faîtage sur la moitié restée debout
         xg, xd_ = 0.8 * s - 0.6, x1 + rv + 0.2
@@ -669,7 +735,7 @@ def _chaumiere(b, v, L, P, niv):
         # v0 et v3 : chaume en gradins, faîtage parallèle à la rue
         R = _toit_gouttereau(b, rng, x0, x1, zf, zbc, H, 1.02 if v == 0 else 1.2, chaume_toit, mur, ep=1.15, deb_av=0.9,
                              deb_ar=0.7, rive=0.45, faitage="chaume", gradins=0.32 if niv < 2 else 0.0,
-                             couleur_gradins=chaume_clair)
+                             couleur_gradins=chaume_clair, boudins=niv < 3)
         haut = R["haut"]
         if v == 0:
             yc = _cheminee(b, rng, x1 - 1.6, R["zm"] + 0.6, H + 2.0, min(14.1, R["yr"] + 1.4), "moellon_fonce",
@@ -784,7 +850,7 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
     auberge = enseigne == "AUBERGE"
     colomb = v == 2 and n >= 2
     if v == 1:
-        mur = vary(mix(c("pierre"), c("pierre_fonce"), 0.45), rng, 0.03)
+        mur = vary(mix(c("pierre_fonce"), c("pierre"), 0.3), rng, 0.03)
         clair = "pierre_pale"
     else:
         mur = _mur(rng, 0.3)
@@ -812,9 +878,9 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         for (xc, s_) in ((x0, 1), (x1, -1)):
             if forge and s_ > 0:
                 continue
-            _chaine(b, rng, xc, zf, s_, 0.8, (H1 - 0.5) if n >= 2 else Hm - 0.05, clair, h=1.4, a=1.2, c_=0.75)
+            _chaine(b, rng, xc, zf, s_, 0.8, (H1 - 0.5) if n >= 2 else Hm - 0.05, _pale(mur), h=1.4, a=1.2, c_=0.75)
             if n >= 2 and not colomb:
-                _chaine(b, rng, xc, zf, s_, H1, Hm - 0.05, clair, h=1.5, a=1.2, c_=0.75, pas=2 if niv > 0 else 1)
+                _chaine(b, rng, xc, zf, s_, H1, Hm - 0.05, _pale(mur), h=1.5, a=1.2, c_=0.75, pas=2 if niv > 0 else 1)
         eviter += [(x0 - 0.3, 0, x0 + 1.5, Hm), (x1 - 1.5, 0, x1 + 0.3, Hm)]
 
     # --- rez
@@ -877,7 +943,8 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         with b.at((xp + (2.8 if xp <= 0 else -2.8), 0, zf - 1.3)):
             mobilier.tonneaux(b, variant=1)
     if niv < 2:
-        _pierres(b, rng, 3, (x0 + 1.5, x1 - 1.5), (1.0, H1 - 0.8), zf, eviter + [(xl - 0.7, 1.9, xl + 0.7, 5.5)])
+        _pierres(b, rng, 5, (x0 + 1.5, x1 - 1.5), (1.0, H1 - 0.8), zf, eviter + [(xl - 0.7, 1.9, xl + 0.7, 5.5)],
+                 base=mur)
 
     # --- étage
     if colomb:
@@ -901,7 +968,7 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
                 _fenetre(b, xw, H1 + 1.6, 1.8, 2.4, zf, allumee=al, linteau="bois_noir", appui=clair,
                          volets=("bois_fonce" if v == 0 else "cramoisi_fonce") if niv < 1 else None)
         if niv < 2 and n >= 2:
-            _pierres(b, rng, 2, (x0 + 1.5, x1 - 1.5), (H1 + 0.6, H - 0.6), zf,
+            _pierres(b, rng, 3, (x0 + 1.5, x1 - 1.5), (H1 + 0.6, H - 0.6), zf, base=mur, eviter=
                      [(-6.6, H1, -1.8, H), (-0.1, H1, 6.2, H), (-1.2, H1 + 2.5, 0.2, H1 + 5.5)])
     if enseigne:
         if forge:
@@ -912,7 +979,8 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
             _enseigne(b, enseigne, 2, 0.0, H1 + 4.2, zg, zf - 8.5)
 
     # --- toit
-    ardoise = vr(("ardoise", "ardoise_fonce", "ardoise", "ardoise_bleue")[v], rng, 0.03)
+    ardoise = vary(mix(c("ardoise_fonce"), c(("ardoise_bleue", "ardoise_fonce", "ardoise", "ardoise_bleue")[v]), 0.35),
+                   rng, 0.03)
     if v == 1:
         ye = H + 0.6
         yr = _croupe(b, rng, x0 - 0.45, x1 + 0.45, zf - 0.6, zb + 0.5, ye, 1.25, ardoise, ep=0.6)
@@ -939,7 +1007,15 @@ def _maison_pierre(b, v, L, P, n, enseigne, niv):
         # fenêtres du comble
         _fenetre(b, 0, H + 1.6, 1.4, 1.9, zg, allumee=(v != 0), linteau="bois_noir" if not colomb else None,
                  appui=None)
-        if niv < 2:
+        if not colomb and niv < 2:
+            # porte de grenier dans le pignon, poutre de palan et poulie
+            yg = H + 5.4
+            b.box((-0.9, yg, zg - 0.14), (0.9, yg + 2.3, zg + 0.05), col("bois_fonce"), name="PorteGrenier", **DECO)
+            b.box((-1.2, yg + 2.3, zg - 0.3), (1.2, yg + 2.75, zg + 0.05), col("bois_noir"), name="Linteau", **DECO)
+            b.box((-0.25, yg + 3.3, zg - 1.9), (0.25, yg + 3.8, zg + 0.6), col("bois_noir"), name="Palan")
+            b.cyl((0, yg + 3.0, zg - 1.6), 0.28, 0.3, col("fer_fonce"), axis="x", name="Poulie", **DECO)
+            _pierres(b, rng, 2, (-4.0, 4.0), (H + 0.6, H + 4.6), zg, [(-1.6, H + 1.0, 1.6, H + 4.4)], base=mur)
+        elif niv < 2:
             _fenetre(b, 0, H + 6.6, 0.9, 1.3, zg, linteau=None, verre="fenetre")
         # lucarne sur le pan tourné vers l'entrée
         if niv < 3:
@@ -975,7 +1051,9 @@ def _ruine(b, v, L, P, niv):
     brule = col("bois_brule")
 
     def pierre():
-        return vary(mix(c("moellon_fonce"), c("pierre_noire"), float(rng.uniform(0.15, 0.55))), rng, 0.03)
+        if rng.random() < 0.25:
+            return vary(mix(c("moellon_fonce"), c("pierre_noire"), 0.6), rng, 0.03)
+        return vary(mix(c("moellon"), c("moellon_fonce"), float(rng.uniform(0.3, 0.8))), rng, 0.04)
 
     def mur(xa, xb, za, zz, h, y0=0.0, name="Mur"):
         if h - y0 > 0.1 and xb - xa > 0.1 and zz - za > 0.1:
@@ -1105,9 +1183,9 @@ def _grange(b, v, L, P, niv):
     x0, x1 = -L / 2 + 0.6, L / 2 - 0.6
     zf, zb = -P / 2, P / 2 - 0.5
     H = 7.0
-    socle = _mur(rng, 0.3)
-    planche = vr("bois_gris", rng, 0.03)
-    planche2 = vary(mix(c("bois_gris"), c("bois_mort"), 0.55), rng, 0.03)
+    socle = vary(mix(c("moellon_fonce"), c("pierre_ombre"), 0.35), rng, 0.03)
+    planche = vary(mix(c("bois_gris"), c("bois_clair"), 0.3), rng, 0.03)
+    planche2 = vary(mix(c("bois_gris"), c("bois_mort"), 0.6), rng, 0.03)
     noir = col("noir")
     b.box((x0, 0, zf), (x1, 2.0, zb), socle, studs="top", name="Soubassement")
     b.box((x0 + 0.25, 2.0, zf + 0.25), (x1 - 0.25, H, zb - 0.25), planche, name="Planches")
@@ -1330,6 +1408,17 @@ def _moulin(b, v, niv):
     for i, (r, y0, y1) in enumerate(tambours):
         b.cyl((0, (y0 + y1) / 2, 0), r, y1 - y0, pierre[i], studs="top", name="Tour")
     b.cyl((0, 21.9, 0), 5.0, 0.6, vr("bois_noir", rng, 0.03), studs="top", name="Rail")
+    # galerie de bois à mi-hauteur : plancher, jambes de force, poteaux de garde-corps
+    if niv < 2:
+        yg = 9.5
+        b.cyl((0, yg - 0.2, 0), 6.5, 0.4, vr("bois_fonce", rng, 0.03), studs="top", name="Galerie")
+        for k_ in range(6):
+            ar = math.radians(60 * k_)
+            ux, uz = math.sin(ar), -math.cos(ar)
+            _poutre(b, (4.9 * ux, yg - 2.3, 4.9 * uz), (6.1 * ux, yg - 0.35, 6.1 * uz), 0.3, col("bois_noir"),
+                    name="Jambe", **DECO)
+            b.box((6.15 * ux - 0.15, yg, 6.15 * uz - 0.15), (6.15 * ux + 0.15, yg + 1.4, 6.15 * uz + 0.15),
+                  col("bois_noir"), name="Poteau", **DECO)
     # pierres en saillie (pixels), porte, fenêtres
     if niv < 2:
         for k in range(7 if niv == 0 else 3):
@@ -1367,10 +1456,10 @@ def _moulin(b, v, niv):
     for i in range(4):
         th = theta0 + 90 * i
         if v in (0, 3):
-            toile = ("toile_grise", None, "toile_ecru", None)[i]
+            toile = (shade(col("toile_grise"), 0.82), None, shade(col("toile_ecru"), 0.68), None)[i]
             _aile(b, hub, th, 12.4 if i != 3 else 6.8, 2.5, bois, toile=toile, dechiree=True, cassee=(i == 3), zs=-7.6)
         elif v == 1:
-            _aile(b, hub, th, 12.4, 2.5, bois, toile=("toile_ecru", "toile_grise")[i % 2], zs=-7.6)
+            _aile(b, hub, th, 12.4, 2.5, bois, toile=shade(col(("toile_ecru", "toile_grise")[i % 2]), 0.72), zs=-7.6)
         else:
             _aile(b, hub, th, 12.4, 2.5, bois, zs=-7.6)
     # sacs et meule au pied de la porte
@@ -1440,6 +1529,7 @@ def _eglise(b, v, L, P, niv):
     Hn, Hc = 12.5, 10.5
     mur = vary(mix(c("pierre_fonce"), c("moellon_fonce"), 0.45), rng, 0.03)
     mur_t = vary(mix(c("pierre_fonce"), c("moellon_fonce"), 0.25), rng, 0.03)
+    vitrail_neon = 0.62
     clair = "pierre"
     ardoise = vr("ardoise_fonce", rng, 0.03)
     ardoise2 = vr("ardoise", rng, 0.03)
@@ -1467,7 +1557,8 @@ def _eglise(b, v, L, P, niv):
             k = (i + (s_ > 0)) % 4
             brise = (k == 3) or (v == 0 and s_ == sx and i == 2)
             neon = (not brise) and n_neon < 3 and ((s_ == sx and i in (0, 3)) or (s_ != sx and i == 1))
-            verre = col("fenetre") if brise else (shade(col(VITRAUX[k % 3]), 0.8) if neon else col(VITRAUX[k % 3]))
+            verre = col("fenetre") if brise else (shade(col(VITRAUX[k % 3]), vitrail_neon) if neon else
+                                                  shade(col(VITRAUX[k % 3]), 0.85))
             n_neon += neon
             with b.at((s_ * wn, 0, zc), yaw=-90 * s_):
                 _lancette(b, 0, 3.8, 1.6, 5.0, 1.7, 0.0, verre, neon=neon, appui=clair,
@@ -1524,7 +1615,19 @@ def _eglise(b, v, L, P, niv):
     b.box((-2.9, 0.4, zf - 1.1), (2.9, 0.8, zf - 0.35), vr("pierre_fonce", rng, 0.03), studs="top", name="Marche")
     # oculus (rond simple, pas de remplage)
     b.cyl((0, 18.4, zf - 0.15), 2.0, 0.5, vr(clair, rng, 0.03), axis="z", name="Oculus", **DECO)
-    b.cyl((0, 18.4, zf - 0.22), 1.45, 0.56, shade(col("vitrail_violet"), 0.85), axis="z", name="Oculus", **NEON)
+    b.cyl((0, 18.4, zf - 0.22), 1.45, 0.56, shade(col("vitrail_violet"), 0.68), axis="z", name="Oculus", **NEON)
+    # pilastres d'angle au-dessus des contreforts, arcatures aveugles de part et d'autre de l'oculus
+    for s_ in (-1, 1):
+        xa, xb = sorted((s_ * (a + 0.25), s_ * (a - 0.75)))
+        b.box((xa, 18.0, zf - 0.25), (xb, 24.4, zf + 0.75), vr("pierre_fonce", rng, 0.03), name="Pilastre", **DECO)
+        if niv < 2:
+            _ogive(b, s_ * 3.15, 15.2, 0.9, 4.2, 1.0, zf - 0.12, zf + 0.05, col("pierre_ombre"), name="Arcature", **DECO)
+    # gargouilles sous la corniche, aux quatre angles
+    if niv < 2:
+        for xs_ in (-1, 1):
+            for zs_ in (-1, 1):
+                b.boxc((xs_ * (a + 0.35), 33.9, zmt + zs_ * (a + 0.35)), (0.55, 0.5, 1.9), col("pierre_ombre"),
+                       yaw=45 * xs_ * zs_, name="Gargouille", **DECO)
     # fentes des flancs du clocher
     if niv < 2:
         for s_ in (-1, 1):
@@ -1582,14 +1685,18 @@ def _eglise(b, v, L, P, niv):
     # ===== lierre, pierres en saillie
     if niv < 2:
         lierre = (col("lierre"), col("lierre_clair"))
-        # sur le pignon de la nef, à côté du clocher (côté opposé à l'entrée)
-        for i, (x_a, x_b, y_a, y_b, pr) in enumerate(((5.6, 7.4, 1.2, 8.4, 0.25), (6.8, 8.8, 4.0, 11.2, 0.4),
-                                                       (5.9, 7.0, 7.6, 13.0, 0.55))):
-            xa, xb = sorted((-sx * x_a, -sx * x_b))
-            b.box((xa, y_a, zn0 - pr), (xb, y_b, zn0 + 0.05), lierre[i % 2], name="Lierre", **DECO)
-        _pierres(b, rng, 4, (-a + 1.6, a - 1.6), (1.5, 24.0), zf - 0.0,
-                 [(-2.9, 0, 2.9, 9.2), (-2.4, 15.9, 2.4, 20.9), (-a, 12.3, a, 13.5), (-a, 17.5, -a + 1.2, 18.4),
-                  (a - 1.2, 17.5, a, 18.4)], couleurs=("pierre", "pierre_ombre", "moellon_fonce", "pierre_fonce"))
+        # lierre : sur le pignon de la nef à côté du clocher, et au pied du clocher (côté opposé à l'entrée)
+        _lierre(b, rng, -sx * 7.0, Hn + 0.4, zn0, n=4, sens=-sx, larg=1.8)
+        with b.at((-sx * a, 0, zmt + 1.5), yaw=90 * sx):
+            _lierre(b, rng, 0.0, 9.0, 0.0, n=3, sens=1, larg=1.5)
+        _pierres(b, rng, 7, (-a + 1.6, a - 1.6), (1.5, 24.0), zf,
+                 [(-2.9, 0, 2.9, 9.2), (-2.4, 15.9, 2.4, 20.9), (-a, 12.3, a, 13.5), (-a, 14.8, -2.3, 21.0),
+                  (2.3, 14.8, a, 21.0)], base=mur_t)
+        for s_ in (-1, 1):
+            with b.at((s_ * wn, 0, 0.0), yaw=-90 * s_):
+                _pierres(b, rng, 3, (-12.0, 13.0), (1.5, 3.2), 0.0,
+                         [(zc - 1.2, 0, zc + 1.2, 12) for zc in zcf] + [(bz - 1.4, 2.8, bz + 1.4, 12) for bz in baies],
+                         base=mur)
     return {"emprise": (L, P), "hauteur": round(haut, 2)}
 
 
@@ -1614,11 +1721,14 @@ _MARCHANDISES = {"POTIONS": ("lueur_verte", "cuir_rouge", "lueur_violette", "cui
 
 
 def _enduit(nom, rng):
+    """Enduit sourd et sali (jamais pastel)."""
     if nom == "gris_violet":
-        return vary(mix(c("enduit_gris"), c("violet_profond"), 0.22), rng, 0.03)
-    if nom == "creme_sali":
-        return vary(mix(c("enduit_creme"), c("pierre"), 0.35), rng, 0.03)
-    return vr(nom, rng, 0.03)
+        base = mix(c("enduit_gris"), c("violet_profond"), 0.25)
+    elif nom == "creme_sali":
+        base = mix(c("enduit_creme"), c("pierre"), 0.4)
+    else:
+        base = c(nom)
+    return vary(shade(mix(base, c("pierre_fonce"), 0.12), 0.93), rng, 0.03)
 
 
 def maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=None):
@@ -1858,7 +1968,7 @@ def _taverne(b, v, L, P, niv):
     zf, zb = -P / 2, P / 2 - 0.4
     H0, He = 7.0, 6.0
     rez = vary(mix(c("pierre_fonce"), c("moellon"), 0.4), rng, 0.03)
-    enduit = vr("enduit_ocre", rng, 0.03) if v == 0 else vr("enduit_rouge", rng, 0.03)
+    enduit = vary(shade(mix(c("enduit_ocre" if v == 0 else "enduit_rouge"), c("pierre_fonce"), 0.18), 0.94), rng, 0.03)
     bois = vary(c("bois_noir"), rng, 0.04)
     ardoise = vr("ardoise_fonce", rng, 0.03)
     clair = vr("pierre", rng, 0.03)
@@ -1913,7 +2023,7 @@ def _taverne(b, v, L, P, niv):
     pot = [x0 + 0.3, -5.5, 0.0, 5.5, x1 - 0.3]
     for k, (z, zp_, motif) in enumerate(((z1, zf, "croix"), (z2, z1, "echarpe"))):
         y = H0 + He * k
-        allum = [(xc, w, (i + k) % 2 == 0) for i, (xc, w) in enumerate(fen)]
+        allum = [(xc, w, (i + 2 * k) % 3 == 0) for i, (xc, w) in enumerate(fen)]
         _etage(b, x0, x1, y, He, z, zb, zp_, enduit, bois, allum, motif if niv < 2 else "echarpe",
                pan if niv < 3 else [], poteaux=pot if niv < 3 else None)
     H = H0 + 2 * He

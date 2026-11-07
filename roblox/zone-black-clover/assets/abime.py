@@ -14,12 +14,11 @@ quadrilobe, aucune étoile, aucune lettre ; fenêtres lancéolées et oculi simp
 from __future__ import annotations
 
 import math
-from contextlib import contextmanager
 
 import numpy as np
 
 from assets import mobilier
-from kit import mix, rot_x, rot_y, rot_z, shade
+from kit import rot_x, rot_y, rot_z, shade
 from palette import c, roche, vary
 
 DECO = dict(collide=False)
@@ -55,14 +54,6 @@ def _poutre(b, a, bb, ep, col, ep_z=None, ext=0.0, tors=0.0, name="Poutre", **kw
     if tors:
         R = R @ rot_x(tors)
     return b.part("block", (n + 2 * ext, ep, ep if ep_z is None else ep_z), (a + bb) / 2, R, col, name=name, **kw)
-
-
-def _barre(b, xa, ya, xb, yb, z0, z1, ep, col, ext=0.0, name="Barre", **kw):
-    """Barre dans un plan de façade (x, y), de (xa, ya) à (xb, yb), largeur `ep` dans le plan, profondeur z0..z1."""
-    L = math.hypot(xb - xa, yb - ya) + 2 * ext
-    ang = math.degrees(math.atan2(yb - ya, xb - xa))
-    return b.part("block", (L, ep, z1 - z0), ((xa + xb) / 2, (ya + yb) / 2, (z0 + z1) / 2), rot_z(ang), col,
-                  name=name, **kw)
 
 
 def _tri(b, M, C, A, ep, col, dehors, studs=False, name="Pan", **kw):
@@ -126,14 +117,12 @@ def _bx(b, s, u0, u1, y0, y1, z0, z1, col, **kw):
     return b.box((x0, y0, z0), (x1, y1, z1), col, **kw)
 
 
-@contextmanager
 def _face(b, cote: str, coord: float):
-    """Repère de façade : plan local z = 0 sur la face (`cote` = direction extérieure : -z, +z, -x, +x, placée en
-    `coord`), extérieur vers -z local, x local le long de la face (voir `_u`)."""
+    """Repère de façade (à utiliser avec `with`) : plan local z = 0 sur la face (`cote` = direction extérieure : -z,
+    +z, -x, +x, placée en `coord`), extérieur vers -z local, x local le long de la face (voir `_u`)."""
     yaw = {"-z": 0, "+z": 180, "+x": -90, "-x": 90}[cote]
     pos = (0, 0, coord) if cote in ("-z", "+z") else (coord, 0, 0)
-    with b.at(pos, yaw=yaw):
-        yield
+    return b.at(pos, yaw=yaw)
 
 
 def _u(cote: str, x: float, z: float = 0.0) -> float:
@@ -563,7 +552,7 @@ def _tunnel(b, xo, xt, hp, D, YC) -> None:
 
 def _donjon(b, D) -> None:
     """Donjon central en retrait de 9 sur la façade (z -16 → 23, 42 de large), au-dessus de la porte : contreforts à
-    larmiers, lancettes, couronne et la plus haute flèche (≈ 164)."""
+    larmiers, lancettes, couronne et la plus haute flèche (≈ 162)."""
     z0, z1 = -16.0, D - 2.0
     ch, cc, ca = c("chateau"), c("chateau_clair"), c("chateau_arete")
     b.box((-21, YG, z0), (21, 116, z1), cc, name="Donjon")
@@ -734,7 +723,7 @@ def chateau_demon(b, variant: int = 0, largeur: float = 478, profondeur: float =
     for s in (-1, 1):
         with b.group("Aile"):
             _aile(b, rng, s, xt, D, cols[s])
-    return {"emprise": (largeur, profondeur), "hauteur": 165}
+    return {"emprise": (largeur, profondeur), "hauteur": 163}
 
 
 # ---------------------------------------------------------------------------
@@ -858,7 +847,7 @@ def arbre_demon(b, variant: int = 0, hauteur: float = 150) -> dict:
             p = q
         pointes.append(p)
         for sg in (-1, 1):                           # deux crochets au sommet
-            a = cible_pt = p
+            a = p
             for m, (L3, el3) in enumerate(((4.0, 20), (3.2, -35))):
                 ph3 = math.radians(150 + 70 * sg)
                 d3 = np.array([math.cos(ph3) * math.cos(math.radians(el3)), math.sin(math.radians(el3)),
@@ -1185,7 +1174,7 @@ def racine_geante(b, variant: int = 0, longueur: float = 24, hauteur: float = 10
     v = variant % 4
     rng = np.random.default_rng(1201 + 7 * v)
     L, Hh = float(longueur), float(hauteur)
-    a, z_ = L / 2 - 1.7, 0.0
+    a = L / 2 - 1.7
     arcs = {0: [(-a, 0.42 * L, Hh)], 1: [(-a, 0.06 * L, Hh), (-0.06 * L, a, 0.55 * Hh)],
             2: [(-0.42 * L, a, 0.85 * Hh)], 3: [(-a, 0.22 * L, Hh), (0.12 * L, a, 0.45 * Hh)]}[v]
     ra, rc = c("racine"), c("racine_claire")
