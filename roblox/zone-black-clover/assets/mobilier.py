@@ -343,7 +343,7 @@ def epee_plantee(b, variant: int = 0) -> dict:
             b.part("cyl", (1.3, 0.34, 0.34), pt(long_ + 0.9), R @ rot_z(90), c("cuir_brun"), name="Poignee", **DECO)
             b.part("ball", (0.55, 0.55, 0.55), pt(long_ + 1.7), R, c("laiton"), name="Pommeau", **DECO)
             if v == 3:
-                b.part("block", (0.7, 1.6, 0.08), pt(long_ - 0.6) + np.array([0.5, 0, 0.12]), R, c("toile_cramoisie"),
+                b.part("block", (0.7, 1.6, 0.1), pt(long_ - 0.6) + np.array([0.5, 0, 0.13]), R, c("toile_cramoisie"),
                        name="Lambeau", **FIN)
     return {"emprise": (1.6, 1.4), "hauteur": long_ + 2.0}
 
@@ -741,7 +741,7 @@ def pierre_tombale(b, variant: int = 0) -> dict:
             b.wedge((0, 2.0, -0.2), (0.75, 2.8, 0.2), pierre, down="+x", name="Pointe")
         elif v == 2:
             b.part("block", (1.5, 2.1, 0.4), (0.2, 1.2, 0), rot_z(-14), pierre, name="Stele")
-            b.part("block", (0.12, 1.0, 0.42), (0.35, 1.7, 0), rot_z(-14) @ rot_z(25), c("fissure"), name="Fissure", **FIN)
+            b.part("block", (0.12, 1.0, 0.62), (0.35, 1.7, 0), rot_z(-14) @ rot_z(25), c("fissure"), name="Fissure", **FIN)
         else:
             b.box((-0.9, 0.3, -1.2), (0.9, 0.7, 1.2), pierre, studs="top", name="Dalle")
             b.box((-0.6, 0.3, 1.2), (0.6, 1.5, 1.5), pierre, name="Chevet")

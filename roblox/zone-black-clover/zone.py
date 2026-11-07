@@ -13,7 +13,16 @@ Repère Roblox (Y en haut, 1 unité = 1 stud) :
   démoniaque à droite, îlots flottants à gauche) et CHÂTEAU DÉMONIAQUE (-498 → -548) dont la porte (100 × 40,
   arc brisé au-dessus) débouche en z = -548 sur la zone suivante ;
 - côtés : champs labourés et blé, puis forêt de sapins sombres et d'arbres morts, puis falaises noires à cristaux
-  violets ; la montagne couronnée d'un château (capitale du royaume) se dresse au loin à gauche.
+  violets ; la montagne couronnée d'un château (capitale du royaume) se dresse au loin à gauche ; une lisière de
+  sapins ferme les bords du sol (|x| ≈ 198-231) jusqu'aux falaises.
+- le sol raconte la descente (toujours plat, dessus en y = 0) : vieille route pavée aux abords, dalles sous la porte,
+  chemin de terre à ornières et flaques, bas-côtés d'herbe et de boue dans les champs et le village (parvis pavé
+  devant l'église, allées vers les portes), vieux pavés usés du bourg avec la place dallée de la tour et du marché
+  et le parvis en éventail de la tour, terre calcinée à cratères et fissures incandescentes (Neon) sur le champ de
+  bataille, dalles noires de la place rituelle d'où deux fils cramoisis filent sous la porte du château ;
+- accotements (45 ≤ |x| < 55) : clôtures qui dessinent les cours du village, lanternes, charrettes, tonneaux,
+  caisses, puits, arbres morts, tombes et feux follets, étals, bâtons de mage, armes, épines ; deux cordes à
+  bannières traversent la rue du bourg au-dessus de 31.
 
     python zone.py                     # écrit build/parts.json (aucune dépendance à Blender)
     python zone.py --stats             # pièces par groupe, poses par asset et contrôle des budgets
@@ -35,7 +44,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from kit import Builder, mix, shade  # noqa: E402
+from kit import Builder, rot_z, shade  # noqa: E402
 from palette import c  # noqa: E402
 from textures import mask_rects  # noqa: E402
 
@@ -250,86 +259,218 @@ def _paves(u: float, v: float, tons, graine: int, L: float = 6, H: float = 4):
     return tons[0] if h < 0.5 else (tons[1] if h < 0.78 else tons[2])
 
 
-# Cratères du champ de bataille (x, z, rayon) : brûlis noir, bord de cendre, fissures incandescentes
-CRATERES = ((-22, -322, 7), (26, -340, 6), (-6, -384, 8), (30, -396, 5), (-34, -362, 4))
+def _fondu(z: float, z_a: float, z_b: float) -> float:
+    """0 en z_a, 1 en z_b (fondu d'une séquence à la suivante), borné à [0, 1]."""
+    return min(max((z - z_a) / (z_b - z_a), 0.0), 1.0)
 
 
-def _cratere(x: float, z: float):
-    """(rayon relatif, angle) dans le cratère le plus proche, ou None."""
-    for (cx, cz, r) in CRATERES:
+# Le sol raconte la descente : chemin de terre à ornières dans les champs et le village (bas-côtés d'herbe et de
+# boue), vieux pavés usés autour de la tour aux grimoires, terre calcinée à fissures incandescentes sur le champ de
+# bataille, dalles noires de la place rituelle et du château. Toujours plat (dessus en y = 0) et continu.
+X_PARVIS_EGLISE, Z_EGLISE, R_PARVIS_EGLISE = -55, -154, 24      # parvis pavé en demi-cercle devant l'église
+R_PARVIS_TOUR = 64                                              # parvis en éventail autour de la tour aux grimoires
+DEMI_PLACE_BOURG = 23                                           # place dallée de la tour et du marché : |z - Z_TOUR| < 23
+ORNIERES = ((6, 8), (14, 16))                                   # deux paires d'ornières (|x|), une par sens de roulage
+
+# Cratères du champ de bataille (x, z, rayon) : fond noir et brûlis peints dans le sol ; fissures incandescentes
+# posées par fissures_bataille()
+CRATERES = ((-24, -318, 8.0), (21, -336, 6.5), (-6, -374, 9.0), (31, -394, 6.0), (-36, -356, 5.0), (10, -306, 4.0))
+CRATERES_COTES = ((-100, -352, 12.0), (-160, -318, 8.0), (120, -356, 11.0), (104, -318, 7.0), (-150, -360, 7.0),
+                  (150, -398, 8.0))
+
+
+def _cratere(x: float, z: float, liste=CRATERES):
+    """Distance relative au centre du cratère qui contient (x, z), ou None."""
+    for (cx, cz, r) in liste:
         d = math.hypot(x - cx, z - cz)
         if d < r:
-            return d / r, math.atan2(z - cz, x - cx), (cx + cz) % 7
+            return d / r
     return None
 
 
-def _fissure_cratere(x: float, z: float) -> bool:
-    k = _cratere(x, z)
-    if k is None:
-        return False
-    t, a, g = k
-    if t < 0.22:
-        return True
-    rayons = 5
-    s = ((a + g) / (2 * math.pi / rayons)) % 1.0
-    return 0.3 < t < 0.85 and min(s, 1 - s) < 0.07 / max(t, 0.3)
+def _couleur_cratere(t: float):
+    return c("obsidienne") if t < 0.38 else c("brulis")
+
+
+def _parvis_eglise(x: float, z: float):
+    """Parvis de l'église : demi-cercle de vieux pavés bruns bordé de pierres, devant le porche (x < -31)."""
+    r = math.hypot(x - X_PARVIS_EGLISE, z - Z_EGLISE)
+    if r >= R_PARVIS_EGLISE:
+        return None
+    if r >= R_PARVIS_EGLISE - 2.6:
+        return c("bordure")
+    if _bruit(x, z, 5, 64) > 0.78:
+        return c("boue")
+    return _paves(x, z, (c("pave_brun"), c("pave_brun_clair"), c("pave_fonce")), 17, L=6, H=4)
+
+
+def _parvis_tour(x: float, z: float):
+    """Parvis de la tour aux grimoires : anneaux de pavés concentriques (éventail), usés par endroits."""
+    r = math.hypot(x - X_TOUR, z - Z_TOUR)
+    if r >= R_PARVIS_TOUR or (x < X_TOUR - 6 and r > 30):
+        return None
+    if r < 24:
+        return c("pave_fonce")                                    # sous la tour et ses contreforts
+    if r >= R_PARVIS_TOUR - 3:
+        return c("bordure")
+    if x > -DEMI_COULOIR - 10 and _bruit(x, z, 8, 72) > 0.8:
+        return c("terre_fonce")                                   # pavés arrachés (côté rue)
+    k = math.floor((r - 24) / 6)
+    return c("pave_clair") if k % 2 == 0 else c("pave_fonce")
+
+
+def _allee_porte(x: float, z: float) -> bool:
+    """Allée de pavés de la rue jusqu'à la porte de chaque maison des champs et du village."""
+    s = -1 if x < 0 else 1
+    for plan in ((CHAMPS_G, VILLAGE_G) if s < 0 else (CHAMPS_D, VILLAGE_D)):
+        for (_kind, zc, _l, _p, _params) in plan:
+            if abs(z - zc) < 2:
+                return True
+    return False
+
+
+def _sol_abords(x: float, z: float):
+    """Abords : vieille route pavée gris-violet, mousse entre les pavés, bas-côtés de prés sombres."""
+    ax = abs(x)
+    w = 17 + 8 * _bruit(0.0, z, 9, 40)
+    if ax < w:
+        if _bruit(x, z, 8, 41) > 0.8:
+            return c("mousse")
+        return _paves(x + DEMI_COULOIR, Z_ABORDS - z, (c("pave"), c("pave_clair"), c("pave_fonce")), 3, L=12, H=6)
+    if ax < w + 3 and _bruit(x, z, 8, 42) > 0.4:
+        return c("herbe_morte")
+    return c("herbe_fonce") if _bruit(x, z, 14, 43) > 0.45 else c("mousse")
+
+
+def _sol_seuil(x: float, z: float):
+    """Seuil de la porte : grandes dalles de trois tons entre deux bordures."""
+    u, v = x + DEMI_COULOIR, -z
+    if v < 2 or v > 30:
+        return c("bordure")
+    h = _hash(math.floor(u / 10), math.floor((v - 2) / 7), 44)
+    return c("dalle_claire") if h < 0.4 else (c("dalle") if h < 0.82 else c("pave_fonce"))
+
+
+def _sol_chemin(x: float, z: float, demi: float, graine: int, pavage: float = 2.0):
+    """Chemin de terre à ornières (champs, village) : bande de roulement de demi-largeur `demi`, deux paires
+    d'ornières à flaques, herbe sèche au milieu, restes de pavage quand le bruit dépasse `pavage`."""
+    ax = abs(x)
+    if ax >= demi:
+        return None
+    flaque = _bruit(x, z, 10, graine + 1)
+    for (a, b_) in ORNIERES:
+        if a <= ax < b_:
+            if flaque > 0.8:
+                return c("eau")                                   # flaques dans les ornières
+            return c("boue") if flaque > 0.66 else c("terre_fonce")
+    if ax < 2 and _bruit(x, z, 10, graine + 2) > 0.45:
+        return c("herbe_fonce")                                   # touffes d'herbe entre les deux voies
+    if _bruit(x, z, 18, graine + 3) > pavage:
+        return _paves(x + DEMI_COULOIR, -z, (c("pave_brun"), c("pave_brun_clair"), c("pave_fonce")), graine, L=10, H=6)
+    if flaque > 0.86:
+        return c("boue")
+    return c("terre") if _bruit(x, z, 24, graine + 4) > 0.36 else c("terre_claire")
+
+
+def _bas_cote(x: float, z: float, demi: float, graine: int):
+    """Bas-côté herbeux et boueux entre le chemin et les accotements."""
+    ax = abs(x)
+    if ax < demi + 3 and _bruit(x, z, 9, graine + 5) > 0.35:
+        return c("herbe_morte")
+    n = _bruit(x, z, 12, graine + 6)
+    if n > 0.78:
+        return c("boue")
+    return c("herbe") if n > 0.42 else c("herbe_fonce")
+
+
+def _sol_champs(x: float, z: float):
+    demi = 19 + 6 * _bruit(0.0, z, 11, 50)
+    return _sol_chemin(x, z, demi, 50) or _bas_cote(x, z, demi, 50)
+
+
+def _sol_village(x: float, z: float):
+    p = _parvis_eglise(x, z)
+    if p is not None:
+        return p
+    demi = 19 + 7 * _bruit(0.0, z, 13, 60)
+    return _sol_chemin(x, z, demi, 60, pavage=0.72) or _bas_cote(x, z, demi, 60)
+
+
+def _sol_bourg(x: float, z: float):
+    """Bourg : vieux pavés gris-violet usés, rigole centrale, caniveaux ; au milieu, la place dallée de la tour et du
+    marché (cadre de pavés bruns) ; l'éventail du parvis de la tour mord sur le côté gauche de la rue."""
+    ax = abs(x)
+    p = _parvis_tour(x, z)
+    if p is not None:
+        return p
+    v = Z_BOURG - z
+    if v < 3:
+        return c("bordure")                                       # seuil du bourg
+    if abs(z - Z_TOUR) < DEMI_PLACE_BOURG:                           # place de la tour et du marché : grandes dalles
+        if abs(z - Z_TOUR) >= DEMI_PLACE_BOURG - 2:
+            return c("pave_brun_clair")                           # cadre de la place
+        u, w = x + DEMI_COULOIR, z - (Z_TOUR - DEMI_PLACE_BOURG + 2)
+        h = _hash(math.floor(u / 8), math.floor(w / 6), 73)
+        return c("dalle_claire") if h < 0.45 else (c("dalle") if h < 0.9 else c("pave_fonce"))
+    if ax < 1:
+        return c("joint")                                         # rigole centrale
+    if ax >= 41:
+        return c("bordure") if ax >= 43 else c("joint")           # caniveaux le long des trottoirs
+    if _bruit(x, z, 12, 70) > 0.76:
+        return c("terre_fonce")                                   # pavés arrachés
+    return _paves(x + DEMI_COULOIR, v, (c("pave"), c("pave_clair"), c("pave_fonce")), 11, L=10, H=6)
+
+
+def _sol_place(x: float, z: float):
+    """Place rituelle : anneaux carrés de dalles noires centrés sur le cercle magique."""
+    k = math.floor(max(abs(x), abs(z - Z_PLACE)) / 6)
+    return c("dalle_noire") if k % 2 == 0 else c("dalle_rituelle")
+
+
+def _sol_bataille(x: float, z: float):
+    """Champ de bataille : terre calcinée, cendre, cratères noirs ; pavés épars au sortir du bourg, dalles noires
+    qui gagnent la cendre à l'approche de la place."""
+    ax = abs(x)
+    t = _cratere(x, z)
+    if t is not None:
+        return _couleur_cratere(t)
+    if z > Z_BATAILLE - 18 and _bruit(x, z, 11, 81) > 0.3 + 0.72 * _fondu(z, Z_BATAILLE, Z_BATAILLE - 18):
+        return _paves(x + DEMI_COULOIR, Z_BOURG - z, (c("pave_fonce"), c("pave"), c("pave_fonce")), 11, L=10, H=6)
+    if z < Z_PLACE_DEBUT + 22 and _bruit(x, z, 11, 82) > 1.02 - 0.7 * _fondu(z, Z_PLACE_DEBUT + 22, Z_PLACE_DEBUT):
+        return _sol_place(x, z)
+    for (a, b_) in ORNIERES:
+        if a <= ax < b_ and _bruit(x, z, 12, 83) > 0.4:
+            return c("boue")                                      # ornières de la route militaire
+    if ax > 35 + 6 * _bruit(0.0, z, 12, 84):
+        return c("herbe_grise")
+    n = _bruit(x, z, 15, 86)
+    return c("brulis") if n > 0.68 else (c("terre_fonce") if n > 0.44 else (c("cendre_fonce") if n > 0.2 else c("cendre")))
 
 
 def couleur_couloir(x: float, z: float):
-    """Sol du couloir (|x| < 45), un motif par séquence (motifs larges : peu de pièces)."""
-    ax = abs(x)
-    u = x + DEMI_COULOIR
-    if z > Z_ENTREE:                                              # abords : vieille route pavée, mousse aux bords
-        if ax > 40 and _bruit(x, z, 8, 2) > 0.55:
-            return c("mousse")
-        return _paves(u, Z_ABORDS - z, (c("pave"), c("pave_clair"), c("pave_fonce")), 3, L=10, H=6)
-    if z > Z_CHAMPS:                                              # seuil de la porte : grandes dalles en damier
-        v = -z
-        if v < 2 or v > 30:
-            return c("bordure")
-        return c("dalle_claire") if (math.floor(u / 10) + math.floor((v - 2) / 7)) % 2 == 0 else c("dalle")
-    if z > Z_VILLAGE:                                             # chemin de terre à ornières
-        if 8 <= ax < 12 or 28 <= ax < 32:
-            return c("terre_fonce")
-        if ax > 40:
-            return c("herbe_seche")
-        return c("terre") if _bruit(x, z, 18, 1) > 0.45 else c("terre_claire")
-    if z > Z_BOURG:                                               # pavés usés du village, rigole centrale
-        v = Z_VILLAGE - z
-        if ax < 2:
-            return c("bordure")
-        if v % 36 < 2 and v > 4:
-            return c("pave_fonce")
-        return _paves(u, v, (c("pave_brun"), c("pave_brun_clair"), c("pave_fonce")), 7, L=10, H=6)
-    if z > Z_BATAILLE:                                            # dalles sombres du bourg, appareil en panneresse
-        v = Z_BOURG - z
-        if ax < 2:
-            return c("bordure")
-        rang = math.floor(v / 6)
-        k = math.floor((u + (6 if rang % 2 else 0)) / 12)
-        return c("dalle_claire") if (k + rang) % 3 == 0 else c("dalle")
-    if z > Z_PLACE_DEBUT:                                         # prairie piétinée, cendre et cratères
-        k = _cratere(x, z)
-        if k is not None:
-            return c("cendre_fonce") if k[0] > 0.78 else c("brulis")
-        if ax < 6:
-            return c("boue")
-        n = _bruit(x, z, 18, 9)
-        return c("cendre") if n > 0.72 else (c("herbe_fonce") if n < 0.4 else c("herbe_grise"))
-    if z > Z_CHATEAU:                                             # place rituelle : anneaux carrés de dalles noires
-        k = math.floor(max(ax, abs(z - Z_PLACE)) / 6)
-        return c("dalle_noire") if k % 2 == 0 else c("dalle_rituelle")
-    if 6 <= ax < 8:                                               # porte du château : basalte, deux fils de lumière
-        return None
-    v = Z_CHATEAU - z
+    """Sol du couloir (|x| < 45), un motif par séquence."""
+    if z > Z_ENTREE:
+        return _sol_abords(x, z)
+    if z > Z_CHAMPS:
+        return _sol_seuil(x, z)
+    if z > Z_VILLAGE:
+        return _sol_champs(x, z)
+    if z > Z_BOURG:
+        return _sol_village(x, z)
+    if z > Z_BATAILLE:
+        return _sol_bourg(x, z)
+    if z > Z_PLACE_DEBUT:
+        return _sol_bataille(x, z)
+    if z > Z_CHATEAU:
+        return _sol_place(x, z)
+    u, v = x + DEMI_COULOIR, Z_CHATEAU - z                        # porte du château : basalte en damier
     return c("basalte_clair") if (math.floor(u / 10) + math.floor(v / 10)) % 2 == 0 else c("basalte")
 
 
 def neon_couloir(x: float, z: float):
-    """Cases lumineuses du couloir (posées en Neon dans les trous laissés par couleur_couloir_plein)."""
-    if Z_BATAILLE >= z > Z_PLACE_DEBUT and _cratere(x, z) is not None and _fissure_cratere(x, z):
-        return c("feu_cramoisi")
-    if z <= Z_CHATEAU and 6 <= abs(x) < 8:
+    """Cases lumineuses du sol (posées en Neon dans les trous laissés par couleur_couloir_plein) : deux fils de
+    lumière cramoisie qui partent du cercle magique et passent sous la porte du château."""
+    if z < Z_PLACE - R_PLACE + 0.5 and 6 <= abs(x) < 8:
         return c("lueur_cramoisie")
     return None
 
@@ -341,36 +482,55 @@ def couleur_couloir_plein(x: float, z: float):
 
 
 def couleur_bords(x: float, z: float):
-    """Accotements (45 ≤ |x| < 55) : bordure de pierre puis herbe, trottoir, cendre ou dalles selon la séquence."""
+    """Accotements (45 ≤ |x| < 55) : prés aux abords, dalles sous la porte, bas-côtés d'herbe et allées de pavés
+    vers les portes, trottoir de dalles du bourg, cendre, dalles noires, basalte."""
     ax = abs(x)
+    if z > Z_ENTREE:
+        return c("herbe_fonce") if _bruit(x, z, 6, 12) > 0.45 else c("mousse")
     if z > Z_CHAMPS:
-        return c("bordure") if ax < 47 else c("herbe_fonce")
+        return _sol_seuil(x, z)
     if z > Z_BOURG:
+        p = _parvis_eglise(x, z)
+        if p is not None:
+            return p
+        if _allee_porte(x, z):
+            return c("pave_brun") if ax < 51 else c("pave_brun_clair")
+        if ax < 47:
+            return c("herbe_seche")
+        return c("herbe") if _bruit(x, z, 12, 13) > 0.45 else c("herbe_fonce")
+    if z > Z_BATAILLE:
+        p = _parvis_tour(x, z)
+        if p is not None:
+            return p
         if ax < 47:
             return c("bordure")
-        return c("herbe_seche") if _bruit(x, z, 12, 13) > 0.55 else (c("terre") if z <= Z_VILLAGE else c("herbe"))
-    if z > Z_BATAILLE:
-        return c("bordure") if ax < 47 else (c("dalle_claire") if math.floor(z / 6) % 2 else c("dalle"))
+        return c("dalle_claire") if math.floor(z / 6) % 2 else c("dalle")
     if z > Z_PLACE_DEBUT:
-        return c("cendre_fonce") if _bruit(x, z, 12, 14) > 0.6 else c("herbe_grise")
+        t = _cratere(x, z, CRATERES_COTES)
+        if t is not None:
+            return _couleur_cratere(t)
+        if z < Z_PLACE_DEBUT + 22 and _bruit(x, z, 11, 82) > 1.02 - 0.7 * _fondu(z, Z_PLACE_DEBUT + 22, Z_PLACE_DEBUT):
+            return _sol_place(x, z)
+        return c("cendre_fonce") if _bruit(x, z, 12, 14) > 0.55 else c("herbe_grise")
     if z > Z_CHATEAU:
-        k = math.floor(max(ax, abs(z - Z_PLACE)) / 6)
-        return c("dalle_noire") if k % 2 == 0 else c("dalle_rituelle")
+        return _sol_place(x, z)
     return c("basalte")
 
 
 def couleur_cotes(x: float, z: float):
-    """Sol au-delà des accotements (|x| ≥ 55, cases de 4) : prés, parcelles de labours et de blé, cours, sous-bois,
-    prairie cendrée, roche noire, dalles de la place rituelle."""
+    """Sol au-delà des accotements (|x| ≥ 55, cases de 4) : prés, parcelles de labours et de blé, cours et jardins,
+    parvis de la tour, sous-bois, prairie calcinée et cratères, roche noire, dalles de la place rituelle."""
     ax = abs(x)
     s = 1 if x > 0 else 0
     if z > Z_CHAMPS:                                              # abords et pied de l'enceinte : prés sombres
-        return c("herbe") if _bruit(x, z, 26, 21) > 0.45 else c("herbe_fonce")
-    if z > Z_BOURG:                                               # champs en parcelles, cours devant les maisons
+        return c("herbe") if _bruit(x, z, 26, 21) > 0.5 else c("herbe_fonce")
+    if z > Z_BOURG:                                               # champs en parcelles, cours derrière les maisons
         if ax < 75:
-            return c("terre") if z > Z_VILLAGE else c("herbe_seche")
+            if z > Z_VILLAGE:
+                return c("herbe_seche") if _bruit(x, z, 24, 22) > 0.45 else c("herbe")
+            return c("herbe")
         if ax >= 175:                                             # lisière de la forêt
-            return c("herbe_fonce")
+            return c("herbe_fonce") if _bruit(x, z, 24, 23) > 0.4 else c("mousse")
         du, dv = ax - 75, Z_CHAMPS - z
         if du % 36 < 4 or dv % 32 < 4:                            # chemins entre les parcelles
             return c("terre_fonce")
@@ -382,21 +542,61 @@ def couleur_cotes(x: float, z: float):
         if kind == 3:
             return c("ble_fonce")
         return c("herbe_morte")
-    if z > Z_BATAILLE:                                            # bourg puis sous-bois
+    if z > Z_BATAILLE:                                            # bourg : parvis de la tour, cours pavées, sous-bois
+        p = _parvis_tour(x, z)
+        if p is not None:
+            return p
         if ax < 79:
-            return c("pave_fonce") if math.floor(z / 12) % 2 else c("pave")
+            return c("pave_fonce") if _bruit(x, z, 16, 24) > 0.45 else c("terre_fonce")
         return c("herbe_fonce") if _bruit(x, z, 24, 26) > 0.45 else c("mousse")
-    if z > Z_PLACE_DEBUT:                                         # prairie brumeuse, cendre, roche au pied des falaises
+    if z > Z_PLACE_DEBUT:                                         # prairie calcinée, cratères, roche au pied des falaises
         if ax >= 171:
             return c("roche_noire")
-        n = _bruit(x, z, 24, 28)
-        return c("cendre") if n > 0.7 else (c("herbe_fonce") if n < 0.38 else c("herbe_grise"))
+        t = _cratere(x, z, CRATERES_COTES)
+        if t is not None:
+            return _couleur_cratere(t)
+        return c("cendre_fonce") if _bruit(x, z, 26, 28) > 0.55 else c("herbe_grise")
     if z > Z_CHATEAU:
         if ax < X_PLACE + 1:
-            k = math.floor(max(ax, abs(z - Z_PLACE)) / 6)
-            return c("dalle_noire") if k % 2 == 0 else c("dalle_rituelle")
-        return c("brulis") if _bruit(x, z, 20, 29) > 0.55 else c("roche_noire")
+            return _sol_place(x, z)
+        return c("brulis") if _bruit(x, z, 28, 29) > 0.55 else c("roche_noire")
     return c("basalte")
+
+
+def fissures_bataille(b: Builder) -> None:
+    """Fissures incandescentes du champ de bataille : depuis le bord de chaque cratère, deux à quatre fissures en
+    zigzag qui s'amincissent (blocs Neon à plat, dessus 0,1 au-dessus du sol, sans collision), des braises au fond.
+    Angles et longueurs irréguliers : ni croix, ni étoile."""
+    rng = np.random.default_rng(23)
+    neon = dict(material="Neon", collide=False, shadow=False, studs="none")
+    with b.group("Sol/Fissures"):
+        for i, (cx, cz, r) in enumerate(CRATERES + CRATERES_COTES):
+            dans_couloir = i < len(CRATERES)
+            if dans_couloir:
+                for k in range(2):
+                    a, d = float(rng.uniform(0, 2 * math.pi)), float(rng.uniform(0.05, 0.22)) * r
+                    b.boxc((cx + d * math.cos(a), 0.0, cz + d * math.sin(a)), (1.0, 0.2, 0.8), c("feu"),
+                           yaw=float(rng.uniform(0, 90)), name="Braise", **neon)
+            n = int(rng.integers(2, 4)) if dans_couloir else 2
+            a = float(rng.uniform(0, 2 * math.pi))
+            for k in range(n):
+                a += float(rng.uniform(1.3, 2.6))                  # écarts irréguliers entre les fissures
+                aa = a
+                x, z = cx + 0.8 * r * math.cos(aa), cz + 0.8 * r * math.sin(aa)
+                L = r * float(rng.uniform(0.8, 1.7))
+                ep = 0.75 if dans_couloir else 0.9
+                for s_ in range(3 if dans_couloir else 2):
+                    aa += float(rng.uniform(-0.85, 0.85))
+                    lg = L / 3 * float(rng.uniform(0.7, 1.3))
+                    x2, z2 = x + lg * math.cos(aa), z + lg * math.sin(aa)
+                    if dans_couloir and abs(x2) > DEMI_COULOIR - 1.5:
+                        break
+                    if not dans_couloir and abs(x2) < X_BORD + 1:
+                        break
+                    b.boxc(((x + x2) / 2, -0.05 + (0.1 if s_ == 0 else 0.0), (z + z2) / 2),
+                           (math.hypot(x2 - x, z2 - z) + 0.3 * ep, 0.3, ep), c("feu") if s_ == 0 else c("feu_cramoisi"),
+                           yaw=math.degrees(math.atan2(-(z2 - z), x2 - x)), name="Fissure", **neon)
+                    x, z, ep = x2, z2, ep * 0.72
 
 
 def sol(b: Builder) -> None:
@@ -417,6 +617,7 @@ def sol(b: Builder) -> None:
             sol_pixel(b, xa, xb, Z_ENTREE, Z_ABORDS, 4, couleur_cotes)
         with b.group("Sol/Cotes"):
             sol_pixel(b, xa, xb, Z_SORTIE, Z_ENTREE, 4, couleur_cotes)
+    fissures_bataille(b)
 
 
 def cercle_magique(b: Builder) -> None:
@@ -463,8 +664,14 @@ def cercle_magique(b: Builder) -> None:
 # Séquence 1 : abords et porte d'entrée
 # ---------------------------------------------------------------------------
 
+def mob(b: Builder, fn: str, x: float, z: float, nom: str, yaw: float = 0.0, y: float = 0.0, **params) -> dict:
+    """Pose un objet de `assets/mobilier.py` en (x, y, z) (raccourci de place())."""
+    return place(b, "mobilier", fn, (x, y, z), yaw=yaw, group=nom, emprise=(4, 4, 4), **params)
+
+
 def abords(b: Builder) -> None:
-    """Abords (z 0 → +40, groupe Abords) : arbres morts et sapins, poteau indicateur, lucioles."""
+    """Abords (z 0 → +40, groupe Abords) : vieille route entre deux murets de pierres sèches, arbres morts et sapins,
+    poteau indicateur, rochers, lucioles."""
     for i, (x, z, fn, v) in enumerate(((-66, 30, "arbre_mort", 0), (-92, 14, "sapin_sombre", 1), (-150, 26, "sapin_sombre", 0),
                                        (70, 24, "sapin_sombre", 2), (98, 8, "arbre_mort", 2), (168, 30, "sapin_sombre", 0))):
         place(b, "mobilier", fn, (x, 0, z), group=f"Abords/Arbre{i}", emprise=(8, 8, 14), variant=v,
@@ -474,6 +681,10 @@ def abords(b: Builder) -> None:
     for s in (-1, 1):                                       # nuages de lucioles devant les tours (refBC2)
         place(b, "mobilier", "lucioles", (s * 62, 3, 10), group=f"Abords/Lucioles{'GD'[s > 0]}", emprise=(16, 16, 20),
               variant=0, rayon=8, hauteur=20, nombre=24)
+    for i, (x, z, v) in enumerate(((-51.5, 9.0, 0), (51.5, 11.0, 1), (51.5, 31.0, 2))):
+        mob(b, "muret", x, z, f"Abords/Muret{i}", yaw=90, longueur=10, variant=v)
+    for i, (x, z, v, t) in enumerate(((-78, 20, 1, 3.0), (86, 31, 3, 3.5), (-120, 36, 0, 4.0))):
+        mob(b, "rocher", x, z, f"Abords/Rocher{i}", yaw=35 * i, variant=v, taille=t)
 
 
 def porte(b: Builder) -> None:
@@ -495,8 +706,8 @@ def porte(b: Builder) -> None:
             place(b, "mobilier", "brasero", (s * 48.6, 0, z), group=f"Porte/Brasero{'GD'[s > 0]}{int(-z)}", emprise=(3, 3, 6),
                   variant=0)
     # lucioles dorées : un nuage haut entre les tours (au-dessus de 31) ; les nuages bas sont dans les abords
-    place(b, "mobilier", "lucioles", (0, 33, Z_PORTE), group="Porte/LuciolesHaut", emprise=(44, 44, 26), variant=0,
-          rayon=22, hauteur=26, nombre=36)
+    place(b, "mobilier", "lucioles", (0, 33, Z_PORTE - 4), group="Porte/LuciolesHaut", emprise=(40, 40, 26), variant=0,
+          rayon=19, hauteur=26, nombre=36)
 
 
 # ---------------------------------------------------------------------------
@@ -540,59 +751,67 @@ VILLAGE_D = [
     ("batiments:maison_ruine", -161, 12, 12, {"variant": 2}),
     ("batiments:maison_pierre", -182, 16, 14, {"variant": 2, "etages": 2, "enseigne": "AUBERGE"}),
 ]
-# Maisons du second rang (x, z, largeur, étages), toutes tournées vers le couloir
+# Maisons du second rang (x, z, largeur, étages), toutes tournées vers le couloir : leurs toits dépassent des
+# premières rangées (ruines, chaumières) et ferment l'horizon des cours
 FOND = [(-104, -92, 12, 1), (-106, -186, 12, 2), (-100, -207, 12, 2), (-104, -292, 14, 2), (98, -232, 12, 2),
-        (100, -284, 12, 1)]
+        (100, -284, 12, 1), (-84, -123, 12, 1), (96, -258, 12, 2), (122, -245, 12, 1), (-84, -201, 12, 1)]
 
 
 def champs(b: Builder) -> list:
     """Champs (z -32 → -80) : grange et chaumière à gauche, moulin en retrait ; à droite une chaumière, les CÔTES
-    GÉANTES du démon qui sortent des labours, meules, puits, charrette, clôtures."""
+    GÉANTES du démon qui sortent des labours, meules, puits, charrettes, clôtures des parcelles."""
     poses = rangee(b, -1, CHAMPS_G, "Champs/G", x_facade=57)
     poses += rangee(b, 1, CHAMPS_D, "Champs/D", x_facade=57)
     place(b, "batiments", "moulin", (-112, 0, -62), yaw=face_couloir(-1), group="Champs/Moulin", emprise=(14, 14, 40),
           variant=0)
     place(b, "monuments", "cotes_geantes", (X_COTES, 0, Z_COTES), yaw=YAW_COTES, group="Monuments/Cotes", emprise=(56, 36, 36),
           variant=0, longueur=56, hauteur=36)
-    for i, (x, z, v) in enumerate(((-150, -50, 0), (-176, -66, 1), (164, -40, 2), (80, -96, 0))):
-        place(b, "mobilier", "meule", (x, 0, z), group=f"Champs/Meule{i}", emprise=(5, 5, 5), variant=v)
-    place(b, "mobilier", "puits", (-51.2, 0, -60), group="Champs/Puits", emprise=(6, 6, 9), variant=0)
-    place(b, "mobilier", "charrette", (52, 0, -62), yaw=200, group="Champs/Charrette", emprise=(5, 10, 4), variant=2)
-    for s in (-1, 1):                                       # clôtures le long des champs, au bord des accotements
-        for i, z in enumerate((-36.5,) if s < 0 else (-58.0, -72.0)):
-            place(b, "mobilier", "cloture_bois", (s * 55.5, 0, z), yaw=90, group=f"Champs/Cloture{'GD'[s > 0]}{i}",
-                  emprise=(12, 1, 3), longueur=12, variant=(i + (s > 0)) % 4)
-    for i, (x, z, v) in enumerate(((-84, -36, 1), (72, -66, 3), (150, -96, 0))):
-        place(b, "mobilier", "arbre_mort", (x, 0, z), group=f"Champs/ArbreMort{i}", emprise=(10, 10, 13), variant=v,
-              hauteur=13)
-    place(b, "mobilier", "lanterne_fer", (-52, 0, -42), yaw=face_couloir(-1), group="Champs/Lanterne", emprise=(2, 4, 11),
-          variant=1)
+    for i, (x, z, v) in enumerate(((-150, -50, 0), (-176, -66, 1), (164, -40, 2), (80, -96, 0), (-86, -46, 2),
+                                   (-94, -55, 0), (176, -88, 1))):
+        mob(b, "meule", x, z, f"Champs/Meule{i}", variant=v)
+    mob(b, "puits", -51.2, -60, "Champs/Puits", variant=0)
+    mob(b, "charrette", 52, -62, "Champs/Charrette", yaw=200, variant=2)
+    mob(b, "charrette", -50.5, -48, "Champs/CharretteFoin", yaw=8, variant=2)
+    mob(b, "charrette", -130, -42, "Champs/CharretteSacs", yaw=75, variant=0)
+    for i, z in enumerate((-58.0, -72.0)):                  # clôtures le long des labours, à droite
+        mob(b, "cloture_bois", 55.5, z, f"Champs/ClotureD{i}", yaw=90, longueur=12, variant=(i + 1) % 4)
+    for i, (x, z, yaw, L, v) in enumerate(((-110, -80, 0, 24, 0), (-142, -34, 0, 24, 3), (88, -34, 0, 20, 0),
+                                           (-160, -80, 0, 18, 1))):
+        mob(b, "cloture_bois", x, z, f"Champs/ClotureParcelle{i}", yaw=yaw, longueur=L, variant=v)
+    for i, (x, z, v) in enumerate(((-84, -36, 1), (72, -66, 3), (150, -96, 0), (-140, -72, 1), (168, -64, 0))):
+        mob(b, "arbre_mort", x, z, f"Champs/ArbreMort{i}", yaw=30 * i, variant=v, hauteur=13 + i % 2)
+    mob(b, "lanterne_fer", -52, -42, "Champs/Lanterne", yaw=face_couloir(-1), variant=1)
+    mob(b, "tonneaux", -50.5, -77.5, "Champs/Tonneaux", variant=0)
+    mob(b, "caisses", 51, -55, "Champs/Caisses", variant=1)
     return poses
 
 
 def village(b: Builder) -> list:
-    """Village abandonné (z -80 → -196) : chaumières, maisons de pierre et ruines ; église et cimetière à gauche ;
-    à droite, derrière les maisons, la colline boisée et le CRÂNE DE DÉMON cornu (repère de la première moitié)."""
+    """Village abandonné (z -80 → -196) : chaumières, maisons de pierre et ruines ; église, parvis et cimetière à
+    gauche ; à droite, derrière les maisons, la colline boisée et le CRÂNE DE DÉMON cornu (repère de la première
+    moitié). Bas-côtés : lanternes, tonneaux, caisses, charrettes, puits, arbres morts, clôtures."""
     poses = rangee(b, -1, VILLAGE_G, "Village/G")
     poses += rangee(b, 1, VILLAGE_D, "Village/D")
-    place(b, "batiments", "eglise", (-(X_BORD + 22), 0, -154), yaw=face_couloir(-1), group="Monuments/Eglise",
+    place(b, "batiments", "eglise", (-(X_BORD + 22), 0, Z_EGLISE), yaw=face_couloir(-1), group="Monuments/Eglise",
           emprise=(26, 44, 56), variant=0, largeur=26, profondeur=44)
-    # cimetière de part et d'autre de l'église, muret côté couloir
+    # cimetière autour de l'église (devant, de part et d'autre du parvis, et derrière), murets
     tombes = ((-61, -133), (-66, -136), (-72, -132.5), (-79, -136), (-86, -133), (-62, -171), (-69, -174),
-              (-76, -171), (-84, -174), (-92, -171))
+              (-76, -171), (-84, -174), (-92, -171), (-104.5, -145), (-106, -153), (-104, -160), (-110, -164),
+              (-118, -158), (-112, -170), (-120, -146))
     for i, (x, z) in enumerate(tombes):
         place(b, "mobilier", "pierre_tombale", (x, 0, z), yaw=face_couloir(-1) + (i % 3 - 1) * 8,
               group=f"Village/Cimetiere/Tombe{i}", emprise=(2, 2, 3), variant=i % 4)
-    for i, z in enumerate((-135.0, -173.0)):
-        place(b, "mobilier", "muret", (-56.4, 0, z), yaw=90, group=f"Village/Cimetiere/Muret{i}", emprise=(10, 1.4, 2.2),
-              longueur=10, variant=i)
+    for i, (x, z) in enumerate(((-56.4, -135.0), (-56.4, -173.0), (-125.0, -150.0), (-125.0, -164.0))):
+        mob(b, "muret", x, z, f"Village/Cimetiere/Muret{i}", yaw=90, longueur=10, variant=i)
+    place(b, "mobilier", "lucioles", (-72, 2, -138), group="Village/Cimetiere/FeuxFollets", emprise=(14, 14, 9),
+          variant=1, rayon=7, hauteur=8, nombre=16)              # feux follets violets au-dessus des tombes
     # colline du crâne, puis le crâne posé sur son sommet
     info = place(b, "monuments", "colline_crane", (X_COLLINE, 0, Z_COLLINE), yaw=face_couloir(1),
                  group="Monuments/Colline", emprise=(110, 100, H_COLLINE), variant=0, largeur=110, profondeur=100,
                  hauteur=H_COLLINE)
     place(b, "monuments", "crane_demon", (X_COLLINE, info.get("hauteur", H_COLLINE), Z_COLLINE), yaw=YAW_CRANE,
           group="Monuments/Crane", emprise=(60, 56, 64), variant=0, hauteur=64)
-    # rue du village : lanternes, tonneaux, caisses, charrette brisée, arbres morts
+    # rue du village : lanternes, tonneaux, caisses, charrettes, puits, arbres morts
     for s in (-1, 1):
         for i, z in enumerate((-97, -134, -172)):
             if s < 0 and z == -134:
@@ -603,14 +822,37 @@ def village(b: Builder) -> list:
             place(b, "mobilier", "lanterne_fer", (x, 0, z), yaw=face_couloir(x), group=f"Village/Lanterne{'GD'[s > 0]}{i}",
                   emprise=(2, 4, 11), variant=(1, 0, 1)[i])
     props = (("tonneaux", -51.5, -102, 0), ("caisses", -51.5, -114, 1), ("tonneaux", 51.5, -92, 1),
-             ("caisses", 51.8, -152, 2), ("charrette", 51.5, -118, 1), ("puits", 50.6, -133, 1))
+             ("caisses", 51.8, -152, 2), ("charrette", 51.5, -118, 1), ("puits", 50.6, -133, 1),
+             ("tonneaux", -50, -82, 1), ("tonneaux", -50, -191, 2), ("caisses", 50.5, -110.5, 0),
+             ("tonneaux", 50.5, -166, 2), ("caisses", 50.2, -170.5, 3))
     for i, (fn, x, z, v) in enumerate(props):
         place(b, "mobilier", fn, (x, 0, z), yaw=0 if fn != "charrette" else 160, group=f"Village/{fn}{i}",
               emprise=(4, 4, 3), variant=v)
-    for i, (x, z, v) in enumerate(((-96, -122, 0), (74, -130, 2), (75, -170, 1), (-114, -150, 3))):
-        place(b, "mobilier", "arbre_mort", (x, 0, z), group=f"Village/ArbreMort{i}", emprise=(10, 10, 14), variant=v,
-              hauteur=14)
+    for i, (x, z, v, yaw) in enumerate(((-104, -124, 0, 0), (74, -130, 2, 0), (75, -170, 1, 0), (-114, -150, 3, 0),
+                                        (-49.5, -136, 1, 180), (50.0, -157, 3, 0))):
+        mob(b, "arbre_mort", x, z, f"Village/ArbreMort{i}", yaw=yaw, variant=v, hauteur=14)
+    for i, (z, v) in enumerate(((-104.0, 1), (-150.0, 3), (-186.0, 0))):   # clôtures des cours, au pied de la colline
+        mob(b, "cloture_bois", 75.5, z, f"Village/Cloture{i}", yaw=90, longueur=12, variant=v)
+    mob(b, "rocher", 77, -118, "Village/Rocher", yaw=20, variant=2, taille=3.0)
+    clotures_rue(b)
     return poses
+
+
+# Clôtures au bord de la rue des champs et du village (|x| = 46.6) : elles dessinent les cours de devant, s'ouvrent
+# devant chaque porte et laissent le parvis de l'église ouvert ; (z début, z fin, variante) ; v1 = planches cassées
+CLOTURES_RUE = {
+    -1: ((-38, -45, 0), (-55, -66, 0), (-74, -79, 3), (-81, -85, 0), (-91, -103, 0), (-109, -120, 1), (-179.5, -183, 1),
+         (-189, -194.5, 0)),
+    1: ((-38, -43, 0), (-49, -63.4, 0), (-64.6, -79, 3), (-81, -85, 0), (-91, -103, 0), (-109, -121, 0), (-127, -140, 0),
+        (-146, -158, 1), (-164, -179, 0), (-185, -194.5, 3)),
+}
+
+
+def clotures_rue(b: Builder) -> None:
+    for s, runs in CLOTURES_RUE.items():
+        for i, (za, zb, v) in enumerate(runs):
+            mob(b, "cloture_bois", s * 46.6, (za + zb) / 2, f"Village/ClotureRue{'GD'[s > 0]}{i}", yaw=90 if s < 0 else -90,
+                longueur=abs(za - zb), variant=v)
 
 
 # ---------------------------------------------------------------------------
@@ -631,11 +873,16 @@ BOURG_D = [
     ("batiments:maison_haute", -277, 14, 14, {"variant": 5, "etages": 3, "enseigne": "HERBORISTE"}),
     ("batiments:maison_haute", -293, 14, 14, {"variant": 2, "etages": 4}),
 ]
+# Cordes à bannières au-dessus de la rue : à l'entrée et à la sortie du bourg
+Z_CORDES = (-195.0, -302.0)
+X_MAT = 48.6             # mâts sur les accotements
+H_CORDE = 41.0           # corde aux mâts ; elle fléchit à 39 au milieu ; bas des bannières au-dessus de 31
 
 
 def bourg(b: Builder) -> list:
-    """Bourg (z -196 → -300) : à gauche la TOUR AUX GRIMOIRES sur sa placette (pupitre et nuée de grimoires),
-    maisons hautes à colombages noirs ; à droite taverne, halle du marché, maisons hautes ; lanternes et bannières."""
+    """Bourg (z -196 → -300) : à gauche la TOUR AUX GRIMOIRES sur son parvis (pupitre et nuée de grimoires),
+    maisons hautes à colombages noirs ; à droite taverne, halle du marché, maisons hautes ; lanternes, bannières,
+    cordes à bannières au-dessus de la rue."""
     poses = rangee(b, -1, BOURG_G, "Bourg/G")
     poses += rangee(b, 1, BOURG_D, "Bourg/D")
     place(b, "monuments", "tour_grimoires", (X_TOUR, 0, Z_TOUR), yaw=face_couloir(-1), group="Monuments/Tour",
@@ -652,6 +899,8 @@ def bourg(b: Builder) -> list:
         for i, z in enumerate((-212, -241, -272)):
             if s > 0 and z == -241:
                 z = -268.5                                   # devant la halle : les étals occupent l'accotement
+            if s > 0 and z == -272:
+                z = -290.0
             x = s * 52.2
             place(b, "mobilier", "lanterne_fer", (x, 0, z), yaw=face_couloir(x), group=f"Bourg/Lanterne{'GD'[s > 0]}{i}",
                   emprise=(2, 4, 11), variant=(0, 2, 3)[i] if s < 0 else (3, 0, 2)[i])
@@ -661,20 +910,80 @@ def bourg(b: Builder) -> list:
     place(b, "mobilier", "panneau_pied", (52.0, 0, -238.5), yaw=face_couloir(1), group="Bourg/Marche/Panneau",
           emprise=(6, 2, 6), texte="MARCHÉ", variant=1)
     props = (("tonneaux", 51.5, -201, 0), ("caisses", 51.5, -223, 0), ("chaudron", -51.8, -286, 0),
-             ("tonneaux", -51.5, -209, 2))
+             ("tonneaux", -51.5, -209, 2), ("caisses", -50.0, -199.5, 2), ("tonneaux", 50.0, -296.5, 3),
+             ("caisses", 50.5, -265.2, 1))
     for i, (fn, x, z, v) in enumerate(props):
         place(b, "mobilier", fn, (x, 0, z), group=f"Bourg/{fn}{i}", emprise=(4, 4, 4), variant=v)
+    cordes_bannieres(b)
     return poses
+
+
+def cordes_bannieres(b: Builder) -> None:
+    """Cordes à bannières unies tendues au-dessus de la rue du bourg : deux mâts sur les accotements, corde à
+    H_CORDE qui fléchit de 2 au milieu, bannières pointues cramoisies, violettes et noires à liseré doré, dont la
+    pointe reste au-dessus de 31 (rien sous 30 au-dessus du couloir). Aucun emblème."""
+    toiles = ("toile_cramoisie", "toile_violette", "toile_noire")
+    pts = ((-X_MAT, H_CORDE), (-16.0, H_CORDE - 2.0), (16.0, H_CORDE - 2.0), (X_MAT, H_CORDE))
+
+    def y_corde(x):
+        for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+            if xa <= x <= xb:
+                return ya + (yb - ya) * (x - xa) / (xb - xa)
+        return H_CORDE
+
+    fin = dict(collide=False, shadow=False)
+    for i, z in enumerate(Z_CORDES):
+        n0 = len(b.parts)
+        nom = f"Bourg/Corde{i}"
+        with b.group(nom):
+            for s in (-1, 1):
+                x = s * X_MAT
+                b.box((x - 1.1, 0, z - 1.1), (x + 1.1, 1.2, z + 1.1), c("pierre_fonce"), studs="top", name="Socle")
+                b.box((x - 0.4, 1.2, z - 0.4), (x + 0.4, H_CORDE + 2.5, z + 0.4), c("bois_noir"), name="Mat")
+                b.box((x - 0.65, H_CORDE + 2.5, z - 0.65), (x + 0.65, H_CORDE + 3.0, z + 0.65), c("fer_fonce"),
+                      name="Chapeau", collide=False)
+                b.ball((x, H_CORDE + 3.45, z), 0.5, c("or"), name="Pommeau", collide=False)
+            for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+                L = math.hypot(xb - xa, yb - ya)
+                b.part("block", (L + 0.2, 0.25, 0.25), ((xa + xb) / 2, (ya + yb) / 2, z),
+                       rot_z(math.degrees(math.atan2(yb - ya, xb - xa))), c("chaine"), name="Corde", **fin)
+            for k, xk in enumerate((-37.0, -25.0, -13.0, 0.0, 13.0, 25.0, 37.0)):
+                yk = y_corde(xk) - 0.15
+                col = c(toiles[(k + i) % 3])
+                b.box((xk - 1.6, yk - 6.0, z - 0.1), (xk + 1.6, yk, z + 0.1), col, name="Toile", **fin)
+                b.box((xk - 1.75, yk - 0.7, z - 0.22), (xk + 1.75, yk + 0.12, z + 0.22), c("toile_or"), name="Lisere", **fin)
+                b.wedge_under((xk - 1.6, yk - 7.4, z - 0.1), (xk, yk - 6.0, z + 0.1), col, down="-x", name="Pointe", **fin)
+                b.wedge_under((xk, yk - 7.4, z - 0.1), (xk + 1.6, yk - 6.0, z + 0.1), col, down="+x", name="Pointe", **fin)
+        b.__dict__.setdefault("poses", []).append((nom, "corde_bannieres", n0, len(b.parts)))
 
 
 # ---------------------------------------------------------------------------
 # Séquence 5 : champ de bataille des mages, aqueduc
 # ---------------------------------------------------------------------------
 
+def tente(b: Builder, variant: int = 0, largeur: float = 8.0, longueur: float = 10.0, hauteur: float = 6.0) -> dict:
+    """Tente de toile à deux pans du camp des mages (7 pièces) : ouverture sombre à l'avant (-Z local), mâts et faîtage."""
+    w, L, h = largeur, longueur, hauteur
+    toile = c(("toile_ecru", "toile_grise", "toile_cramoisie", "toile_nuit")[variant % 4])
+    bois = c("bois_fonce")
+    with b.group("Tente"):
+        b.wedge((-w / 2, 0, -L / 2), (0, h, L / 2), shade(toile, 0.9), down="-x", studs="top", name="Pan")
+        b.wedge((0, 0, -L / 2), (w / 2, h, L / 2), toile, down="+x", studs="top", name="Pan")
+        b.wedge((-w / 4, 0, -L / 2 - 0.12), (0, h / 2, -L / 2 - 0.02), c("noir"), down="-x", name="Ouverture",
+                collide=False)
+        b.wedge((0, 0, -L / 2 - 0.12), (w / 4, h / 2, -L / 2 - 0.02), c("noir"), down="+x", name="Ouverture",
+                collide=False)
+        for zz in (-L / 2 - 0.45, L / 2 + 0.45):
+            b.box((-0.2, 0, zz - 0.2), (0.2, h + 0.9, zz + 0.2), bois, name="Mat")
+        b.box((-0.16, h - 0.05, -L / 2 - 0.65), (0.16, h + 0.27, L / 2 + 0.65), bois, name="Faitage", collide=False)
+    return {"emprise": (w, L + 1.3), "hauteur": h + 0.9}
+
+
 def bataille(b: Builder) -> None:
-    """Champ de bataille (z -300 → -404, refBC4) : prairie brumeuse et cratères, murs et tours en ruine, arches
-    effondrées, bâtons de mage plantés à orbes lumineux, armes abandonnées, feux de camp ; l'AQUEDUC ruiné
-    (refBC3) passe au-dessus du couloir en z = -352, effondré à droite entre x = 100 et 164."""
+    """Champ de bataille (z -300 → -404, refBC4) : terre calcinée, cratères et fissures incandescentes (dans le sol),
+    murs et tours en ruine, arches effondrées, bâtons de mage plantés à orbes lumineux, armes abandonnées, feux de
+    camp, camp de tentes, menhirs gravés ; l'AQUEDUC ruiné (refBC3) passe au-dessus du couloir en z = -352,
+    effondré à droite entre x = 100 et 164."""
     place(b, "remparts", "aqueduc", (0, 0, Z_AQUEDUC), group="Monuments/Aqueduc", attente=_attente_aqueduc, variant=0,
           largeur=2 * X_FOND, ouverture=OUVERTURE_AQUEDUC, dessous=DESSOUS_AQUEDUC, hauteur=H_AQUEDUC,
           rupture=RUPTURE_AQUEDUC)
@@ -698,17 +1007,26 @@ def bataille(b: Builder) -> None:
     armes = (("epee_plantee", -52, -312, 0), ("epee_plantee", 53, -330, 1), ("epee_plantee", -51, -372, 2),
              ("epee_plantee", 52, -402, 3), ("bouclier", -54, -330, 0), ("bouclier", 52, -370, 1),
              ("armes_abandonnees", -88, -342, 0), ("armes_abandonnees", 84, -366, 1), ("armes_abandonnees", -96, -400, 2),
-             ("bouclier", 70, -334, 2))
+             ("bouclier", 70, -334, 2), ("armes_abandonnees", 50.5, -321, 3), ("epee_plantee", -49.5, -390, 1),
+             ("epee_plantee", 49.5, -395, 0), ("bouclier", -49.5, -383, 3))
     for i, (fn, x, z, v) in enumerate(armes):
         place(b, "mobilier", fn, (x, 0, z), yaw=23 * i, group=f"Bataille/{fn}{i}", emprise=(4, 4, 5), variant=v)
-    for i, (x, z, v) in enumerate(((-78, -405, 1), (76, -326, 0), (118, -382, 3), (-140, -340, 2))):
+    for i, (x, z, v) in enumerate(((-78, -405, 1), (76, -326, 0), (118, -382, 3), (-140, -340, 2), (-131, -316, 3))):
         place(b, "mobilier", "feu_camp", (x, 0, z), group=f"Bataille/Feu{i}", emprise=(6, 6, 5), variant=v)
-    for i, (x, z, v) in enumerate(((-58.5, -368, 1), (64, -398, 3))):
+    # camp des mages (à gauche, au sortir du bourg) : tentes autour d'un feu
+    for i, (x, z, yaw, v) in enumerate(((-122, -303, 20, 0), (-142, -307, -15, 1), (-112, -318, 80, 2))):
+        n0 = len(b.parts)
+        with b.at((x, 0, z), yaw=yaw, group=f"Bataille/Tente{i}"):
+            tente(b, variant=v)
+        b.__dict__.setdefault("poses", []).append((f"Bataille/Tente{i}", "tente", n0, len(b.parts)))
+    for i, (x, z, v) in enumerate(((-58.5, -368, 1), (64, -398, 3), (-150, -298, 1))):
         place(b, "mobilier", "banniere", (x, 0, z), group=f"Bataille/Banniere{i}", emprise=(4.2, 1.8, 12), variant=v,
               hauteur=11)
     place(b, "mobilier", "nuee_grimoires", (-84, 0, -372), group="Bataille/Nuee", emprise=(10, 10, 12), variant=3,
           rayon=3.8, hauteur=11, nombre=8)
-    for i, (x, z, v) in enumerate(((-110, -312, 2), (124, -310, 0), (-170, -312, 1), (168, -312, 3))):
+    for i, (x, z, v) in enumerate(((75, -370, 1), (-80, -338, 0))):
+        mob(b, "pierre_runique", x, z, f"Bataille/Menhir{i}", yaw=face_couloir(x), variant=v)
+    for i, (x, z, v) in enumerate(((-152, -331, 2), (124, -310, 0), (-170, -312, 1), (168, -312, 3))):
         place(b, "mobilier", "arbre_mort", (x, 0, z), group=f"Bataille/ArbreMort{i}", emprise=(10, 10, 15), variant=v,
               hauteur=15)
     for i, (x, z, v) in enumerate(((-62, -338, 0), (58, -342, 1), (-60, -402, 2))):
@@ -722,7 +1040,8 @@ def bataille(b: Builder) -> None:
 
 def place_rituelle(b: Builder) -> None:
     """Place rituelle (z -404 → -498) : cercle magique au sol (voir cercle_magique), obélisques noirs à flammes,
-    racines démoniaques, épines, braseros ; l'ARBRE DÉMONIAQUE à droite, des ÎLOTS FLOTTANTS enchaînés à gauche."""
+    racines démoniaques, épines, braseros, cristaux ; l'ARBRE DÉMONIAQUE à droite, des ÎLOTS FLOTTANTS enchaînés à
+    gauche ; deux fils de lumière cramoisie relient le cercle à la porte du château (dans le sol)."""
     cercle_magique(b)
     obelisques = ((-53, -418, 0), (53, -418, 1), (-58, -448, 2), (58, -448, 0), (-53, -478, 1), (53, -478, 2))
     for i, (x, z, v) in enumerate(obelisques):
@@ -734,24 +1053,26 @@ def place_rituelle(b: Builder) -> None:
         place(b, "abime", "racine_geante", (x, 0, z), yaw=yaw, group=f"Place/Racine{i}", emprise=(24, 6, 10), variant=v,
               longueur=24, hauteur=10)
     for i, (x, z, v) in enumerate(((-50, -432, 0), (50.5, -462, 1), (-50.5, -490, 3), (51, -410, 2), (66, -440, 1),
-                                   (-68, -456, 0))):
+                                   (-68, -456, 0), (49.5, -440, 3), (-49.5, -459, 3))):
         place(b, "mobilier", "epines_racines", (x, 0, z), yaw=50 * i, group=f"Place/Epines{i}", emprise=(4, 4, 5),
               variant=v)
     for i, (x, z) in enumerate(((-48.6, -406), (48.6, -406), (-48.6, -494), (48.6, -494))):
         place(b, "mobilier", "brasero", (x, 0, z), group=f"Place/Brasero{i}", emprise=(3, 3, 6), variant=(1, 2, 2, 1)[i])
-    for i, (x, z, v) in enumerate(((-100, -420, 0), (-124, -488, 2), (76, -452, 1))):
-        place(b, "abime", "cristaux", (x, 0, z), yaw=30 * i, group=f"Place/Cristaux{i}", emprise=(6, 6, 7), variant=v, taille=6)
+    for i, (x, z, v, t) in enumerate(((-100, -420, 0, 6), (-124, -488, 2, 6), (76, -452, 1, 6), (-172, -436, 0, 7),
+                                      (174, -404, 1, 6), (-170, -478, 2, 6))):
+        place(b, "abime", "cristaux", (x, 0, z), yaw=30 * i, group=f"Place/Cristaux{i}", emprise=(6, 6, 7), variant=v, taille=t)
     place(b, "abime", "arbre_demon", (X_ARBRE, 0, Z_ARBRE), yaw=face_couloir(1), group="Monuments/Arbre",
           emprise=(70, 70, H_ARBRE), variant=0, hauteur=H_ARBRE)
-    # îlots flottants (repos sur rien : magie voulue), enchaînés à des ancrages au sol
+    # îlots flottants (repos sur rien : magie voulue), enchaînés à des ancrages au sol ; le troisième s'écarte de la
+    # tour gauche du château (x = -118) pour s'en détacher dans la vue finale
     ilots = ((-92, 46, -428, 14, ((12, -46, -8), (-16, -46, -4))),
              (-136, 66, -466, 18, ((6, -66, -14), (-16, -66, 4))),
-             (-98, 78, -490, 12, ((-6, -78, 10),)),
+             (-118, 78, -490, 12, ((8, -78, 10),)),
              (104, 60, -414, 12, ((-18, -60, 6),)))
     for i, (x, y, z, t, ancres) in enumerate(ilots):
         place(b, "abime", "ilot_flottant", (x, y, z), group=f"Place/Ilot{i}", emprise=(t, t, t * 0.8), variant=i, taille=t,
               ancres=ancres)
-    place(b, "mobilier", "lucioles", (-104, 30, -456), group="Place/LuciolesIlots", emprise=(40, 40, 50), variant=1,
+    place(b, "mobilier", "lucioles", (-110, 30, -460), group="Place/LuciolesIlots", emprise=(40, 40, 50), variant=1,
           rayon=20, hauteur=50, nombre=30)
 
 
@@ -769,13 +1090,34 @@ def chateau(b: Builder) -> None:
 # Côtés : forêt, falaises, montagne de la capitale, limites
 # ---------------------------------------------------------------------------
 
-BOSQUETS = (   # (x, z, nombre, rayon) : sapins sombres et arbres morts mêlés
-    (-172, -42, 3, 10), (-224, -60, 2, 8), (-214, -168, 4, 14), (-160, -222, 4, 12), (-212, -268, 4, 12),
-    (-128, -296, 2, 8), (204, -44, 3, 10), (212, -150, 3, 12), (150, -238, 4, 12), (210, -266, 4, 12),
-    (120, -292, 2, 8))
-FALAISES = (   # (x, z, longueur, profondeur, hauteur, yaw)
-    (-205, -330, 60, 50, 34, -90), (-205, -390, 60, 50, 48, -90), (-205, -455, 70, 50, 62, -90),
+BOSQUETS = (   # (x, z, nombre, rayon) : sapins sombres et arbres morts mêlés (à l'intérieur des terres) ; derrière
+    # le bourg, un sous-bois de part et d'autre
+    (-172, -42, 3, 10), (-160, -222, 4, 12), (150, -238, 4, 12), (120, -292, 2, 8), (-150, -262, 3, 10),
+    (168, -268, 4, 11), (140, -297, 2, 6), (-128, -206, 3, 8), (-182, -288, 3, 9))
+FALAISES = (   # (x, z, longueur, profondeur, hauteur, yaw) ; la dernière à gauche rejoint la falaise du château
+    (-205, -330, 60, 50, 34, -90), (-205, -390, 60, 50, 48, -90), (-205, -458, 76, 50, 62, -90),
     (205, -330, 60, 50, 34, 90), (205, -390, 60, 50, 46, 90), (215, -458, 76, 40, 58, 90))
+
+
+def lisiere(b: Builder) -> None:
+    """Lisière de sapins sombres et d'arbres morts le long des bords du sol (|x| 198-232), des abords jusqu'aux
+    falaises : la limite latérale de la zone. Elle s'interrompt devant l'enceinte et la montagne de la capitale."""
+    rng = np.random.default_rng(29)
+    for s in (-1, 1):
+        z, k = 36.0, 0
+        while z > Z_BATAILLE + 4:
+            x = s * float(rng.uniform(198, 231))
+            libre = not (-27 < z < 5)                               # enceinte (et rien à cheval sur z = 0)
+            if s < 0 and -152 < z < -72:                            # montagne de la capitale
+                libre = False
+            if libre:
+                mort = float(rng.random()) < 0.2
+                fn = "arbre_mort" if mort else "sapin_sombre"
+                grp = f"Abords/Lisiere{'GD'[s > 0]}{k:02d}" if z > Z_ENTREE else f"Cotes/Lisiere{'GD'[s > 0]}{k:02d}"
+                place(b, "mobilier", fn, (x, 0, z), yaw=float(rng.uniform(0, 90)), group=grp, emprise=(10, 10, 24),
+                      variant=int(rng.integers(0, 4)), hauteur=15.0 if mort else float(rng.uniform(19, 27)))
+                k += 1
+            z -= float(rng.uniform(10, 15))
 
 
 def cotes(b: Builder) -> None:
@@ -789,6 +1131,7 @@ def cotes(b: Builder) -> None:
             fn = "arbre_mort" if mort else "sapin_sombre"
             place(b, "mobilier", fn, (px, 0, pz), yaw=float(rng.uniform(0, 90)), group=f"Cotes/Bosquet{i}/{k}",
                   emprise=(8, 8, 18), variant=(k + 2 * i) % 4, hauteur=float(rng.uniform(15, 22)) if not mort else 15)
+    lisiere(b)
     for i, (x, z, L, p, h, yaw) in enumerate(FALAISES):
         place(b, "abime", "falaise", (x, 0, z), yaw=yaw, group=f"Cotes/Falaise{i}", emprise=(L, p, h), variant=i % 4,
               longueur=L, profondeur=p, hauteur=h)
@@ -907,6 +1250,8 @@ def _accepte(ga: str, gb: str) -> str | None:
     paire = {"/".join(ga.split("/")[:2]), "/".join(gb.split("/")[:2])}
     if ga.split("/")[:2] == gb.split("/")[:2] and ga.startswith("Cotes/Bosquet"):
         return "bosquet serré (étages de sapins mêlés)"
+    if all("/Lisiere" in g for g in (ga, gb)):
+        return "lisière serrée (étages de sapins mêlés)"
     if all(g.startswith("Porte/") for g in (ga, gb)):
         return "maçonnerie de l'enceinte (segments bout à bout, tours)"
     if paire == {"Monuments/Colline", "Monuments/Crane"}:

@@ -38,12 +38,12 @@ VUES = {
     "entree": ((0, 6, 34), (6, 30, -150), 76),             # vue joueur aux abords : les deux tours encadrent le crâne et le château
     "village": ((-10, 9, -44), (30, 30, -200), 70),        # rue du village, église à gauche, colline et crâne à droite
     "crane": ((6, 10, -66), (130, 64, -158), 62),          # le crâne cornu de 3/4 depuis le couloir, côtes géantes devant
-    "tour": ((34, 10, -196), (-92, 64, -252), 64),         # tour aux grimoires et sa nuée de livres, placette, bourg
+    "tour": ((20, 10, -226), (-92, 62, -250), 64),         # tour aux grimoires et sa nuée de livres, parvis, bourg
     "bataille": ((-24, 9, -292), (16, 34, -420), 72),      # champ de bataille : ruines, bâtons, cratères, aqueduc
-    "place": ((-36, 30, -394), (8, 4, -462), 64),          # cercle magique, obélisques, racines, arbre et îlots
+    "place": ((-56, 40, -384), (40, 38, -476), 72),        # cercle magique, obélisques, racines, arbre, château
     "retour": ((4, 9, -486), (0, 26, -60), 70),            # vers la base : aqueduc, tour, crâne, tours d'entrée
     "cote": ((-400, 250, -110), (0, 10, -300), 45),        # côté gauche : forêt, montagne de la capitale, falaises
-    "final": ((0, 12, -412), (0, 66, -548), 70),           # château démoniaque et sa porte en arc brisé
+    "final": ((-10, 16, -390), (-10, 66, -548), 78),       # château démoniaque, sa porte en arc brisé, îlots, arbre
     "plan": None,  # vue de dessus orthographique
 }
 
@@ -71,6 +71,7 @@ def main() -> None:
     ap.add_argument("--ambiance", choices=("jour", "crepuscule"), default="jour",
                     help="crepuscule : rendus bonus au soleil couchant (le jeu, lui, garde son éclairage)")
     ap.add_argument("--suffixe", default="", help="ajouté au nom des images (ex. --suffixe=-crepuscule)")
+    ap.add_argument("--dossier", default=None, help="dossier des images (par défaut rendus/ ; ex. un dossier de contrôle)")
     args = ap.parse_args(argv)
 
     write_stud_textures()
@@ -97,8 +98,8 @@ def main() -> None:
         bs.setup_world()
         bs.setup_brume()
 
-    out = HERE / "rendus"
-    out.mkdir(exist_ok=True)
+    out = Path(args.dossier) if args.dossier else HERE / "rendus"
+    out.mkdir(parents=True, exist_ok=True)
     w, h = (int(v) for v in args.res.split("x"))
     if args.rapide:
         w, h, samples = w // 2, h // 2, 12
