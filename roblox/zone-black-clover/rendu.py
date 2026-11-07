@@ -35,20 +35,21 @@ from textures import write_stud_textures  # noqa: E402
 # (qui regarde l'entrée) sont éclairés de face.
 VUES = {
     "aerienne": ((-250, 330, 150), (10, 0, -290), 48),      # de haut, côté soleil : crâne, tour, aqueduc, château
-    "entree": ((0, 6, 34), (6, 30, -150), 76),             # vue joueur aux abords : les deux tours encadrent le crâne et le château
+    "entree": ((0, 6, 39), (10, 96, -150), 78),            # au bord des abords : les deux tours et leurs aiguilles encadrent le crâne
     "village": ((-10, 9, -44), (30, 30, -200), 70),        # rue du village, église à gauche, colline et crâne à droite
     "crane": ((6, 10, -66), (130, 64, -158), 62),          # le crâne cornu de 3/4 depuis le couloir, côtes géantes devant
     "tour": ((20, 10, -226), (-92, 62, -250), 64),         # tour aux grimoires et sa nuée de livres, parvis, bourg
-    "bataille": ((-24, 9, -292), (16, 34, -420), 72),      # champ de bataille : ruines, bâtons, cratères, aqueduc
+    "bataille": ((-30, 9, -300), (-70, 22, -380), 72),     # champ de bataille : grands bâtons, ruines, aqueduc sombre
     "place": ((-56, 40, -384), (40, 38, -476), 72),        # cercle magique, obélisques, racines, arbre, château
-    "retour": ((4, 9, -486), (0, 26, -60), 70),            # vers la base : aqueduc, tour, crâne, tours d'entrée
+    "retour": ((4, 9, -486), (0, 19, -60), 70),            # vers la base : aqueduc, tour, crâne, tours d'entrée
     "cote": ((-400, 250, -110), (0, 10, -300), 45),        # côté gauche : forêt, montagne de la capitale, falaises
-    "final": ((-10, 16, -390), (-10, 66, -548), 78),       # château démoniaque, sa porte en arc brisé, îlots, arbre
+    "final": ((-6, 14, -372), (-6, 74, -548), 78),         # château démoniaque et son donjon, îlots, arbre
     "plan": None,  # vue de dessus orthographique
 }
 
-# Crépuscule démoniaque : horizon cramoisi-rose, ciel violet, zénith presque noir ; soleil bas derrière le château
-CIEL_DEMON = ((0.66, 0.30, 0.40), (0.30, 0.17, 0.42), (0.04, 0.03, 0.12))
+# Crépuscule démoniaque (refBC2) : horizon orange-cramoisi, ciel violet sang, zénith presque noir ; soleil bas
+# derrière le château
+CIEL_DEMON = ((0.85, 0.33, 0.22), (0.40, 0.16, 0.38), (0.04, 0.03, 0.12))
 
 
 def lune_path() -> str | None:
@@ -91,9 +92,10 @@ def main() -> None:
     if args.ambiance == "crepuscule":
         # soleil bas derrière le château (azimut 8 : un peu à droite), ciel violet et cramoisi : le château se
         # découpe en silhouette, les lueurs magiques, les braseros et les fenêtres (Neon) ressortent
-        bs.setup_world(sun_elev=9, sun_azim=8, view="AgX", look="AgX - Punchy", exposure=1.0,
-                       ciel=CIEL_DEMON, soleil=(1.0, 0.52, 0.44), soleil_energie=3.4, ciel_force=1.5)
-        bs.setup_brume(debut=60, profondeur=850, maximum=0.55, couleur=(0.32, 0.20, 0.42))
+        # rendu « Standard » : les lueurs Neon gardent leur violet et leur cramoisi saturés (AgX les blanchit)
+        bs.setup_world(sun_elev=9, sun_azim=8, view="Standard", look="None", exposure=0.0,
+                       ciel=CIEL_DEMON, soleil=(1.0, 0.45, 0.30), soleil_energie=3.4, ciel_force=1.5)
+        bs.setup_brume(debut=60, profondeur=850, maximum=0.40, couleur=(0.42, 0.20, 0.32))
     else:
         bs.setup_world()
         bs.setup_brume()

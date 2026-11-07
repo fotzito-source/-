@@ -180,9 +180,9 @@ P = {
     "chaine": "#3E4048",
 
     # Lointain (montagne de la capitale : bleu-violet désaturé, lu comme une silhouette lointaine)
-    "lointain": "#7D7F9A",
-    "lointain_clair": "#9496AE",
-    "lointain_fonce": "#666883",
+    "lointain": "#6C6E88",
+    "lointain_clair": "#80829A",
+    "lointain_fonce": "#565871",
     "chateau_royal": "#C9C6D2",
     "toit_royal": "#5B6690",
 

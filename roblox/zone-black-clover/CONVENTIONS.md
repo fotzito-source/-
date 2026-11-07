@@ -21,8 +21,8 @@ cylindre, boule). Lire aussi `CONCEPTION.md` (intention, séquence, palette, bud
   (-32 → -80 ; côtes géantes en (118, -70)), **village abandonné** (-80 → -196 ; église en (-77, -154), colline et
   **crâne** en (132, -158)), **bourg** (-196 → -300 ; **tour aux grimoires** en (-94, -250)), **champ de bataille**
   (-300 → -404 ; **aqueduc** en `z = -352`), **place rituelle** (-404 → -498 ; **cercle magique** de rayon 34 centré
-  en `z = -448`, **arbre démoniaque** en (150, -462), îlots flottants à gauche), **château démoniaque**
-  (-498 → -548, posé en (0, -523)).
+  en `z = -448`, **arbre démoniaque** en (150, -462), îlots flottants à 90-125 de haut, ancrés aux falaises),
+  **château démoniaque** (-498 → -548, posé en (0, -523)).
 - Côtés : champs et blé jusqu'à `|x| = 175`, lisières de sapins sombres, falaises noires à partir de `z = -300`
   (`|x|` ≥ 180), montagne de la capitale en (-200, -112). Fin du sol et murs invisibles en `|x| = 239`.
 - Le joueur arrive par +Z, court vers -Z, puis revient : **les deux sens de lecture comptent** (revers des tours
@@ -33,15 +33,19 @@ cylindre, boule). Lire aussi `CONCEPTION.md` (intention, séquence, palette, bud
 - **Au sol** : rien de solide (`collide=True`) dans `|x| < 45` entre y = 0,05 et y = 12, sauf le sol lui-même
   (groupes `Sol/…`, dont l'estrade du cercle magique, 0,85 de haut au plus).
 - **Au-dessus** : **rien du tout** (solide ou non) au-dessus de `|x| < 46` sous **y = 30**. Sinon la caméra Roblox
-  saute quand le joueur passe dessous. Lucioles, bannières, branches au-dessus du couloir : au-dessus de 31.
+  saute quand le joueur passe dessous. Lucioles et branches au-dessus du couloir : au-dessus de 31 ; bannières et
+  tout ce qui enjambe le couloir : dessous à 34 ou plus (`enjambe_sous_34` dans `--stats`).
 - Ce qui **enjambe** le couloir garde **au moins 92 studs entre ses appuis** (appuis en `|x| ≥ 46`) et son
-  **dessous à 34 ou plus** : aqueduc (piles en `|x| ≥ 47`, dessous de l'arche centrale ≥ 36), porte du château
+  **dessous à 34 ou plus** : aqueduc (piles en `|x| ≥ 47`, socles en `|x| ≥ 46,5` : 93 de passage libre, dessous
+  de l'arche centrale ≥ 36), cordes à bannières du bourg (pointes des bannières à 34,45), porte du château
   (ouverture **100** : `|x| < 50`, montants jusqu'à **40**, arc brisé au-dessus ; tout ce qui passe au-dessus du
   couloir est au-dessus de 40). La sortie en `z = -548` reste **ouverte**.
 - Les assets posés sur les accotements gardent toute leur emprise en `|x| ≥ 46` (enseignes, lanternes, bâtons,
   étals, vantaux : jusqu'à `|x| = 47` au plus près).
-- `zone.py --stats` affiche `couloir_encombre`, `trop_bas_au_dessus_du_couloir` et `hors_budget` : les trois doivent
-  rester vides. `zone.py --chevauchements` liste les assets posés qui se recoupent.
+- `zone.py --stats` affiche `couloir_encombre`, `trop_bas_au_dessus_du_couloir`, `enjambe_sous_34` et `hors_budget` :
+  les quatre doivent rester vides. `zone.py --chevauchements` liste les assets posés qui se recoupent.
+- **Aucune lueur rouge ou orange au sol du couloir** (on y lirait de la lave, signal de danger dans Roblox) : dans le
+  couloir, fissures éteintes et fils de lumière violets ; les fissures incandescentes restent sur les côtés.
 
 ## API du kit (`kit.py`)
 
@@ -77,18 +81,29 @@ Mobilier réutilisable (`assets/mobilier.py`, ≤ 40 pièces chacun ; `from asse
 `with b.at(...): mobilier.enseigne(b, "TAVERNE", variant=1)`) :
 - éclairage et feux : `lanterne_fer(variant 0-3)`, `lanterne_murale(0-2)` (origine sur la face du mur),
   `brasero(0-3 : orange, violet, cramoisi, vert)`, `feu_camp(0-3)`, `chaudron(0-2)` ;
-- bataille : `baton_mage(0-3 : orbe violet, vert, doré, cramoisi)`, `epee_plantee(0-3)`, `bouclier(0-3)`,
-  `armes_abandonnees(0-2)` ;
+- bataille : `baton_mage(0-3 : orbe violet, vert, doré, cramoisi ; taille)` (taille ≥ 1,5 : grand bâton planté de
+  biais, fût coudé, cage de griffes autour d'un gros orbe, rubans ; ≈ 9,8 × taille de haut), `epee_plantee(0-3)`,
+  `bouclier(0-3)`, `armes_abandonnees(0-2)` ;
 - village et bourg : `caisses`, `tonneaux`, `etal(0-3)`, `puits(0-2)`, `charrette(0-2)`, `meule`,
   `enseigne(texte, variant)` (en drapeau, origine sur la face du mur, dépasse vers -Z), `panneau_pied(texte)`,
   `poteau_indicateur(textes)`, `cloture_bois(longueur)`, `muret(longueur)`, `banniere(variant, hauteur)` (toile dans
   le plan X-Y), `banniere_murale(variant, hauteur)` (origine sur la face du mur, en haut), `pierre_tombale(0-3)`,
   `pierre_runique(0-3)` ;
 - magie : `grimoire_volant(0-5)` (origine au centre du livre), `nuee_grimoires(variant, rayon, hauteur, nombre)`,
-  `lucioles(variant, rayon, hauteur, nombre)` ;
+  `lucioles(variant, rayon, hauteur, nombre, rayon_x, rayon_min)` (`rayon_x` : rideau aplati le long d'une façade ;
+  `rayon_min` : couronne autour d'un toit) ;
 - petite nature : `arbre_mort(variant, hauteur)`, `sapin_sombre(variant, hauteur)`, `rocher(variant, taille)`,
   `epines_racines(variant, taille)` ;
 - outil : `chaine(b, p0, p1, maillon=1.4, epaisseur=0.3, couleur=None, creux=0.0)` (maillons alternés, ≤ 40).
+
+Paramètres de mise en scène des autres modules (fiches complètes dans `SPECS.md` et les docstrings) :
+- `batiments.chaumiere(..., lumieres="toutes" | "eteintes")`, `batiments.maison_pierre(..., lumieres="toutes" |
+  "faible" | "eteintes")` : village abandonné (vitres noires, planches clouées, lanterne décrochée ; « faible » garde
+  deux bougies) ; `batiments.maison_haute(..., fioles=True)` : maison de mage, fioles lumineuses à la fenêtre ;
+- `remparts.aqueduc(..., rupture=[(x0, x1), ...], affaisse={(x0, x1): d})` : brèches (la première a sa cascade) et
+  travées affaissées ;
+- `abime.ilot_flottant(..., ancres=[(dx, dy, dz)])` : une chaîne par ancre, vers un point du sol ou d'une falaise ;
+  `abime.obelisque(hauteur)` : fût et coupe à flammes proportionnés à la hauteur (28 sur la place).
 
 Formes Roblox à connaître :
 - `wedge` : face pleine au fond et dessous, pente vers `down` ; une pente avec `studs="top"` reçoit les studs.
@@ -111,8 +126,10 @@ Formes Roblox à connaître :
   de colline, gradins de falaise) et sur les pentes de toit ; **pas sur les murs des maisons**, ni sur l'os du
   crâne, ni sur les troncs.
 - **Pas de vert émeraude** : verts olive, mousse, gris-vert sapin ; seul vert vif : `lueur_verte` (orbes, chaudrons).
-- **Neon** pour toutes les lueurs, avec mesure (≤ ≈ 900 pièces Neon pour toute la zone ; le sol et le mobilier en
-  posent déjà ≈ 330). Transparence : presque jamais.
+- **Neon** pour toutes les lueurs, avec mesure (≤ ≈ 900 pièces Neon pour toute la zone : 892 aujourd'hui, dont
+  ≈ 140 au sol et ≈ 110 lucioles). Les violets et cramoisis sont profonds (`lueur_violette` #8C3BFF,
+  `lueur_cramoisie` #FF1430) : le Neon les éclaircit, des teintes pastel virent au rose ou au blanc.
+  Transparence : presque jamais (3 pièces : la cascade de l'aqueduc).
 
 ## Magie flottante (voulue)
 
@@ -121,7 +138,9 @@ comme un dessin et d'être **alignés sur une source** : spirale autour de la to
 sortent de ses fenêtres), nuée au-dessus d'un pupitre gravé, nuage de lucioles autour d'une tour ou d'un îlot,
 orbe tenu par un bâton, îlot relié au sol par des chaînes et des ancrages. Jamais une pièce isolée qui flotte
 « par erreur » : tout le reste repose sur quelque chose ou est accroché à un support. Objet flottant posé par
-`zone.py` : origine au centre de l'objet (grimoire) ou au centre du dessus (îlot), à la hauteur voulue.
+`zone.py` : origine au centre de l'objet (grimoire) ou au centre du dessus (îlot), à la hauteur voulue. Les îlots
+de la place sont posés par `zone.ilots()` après les falaises : `_ancrage_falaise()` cherche le dessus de colonne le
+plus haut près du point visé, sans rien au-dessus, et vérifie que la chaîne tendue en biais ne traverse pas la roche.
 
 ## Propriété intellectuelle (obligatoire)
 

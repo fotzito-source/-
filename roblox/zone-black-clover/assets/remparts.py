@@ -743,7 +743,7 @@ def ruine_tour(b, variant=0, rayon=10, hauteur=44):
         hauts = sorted(range(n), key=lambda k: -hs[k])
         for k in (hauts[1], hauts[4], hauts[7]):
             with _radial(b, 0.0, 0.0, r, 360.0 * k / n):
-                b.box((-w / 2 + 0.45, hs[k], 0.35), (w / 2 - 0.45, hs[k] + 0.3, ep - 0.35), vary("mousse", rng, 0.08),
+                b.box((-w / 2 + 0.45, hs[k], 0.35), (w / 2 - 0.45, hs[k] + 0.25, ep - 0.35), vary("mousse", rng, 0.08),
                       name="Mousse", **FIN)
         for k in (10, 2, 9) if v != 3 else (2, 4, 10):
             if hs[k] < 8:

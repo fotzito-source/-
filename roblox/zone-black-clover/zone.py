@@ -6,23 +6,26 @@ Repère Roblox (Y en haut, 1 unité = 1 stud) :
 - on arrive par +Z (abords z 40 → 0, groupe `Abords`, à supprimer quand les zones sont mises bout à bout) et on
   court vers -Z ; la zone descend des confins pauvres d'un royaume de mages jusqu'aux portes d'un royaume démoniaque,
   de plus en plus sombre :
-  PORTE D'ENTRÉE (deux tours rondes à toits coniques, z 0 → -32), CHAMPS (-32 → -80, côtes géantes à droite),
-  VILLAGE ABANDONNÉ (-80 → -196, église à gauche, CRÂNE DE DÉMON cornu sur sa colline à droite),
-  BOURG DE LA TOUR AUX GRIMOIRES (-196 → -300, la tour à gauche), CHAMP DE BATAILLE DES MAGES (-300 → -404, ruines,
-  AQUEDUC en travers à z = -352), PLACE RITUELLE des œufs (cercle magique de rayon 34 centré en z = -448, arbre
-  démoniaque à droite, îlots flottants à gauche) et CHÂTEAU DÉMONIAQUE (-498 → -548) dont la porte (100 × 40,
-  arc brisé au-dessus) débouche en z = -548 sur la zone suivante ;
+  PORTE D'ENTRÉE (deux tours rondes à toits coniques en aiguille, z 0 → -32), CHAMPS (-32 → -80, côtes géantes à
+  droite), VILLAGE ABANDONNÉ (-80 → -196, fenêtres noires ou condamnées, église à gauche, CRÂNE DE DÉMON cornu au
+  regard cramoisi sur sa colline à droite), BOURG DE LA TOUR AUX GRIMOIRES (-196 → -300, la tour à gauche),
+  CHAMP DE BATAILLE DES MAGES (-300 → -404, grands bâtons de mage le long des accotements, ruines, AQUEDUC sombre et
+  brisé en travers à z = -352), PLACE RITUELLE des œufs (cercle magique de rayon 34 centré en z = -448, grands
+  obélisques, arbre démoniaque à droite, îlots flottants haut dans le ciel, ancrés aux falaises) et CHÂTEAU
+  DÉMONIAQUE (-498 → -548) au donjon dominant, dont la porte (100 × 40, arc brisé au-dessus) débouche en z = -548
+  sur la zone suivante ;
 - côtés : champs labourés et blé, puis forêt de sapins sombres et d'arbres morts, puis falaises noires à cristaux
   violets ; la montagne couronnée d'un château (capitale du royaume) se dresse au loin à gauche ; une lisière de
   sapins ferme les bords du sol (|x| ≈ 198-231) jusqu'aux falaises.
 - le sol raconte la descente (toujours plat, dessus en y = 0) : vieille route pavée aux abords, dalles sous la porte,
   chemin de terre à ornières et flaques, bas-côtés d'herbe et de boue dans les champs et le village (parvis pavé
   devant l'église, allées vers les portes), vieux pavés usés du bourg avec la place dallée de la tour et du marché
-  et le parvis en éventail de la tour, terre calcinée à cratères et fissures incandescentes (Neon) sur le champ de
-  bataille, dalles noires de la place rituelle d'où deux fils cramoisis filent sous la porte du château ;
+  et le parvis en éventail de la tour, terre calcinée à cratères sur le champ de bataille (fissures éteintes dans le
+  couloir, incandescentes sur les côtés : jamais de « lave » sous les pieds), dalles noires de la place rituelle
+  d'où deux fils violets filent sous la porte du château ;
 - accotements (45 ≤ |x| < 55) : clôtures qui dessinent les cours du village, lanternes, charrettes, tonneaux,
   caisses, puits, arbres morts, tombes et feux follets, étals, bâtons de mage, armes, épines ; deux cordes à
-  bannières traversent la rue du bourg au-dessus de 31.
+  bannières traversent la rue du bourg (pointes des bannières à 34,45 : ce qui enjambe le couloir reste ≥ 34).
 
     python zone.py                     # écrit build/parts.json (aucune dépendance à Blender)
     python zone.py --stats             # pièces par groupe, poses par asset et contrôle des budgets
@@ -44,7 +47,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from kit import Builder, rot_z, shade  # noqa: E402
+from kit import Builder, rot_y, rot_z, shade  # noqa: E402
 from palette import c  # noqa: E402
 from textures import mask_rects  # noqa: E402
 
@@ -62,7 +65,7 @@ Z_ENTREE = 0
 Z_PORTE = -16            # axe des tours de la porte d'entrée et de l'enceinte
 X_TOUR_PORTE = 63        # axe des tours rondes (faces intérieures en |x| = 50)
 R_TOUR_PORTE = 13
-H_TOUR_PORTE = 58        # corps des tours (toit conique au-dessus, jusqu'à ≈ 96)
+H_TOUR_PORTE = 58        # corps des tours (toit conique en aiguille au-dessus, jusqu'à ≈ 111)
 OUVERTURE_PORTE = 100    # entre les faces intérieures des tours
 H_ENCEINTE = 34          # enceinte qui part des tours vers les côtés
 EP_ENCEINTE = 8
@@ -73,8 +76,10 @@ Z_BATAILLE = -300
 Z_AQUEDUC = -352         # axe de l'aqueduc ruiné (tablier en travers du couloir)
 H_AQUEDUC = 62           # dessus du tablier
 DESSOUS_AQUEDUC = 36     # dessous de l'arche centrale (au-dessus de |x| < 47)
-OUVERTURE_AQUEDUC = 94   # entre les piles qui encadrent le couloir (faces en |x| = 47)
-RUPTURE_AQUEDUC = (100.0, 164.0)   # tronçon effondré (x local), à droite
+OUVERTURE_AQUEDUC = 94   # entre les piles qui encadrent le couloir (faces en |x| = 47, socles en |x| = 46,5)
+# tronçons effondrés (x local) : la grande brèche à droite (cascade), une travée tombée à gauche
+RUPTURES_AQUEDUC = ((100.0, 164.0), (-158.0, -126.0))
+AFFAISSEMENTS_AQUEDUC = {(180.0, 212.0): 3.0, (-212.0, -180.0): 3.5}   # travées dont le tablier s'est affaissé
 Z_PLACE_DEBUT = -404
 Z_PLACE = -448           # centre du cercle magique (82 % du parcours)
 R_PLACE = 34
@@ -89,7 +94,7 @@ H_PASSAGE = 40           # montants de la porte ; l'arc brisé monte au-dessus (
 X_COLLINE, Z_COLLINE, H_COLLINE = 132, -158, 28          # colline du crâne (à droite)
 YAW_CRANE = 125                                          # le crâne regarde l'entrée et le couloir
 X_COTES, Z_COTES, YAW_COTES = 118, -70, 110              # côtes géantes dans les labours (à droite), échine ≈ le long du couloir
-X_TOUR, Z_TOUR, R_TOUR, H_TOUR = -94, -250, 16, 118      # tour aux grimoires (à gauche)
+X_TOUR, Z_TOUR, R_TOUR, H_TOUR = -94, -250, 16, 138      # tour aux grimoires (à gauche), toit en aiguille de 80 à 138
 X_ARBRE, Z_ARBRE, H_ARBRE = 150, -462, 150               # arbre démoniaque (à droite)
 X_MONTAGNE, Z_MONTAGNE = -200, -112                      # montagne de la capitale (lointain, à gauche)
 
@@ -105,7 +110,7 @@ BUDGETS = {
     ("batiments", "maison_fond"): 28,
     ("monuments", "colline_crane"): 280, ("monuments", "crane_demon"): 680, ("monuments", "cotes_geantes"): 170,
     ("monuments", "tour_grimoires"): 620, ("monuments", "montagne_capitale"): 150,
-    ("abime", "chateau_demon"): 1150, ("abime", "arbre_demon"): 420, ("abime", "ilot_flottant"): 90,
+    ("abime", "chateau_demon"): 1150, ("abime", "arbre_demon"): 420, ("abime", "ilot_flottant"): 95,
     ("abime", "obelisque"): 26, ("abime", "racine_geante"): 30, ("abime", "cristaux"): 14,
 }
 BUDGET_MOBILIER = 40
@@ -189,10 +194,11 @@ def _attente_aqueduc(b) -> None:
     xs = [OUVERTURE_AQUEDUC / 2 + 5 + 32 * k for k in range(7)]
     for s in (-1, 1):
         for x in xs:
-            if x > X_FOND - 4 or (s > 0 and RUPTURE_AQUEDUC[0] < x < RUPTURE_AQUEDUC[1]):
+            if x > X_FOND - 4 or any(lo < s * x < hi for (lo, hi) in RUPTURES_AQUEDUC):
                 continue
             b.box((s * x - 5, 0, -5), (s * x + 5, H_AQUEDUC - 12, 5), ROSE, transparency=0.5)
-    for (xa, xb) in ((-X_FOND, RUPTURE_AQUEDUC[0]), (RUPTURE_AQUEDUC[1], X_FOND)):
+    bornes = [-X_FOND] + [v for r in sorted(RUPTURES_AQUEDUC) for v in r] + [X_FOND]
+    for (xa, xb) in zip(bornes[0::2], bornes[1::2]):
         b.box((xa, DESSOUS_AQUEDUC + 6, -6), (xb, H_AQUEDUC, 6), ROSE, transparency=0.5)
 
 
@@ -343,12 +349,22 @@ def _sol_abords(x: float, z: float):
 
 
 def _sol_seuil(x: float, z: float):
-    """Seuil de la porte : grandes dalles de trois tons entre deux bordures."""
+    """Seuil de la porte : grandes dalles de 10 × 7 à joints sombres entre deux bordures ; chemin central usé plus
+    sombre (|x| < 13), mousse dans les joints au pied des tours."""
     u, v = x + DEMI_COULOIR, -z
     if v < 2 or v > 30:
         return c("bordure")
+    ax = abs(x)
+    if u % 10 < 2 or (v - 2) % 7 < 2:
+        if ax > 30 and _bruit(x, z, 6, 45) > 0.5:
+            return c("mousse")                                   # joints moussus au pied des tours
+        return c("joint")
     h = _hash(math.floor(u / 10), math.floor((v - 2) / 7), 44)
-    return c("dalle_claire") if h < 0.4 else (c("dalle") if h < 0.82 else c("pave_fonce"))
+    if ax < 13:                                                  # chemin usé par les charrois
+        return c("dalle") if h < 0.45 else (c("pave_fonce") if h < 0.85 else c("boue"))
+    if ax > 36 and _bruit(x, z, 5, 46) > 0.72:
+        return c("mousse")
+    return c("dalle_claire") if h < 0.3 else (c("dalle") if h < 0.8 else c("pave_fonce"))
 
 
 def _sol_chemin(x: float, z: float, demi: float, graine: int, pavage: float = 2.0):
@@ -444,7 +460,7 @@ def _sol_bataille(x: float, z: float):
     if ax > 35 + 6 * _bruit(0.0, z, 12, 84):
         return c("herbe_grise")
     n = _bruit(x, z, 15, 86)
-    return c("brulis") if n > 0.68 else (c("terre_fonce") if n > 0.44 else (c("cendre_fonce") if n > 0.2 else c("cendre")))
+    return c("brulis") if n > 0.58 else (c("terre_fonce") if n > 0.4 else (c("cendre_fonce") if n > 0.18 else c("cendre")))
 
 
 def couleur_couloir(x: float, z: float):
@@ -469,9 +485,10 @@ def couleur_couloir(x: float, z: float):
 
 def neon_couloir(x: float, z: float):
     """Cases lumineuses du sol (posées en Neon dans les trous laissés par couleur_couloir_plein) : deux fils de
-    lumière cramoisie qui partent du cercle magique et passent sous la porte du château."""
+    lumière violette qui partent du cercle magique et passent sous la porte du château (jamais de rouge ou d'orange
+    lumineux au sol du couloir : on y lirait de la lave)."""
     if z < Z_PLACE - R_PLACE + 0.5 and 6 <= abs(x) < 8:
-        return c("lueur_cramoisie")
+        return c("lueur_violette")
     return None
 
 
@@ -535,6 +552,8 @@ def couleur_cotes(x: float, z: float):
         if du % 36 < 4 or dv % 32 < 4:                            # chemins entre les parcelles
             return c("terre_fonce")
         kind = int(_hash(math.floor(du / 36), math.floor(dv / 32), 31 + s) * 5)
+        if _hash(math.floor(du / 36), math.floor(dv / 32), 77 + s) < 0.25:     # une parcelle sur quatre brûlée
+            return c("brulis") if math.floor(ax / 4) % 2 else c("cendre_fonce")
         if kind <= 1:                                             # labours : sillons parallèles au couloir
             return c("labour") if math.floor(ax / 4) % 2 else c("labour_fonce")
         if kind == 2:
@@ -564,28 +583,25 @@ def couleur_cotes(x: float, z: float):
 
 
 def fissures_bataille(b: Builder) -> None:
-    """Fissures incandescentes du champ de bataille : depuis le bord de chaque cratère, deux à quatre fissures en
-    zigzag qui s'amincissent (blocs Neon à plat, dessus 0,1 au-dessus du sol, sans collision), des braises au fond.
-    Angles et longueurs irréguliers : ni croix, ni étoile."""
+    """Fissures du champ de bataille : depuis le bord de chaque cratère, des fissures en zigzag qui s'amincissent
+    (blocs à plat, sans collision). Dans le couloir, fissures noires éteintes (aucune lueur au sol : un sol rouge
+    ou orange lumineux se lit comme de la lave) ; sur les côtés (|x| ≥ 56), trois fissures incandescentes en trois
+    segments (Neon orange puis cramoisi). Angles et longueurs irréguliers : ni croix, ni étoile."""
     rng = np.random.default_rng(23)
     neon = dict(material="Neon", collide=False, shadow=False, studs="none")
+    eteinte = dict(collide=False, shadow=False, studs="none")
     with b.group("Sol/Fissures"):
         for i, (cx, cz, r) in enumerate(CRATERES + CRATERES_COTES):
             dans_couloir = i < len(CRATERES)
-            if dans_couloir:
-                for k in range(2):
-                    a, d = float(rng.uniform(0, 2 * math.pi)), float(rng.uniform(0.05, 0.22)) * r
-                    b.boxc((cx + d * math.cos(a), 0.0, cz + d * math.sin(a)), (1.0, 0.2, 0.8), c("feu"),
-                           yaw=float(rng.uniform(0, 90)), name="Braise", **neon)
-            n = int(rng.integers(2, 4)) if dans_couloir else 2
+            n = int(rng.integers(2, 4)) if dans_couloir else 3
             a = float(rng.uniform(0, 2 * math.pi))
             for k in range(n):
                 a += float(rng.uniform(1.3, 2.6))                  # écarts irréguliers entre les fissures
                 aa = a
                 x, z = cx + 0.8 * r * math.cos(aa), cz + 0.8 * r * math.sin(aa)
-                L = r * float(rng.uniform(0.8, 1.7))
+                L = r * float(rng.uniform(0.8, 1.7)) * (1.0 if dans_couloir else 1.3)
                 ep = 0.75 if dans_couloir else 0.9
-                for s_ in range(3 if dans_couloir else 2):
+                for s_ in range(3):
                     aa += float(rng.uniform(-0.85, 0.85))
                     lg = L / 3 * float(rng.uniform(0.7, 1.3))
                     x2, z2 = x + lg * math.cos(aa), z + lg * math.sin(aa)
@@ -593,9 +609,13 @@ def fissures_bataille(b: Builder) -> None:
                         break
                     if not dans_couloir and abs(x2) < X_BORD + 1:
                         break
-                    b.boxc(((x + x2) / 2, -0.05 + (0.1 if s_ == 0 else 0.0), (z + z2) / 2),
-                           (math.hypot(x2 - x, z2 - z) + 0.3 * ep, 0.3, ep), c("feu") if s_ == 0 else c("feu_cramoisi"),
-                           yaw=math.degrees(math.atan2(-(z2 - z), x2 - x)), name="Fissure", **neon)
+                    taille = (math.hypot(x2 - x, z2 - z) + 0.3 * ep, 0.3, ep)
+                    ctr = ((x + x2) / 2, -0.05 + (0.1 if s_ == 0 else 0.0), (z + z2) / 2)
+                    yaw = math.degrees(math.atan2(-(z2 - z), x2 - x))
+                    if dans_couloir:
+                        b.boxc(ctr, taille, c("obsidienne"), yaw=yaw, name="Fissure", **eteinte)
+                    else:
+                        b.boxc(ctr, taille, c("feu") if s_ == 0 else c("feu_cramoisi"), yaw=yaw, name="Fissure", **neon)
                     x, z, ep = x2, z2, ep * 0.72
 
 
@@ -622,9 +642,11 @@ def sol(b: Builder) -> None:
 
 def cercle_magique(b: Builder) -> None:
     """Cercle magique de la place des œufs (rayon 34) : estrade de disques concentriques de 0,1 de haut chacun
-    (anneaux Neon violets, bande de glyphes abstraits, carré inscrit en losange, cœur cramoisi).
+    (anneaux Neon violets, bande de glyphes abstraits dont huit composés, anneau fin à douze graduations, carré
+    inscrit en losange avec un nœud runique à chaque sommet, cœur cramoisi).
     Géométrie générique : ni étoile (5, 6 ou 8 branches), ni trèfle, ni lettre d'un alphabet réel."""
     z = Z_PLACE
+    lum = dict(material="Neon", shadow=False)
     with b.group("Sol/Cercle"):
         y = 0.0
 
@@ -637,24 +659,53 @@ def cercle_magique(b: Builder) -> None:
         disque(34.0, "obsidienne", 0.15)
         disque(33.0, "lueur_violette", neon=True)
         disque(31.8, "dalle_rituelle")
-        # bande de glyphes : 24 marques abstraites (barre + point) entre r = 27 et r = 31
+        # bande de glyphes : 24 marques abstraites (barre + point) entre r = 27 et r = 31 ; une sur trois est un glyphe
+        # composé (barre, barre courte décalée vers le centre, petit losange au bout opposé) : ni lettre ni chiffre
         for k in range(24):
             a = 2 * math.pi * k / 24
             ca, sa = math.cos(a), math.sin(a)
             long_ = 3.0 if k % 3 == 0 else 1.8
             r = 29.2
-            b.boxc((r * ca, y + 0.05, z + r * sa), (long_, 0.1, 0.6), c("lueur_violette"), yaw=-math.degrees(a),
-                   material="Neon", shadow=False, name="Glyphe")
+            yaw = -math.degrees(a)                      # X local radial, Z local tangent
+            with b.at((r * ca, y + 0.05, z + r * sa), yaw=yaw):
+                b.boxc((0, 0, 0), (long_, 0.1, 0.6), c("lueur_violette"), name="Glyphe", **lum)
+                if k % 3 == 0:
+                    sens = 1 if k % 2 else -1
+                    b.boxc((sens * 0.55, 0, 1.15), (1.5, 0.1, 0.5), c("lueur_violette"), name="Glyphe", **lum)
+                    b.part("block", (0.6, 0.1, 0.6), (-sens * 1.75, 0, -0.75), rot_y(45), c("lueur_violette_pale"),
+                           name="Glyphe", **lum)
             if k % 3:
                 r2 = 30.6 if k % 2 else 27.6
                 b.boxc((r2 * ca, y + 0.05, z + r2 * sa), (0.6, 0.1, 0.6), c("lueur_violette_pale"), yaw=-math.degrees(a),
-                       material="Neon", shadow=False, name="Glyphe")
+                       name="Glyphe", **lum)
         disque(26.2, "lueur_violette", neon=True)
         disque(25.0, "dalle_noire")
-        # carré inscrit en losange (sommets sur les axes) : 4 barres Neon
+        # sur ce même niveau (rien ne se chevauche) : carré inscrit en losange (sommets sur les axes, 4 barres Neon)
+        # avec un nœud runique à chaque sommet (losange Neon de 3 à cœur sombre, sans collision) ; anneau fin de
+        # r = 18,5 en 16 segments, interrompu là où passent les barres ; douze graduations radiales de r = 13 à 17,5
+        # (raccourcies devant les barres)
         for (sx, sz) in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
             b.boxc((sx * 12.0, y + 0.05, z + sz * 12.0), (24 * math.sqrt(2) + 0.8, 0.1, 0.8), c("lueur_cramoisie"),
                    yaw=45 if sx * sz > 0 else -45, material="Neon", shadow=False, name="Losange")
+        for (nx, nz) in ((24.0, 0.0), (-24.0, 0.0), (0.0, 24.0), (0.0, -24.0)):
+            b.part("block", (3.0, 0.2, 3.0), (nx, y + 0.1, z + nz), rot_y(45), c("lueur_cramoisie"), name="Noeud",
+                   collide=False, **lum)
+            b.part("block", (1.3, 0.1, 1.3), (nx, y + 0.25, z + nz), rot_y(45), c("obsidienne"), name="Noeud",
+                   studs="none", collide=False)
+        corde = 2 * 18.5 * math.sin(math.radians(7.5)) + 0.1
+        for k in range(24):
+            if k % 3 == 1:                               # segments centrés sur 22,5° + 45°·n : croisement des barres
+                continue
+            a = math.radians(7.5 + 15.0 * k)
+            b.boxc((18.5 * math.cos(a), y + 0.05, z + 18.5 * math.sin(a)), (0.5, 0.1, corde), c("lueur_violette"),
+                   yaw=-math.degrees(a), name="Anneau", **lum)
+        for k in range(12):
+            a = math.radians(15.0 + 30.0 * k)
+            r_barre = 24.0 / (abs(math.cos(a)) + abs(math.sin(a)))
+            r1 = min(17.5, r_barre - 0.7)
+            b.boxc(((13.0 + r1) / 2 * math.cos(a), y + 0.05, z + (13.0 + r1) / 2 * math.sin(a)), (r1 - 13.0, 0.1, 0.45),
+                   c("lueur_violette"), yaw=-math.degrees(a), name="Graduation", **lum)
+        y += 0.1
         disque(12.0, "lueur_violette", neon=True)
         disque(11.0, "dalle_rituelle")
         disque(3.0, "lueur_cramoisie", neon=True)
@@ -671,16 +722,13 @@ def mob(b: Builder, fn: str, x: float, z: float, nom: str, yaw: float = 0.0, y: 
 
 def abords(b: Builder) -> None:
     """Abords (z 0 → +40, groupe Abords) : vieille route entre deux murets de pierres sèches, arbres morts et sapins,
-    poteau indicateur, rochers, lucioles."""
+    poteau indicateur, rochers (les lucioles dorées s'accrochent aux tours de la porte)."""
     for i, (x, z, fn, v) in enumerate(((-66, 30, "arbre_mort", 0), (-92, 14, "sapin_sombre", 1), (-150, 26, "sapin_sombre", 0),
-                                       (70, 24, "sapin_sombre", 2), (98, 8, "arbre_mort", 2), (168, 30, "sapin_sombre", 0))):
+                                       (70, 24, "sapin_sombre", 2), (98, 10, "arbre_mort", 2), (168, 30, "sapin_sombre", 0))):
         place(b, "mobilier", fn, (x, 0, z), group=f"Abords/Arbre{i}", emprise=(8, 8, 14), variant=v,
               hauteur=14 + 2 * (i % 3))
     place(b, "mobilier", "poteau_indicateur", (-51, 0, 26), yaw=90, group="Abords/Indicateur", emprise=(1, 13, 8),
           textes=("VILLAGE", "CHÂTEAU"), variant=1)
-    for s in (-1, 1):                                       # nuages de lucioles devant les tours (refBC2)
-        place(b, "mobilier", "lucioles", (s * 62, 3, 10), group=f"Abords/Lucioles{'GD'[s > 0]}", emprise=(16, 16, 20),
-              variant=0, rayon=8, hauteur=20, nombre=24)
     for i, (x, z, v) in enumerate(((-51.5, 9.0, 0), (51.5, 11.0, 1), (51.5, 31.0, 2))):
         mob(b, "muret", x, z, f"Abords/Muret{i}", yaw=90, longueur=10, variant=v)
     for i, (x, z, v, t) in enumerate(((-78, 20, 1, 3.0), (86, 31, 3, 3.5), (-120, 36, 0, 4.0))):
@@ -705,9 +753,16 @@ def porte(b: Builder) -> None:
         for z in (-3.0, -36.0):
             place(b, "mobilier", "brasero", (s * 48.6, 0, z), group=f"Porte/Brasero{'GD'[s > 0]}{int(-z)}", emprise=(3, 3, 6),
                   variant=0)
-    # lucioles dorées : un nuage haut entre les tours (au-dessus de 31) ; les nuages bas sont dans les abords
-    place(b, "mobilier", "lucioles", (0, 33, Z_PORTE - 4), group="Porte/LuciolesHaut", emprise=(40, 40, 26), variant=0,
-          rayon=19, hauteur=26, nombre=36)
+    # lucioles dorées (refBC2) : elles s'accrochent aux tours, jamais au-dessus du couloir sous 30 : un rideau plaqué
+    # contre la face de chaque tour côté couloir et le long des vantaux ouverts (|x| 46,5 → 47,7), une couronne autour
+    # du bas de chaque toit conique
+    for s in (-1, 1):
+        gd = "GD"[s > 0]
+        place(b, "mobilier", "lucioles", (s * 47.1, 1, Z_PORTE - 1), group=f"Porte/Lucioles{gd}", emprise=(1.2, 22, 48),
+              variant=0, rayon=11, rayon_x=0.6, hauteur=48, nombre=30)
+        # couronne décalée vers -Z : rien ne dépasse z = 0 (les abords se suppriment quand on enchaîne les zones)
+        place(b, "mobilier", "lucioles", (s * X_TOUR_PORTE, 60, Z_PORTE - 4), group=f"Porte/LuciolesToit{gd}",
+              emprise=(38, 38, 24), variant=0, rayon=19, rayon_min=15.5, hauteur=24, nombre=12)
 
 
 # ---------------------------------------------------------------------------
@@ -730,26 +785,28 @@ def rangee(b: Builder, s: int, plan, nom: str, x_facade: float = X_BORD) -> list
     return poses
 
 
+# Village abandonné : deux tiers des fenêtres sont éteintes, noires ou condamnées de planches ; restent une bougie à
+# l'auberge et dans deux chaumières (le bourg, lui, garde ses fenêtres chaudes)
 CHAMPS_G = [
     ("batiments:grange", -50, 20, 14, {"variant": 0}),
-    ("batiments:chaumiere", -70, 12, 12, {"variant": 3}),
+    ("batiments:chaumiere", -70, 12, 12, {"variant": 3, "lumieres": "eteintes"}),
 ]
 CHAMPS_D = [
-    ("batiments:chaumiere", -46, 14, 12, {"variant": 1}),
+    ("batiments:chaumiere", -46, 14, 12, {"variant": 1, "lumieres": "eteintes"}),
 ]
 VILLAGE_G = [
     ("batiments:chaumiere", -88, 14, 12, {"variant": 0}),
-    ("batiments:maison_pierre", -106, 16, 14, {"variant": 0, "etages": 2, "enseigne": "FORGE"}),
+    ("batiments:maison_pierre", -106, 16, 14, {"variant": 0, "etages": 2, "enseigne": "FORGE", "lumieres": "eteintes"}),
     ("batiments:maison_ruine", -123, 12, 12, {"variant": 0}),
-    ("batiments:chaumiere", -186, 14, 12, {"variant": 2}),
+    ("batiments:chaumiere", -186, 14, 12, {"variant": 2, "lumieres": "eteintes"}),
 ]
 VILLAGE_D = [
-    ("batiments:maison_pierre", -88, 16, 14, {"variant": 1, "etages": 2}),
+    ("batiments:maison_pierre", -88, 16, 14, {"variant": 1, "etages": 2, "lumieres": "eteintes"}),
     ("batiments:chaumiere", -106, 14, 12, {"variant": 1}),
     ("batiments:maison_ruine", -124, 12, 12, {"variant": 1}),
     ("batiments:chaumiere", -143, 14, 12, {"variant": 4}),
     ("batiments:maison_ruine", -161, 12, 12, {"variant": 2}),
-    ("batiments:maison_pierre", -182, 16, 14, {"variant": 2, "etages": 2, "enseigne": "AUBERGE"}),
+    ("batiments:maison_pierre", -182, 16, 14, {"variant": 2, "etages": 2, "enseigne": "AUBERGE", "lumieres": "faible"}),
 ]
 # Maisons du second rang (x, z, largeur, étages), toutes tournées vers le couloir : leurs toits dépassent des
 # premières rangées (ruines, chaumières) et ferment l'horizon des cours
@@ -834,6 +891,10 @@ def village(b: Builder) -> list:
     for i, (z, v) in enumerate(((-104.0, 1), (-150.0, 3), (-186.0, 0))):   # clôtures des cours, au pied de la colline
         mob(b, "cloture_bois", 75.5, z, f"Village/Cloture{i}", yaw=90, longueur=12, variant=v)
     mob(b, "rocher", 77, -118, "Village/Rocher", yaw=20, variant=2, taille=3.0)
+    # racines noires du démon qui sortent du pied de la colline et crèvent les cours, vers le couloir
+    for i, (x, z, yaw, v, L) in enumerate(((88, -112, 8, 0, 22), (88, -146, -12, 2, 22), (88, -178, 6, 3, 22))):
+        place(b, "abime", "racine_geante", (x, 0, z), yaw=yaw, group=f"Village/RacineColline{i}", emprise=(L, 6, 9),
+              variant=v, longueur=L, hauteur=9)
     clotures_rue(b)
     return poses
 
@@ -864,11 +925,11 @@ BOURG_G = [
     ("batiments:maison_haute", -220, 14, 14, {"variant": 1, "etages": 4, "enseigne": "BIBLIOTHÈQUE"}),
     # place de la tour : z -228 → -272
     ("batiments:maison_haute", -280, 14, 14, {"variant": 2, "etages": 3, "enseigne": "POTIONS"}),
-    ("batiments:maison_haute", -294, 12, 14, {"variant": 3, "etages": 4}),
+    ("batiments:maison_haute", -294, 12, 14, {"variant": 3, "etages": 4, "fioles": True}),
 ]
 BOURG_D = [
     ("batiments:taverne", -210, 24, 16, {"variant": 0}),
-    ("batiments:maison_haute", -231, 14, 14, {"variant": 4, "etages": 4}),
+    ("batiments:maison_haute", -231, 14, 14, {"variant": 4, "etages": 4, "fioles": True}),
     ("batiments:halle", -254, 26, 14, {"variant": 0}),
     ("batiments:maison_haute", -277, 14, 14, {"variant": 5, "etages": 3, "enseigne": "HERBORISTE"}),
     ("batiments:maison_haute", -293, 14, 14, {"variant": 2, "etages": 4}),
@@ -876,7 +937,7 @@ BOURG_D = [
 # Cordes à bannières au-dessus de la rue : à l'entrée et à la sortie du bourg
 Z_CORDES = (-195.0, -302.0)
 X_MAT = 48.6             # mâts sur les accotements
-H_CORDE = 41.0           # corde aux mâts ; elle fléchit à 39 au milieu ; bas des bannières au-dessus de 31
+H_CORDE = 44.0           # corde aux mâts ; elle fléchit à 42 au milieu ; pointe des bannières à 34,45 (≥ 34)
 
 
 def bourg(b: Builder) -> list:
@@ -921,7 +982,7 @@ def bourg(b: Builder) -> list:
 def cordes_bannieres(b: Builder) -> None:
     """Cordes à bannières unies tendues au-dessus de la rue du bourg : deux mâts sur les accotements, corde à
     H_CORDE qui fléchit de 2 au milieu, bannières pointues cramoisies, violettes et noires à liseré doré, dont la
-    pointe reste au-dessus de 31 (rien sous 30 au-dessus du couloir). Aucun emblème."""
+    pointe reste au-dessus de 34 (ce qui enjambe le couloir garde son dessous à 34 ou plus). Aucun emblème."""
     toiles = ("toile_cramoisie", "toile_violette", "toile_noire")
     pts = ((-X_MAT, H_CORDE), (-16.0, H_CORDE - 2.0), (16.0, H_CORDE - 2.0), (X_MAT, H_CORDE))
 
@@ -979,36 +1040,59 @@ def tente(b: Builder, variant: int = 0, largeur: float = 8.0, longueur: float = 
     return {"emprise": (w, L + 1.3), "hauteur": h + 0.9}
 
 
+def _penche_dehors(x: float, variant: int) -> float:
+    """Yaw d'un bâton de mage (mobilier.baton_mage) pour qu'il penche vers l'extérieur du couloir."""
+    alpha = 45.0 if variant % 4 in (0, 2) else -135.0         # direction de la pente dans le repère du bâton
+    return alpha - (180.0 if x < 0 else 0.0)
+
+
+# Grands bâtons de mage plantés le long des accotements du champ de bataille (x, z, taille), un tous les 16 environ
+# de chaque côté, en quinconce, à l'écart des piles de l'aqueduc ; orbes violet, vert, doré, cramoisi
+GRANDS_BATONS = ((-52.5, -307, 2.2), (52.5, -312, 1.9), (-53.0, -320, 2.4), (51.5, -326, 2.1), (-51.5, -336, 1.9),
+                 (53.0, -338, 2.3), (-52.5, -364, 2.1), (51.5, -366, 2.4), (-51.5, -378, 2.0), (53.0, -380, 2.2),
+                 (-53.0, -396, 2.4), (51.5, -394, 2.0))
+FEUX_ANNEAUX = ((76, -326), (-131, -316))      # feux de camp entourés de trois petits bâtons
+
+
 def bataille(b: Builder) -> None:
-    """Champ de bataille (z -300 → -404, refBC4) : terre calcinée, cratères et fissures incandescentes (dans le sol),
-    murs et tours en ruine, arches effondrées, bâtons de mage plantés à orbes lumineux, armes abandonnées, feux de
-    camp, camp de tentes, menhirs gravés ; l'AQUEDUC ruiné (refBC3) passe au-dessus du couloir en z = -352,
-    effondré à droite entre x = 100 et 164."""
-    place(b, "remparts", "aqueduc", (0, 0, Z_AQUEDUC), group="Monuments/Aqueduc", attente=_attente_aqueduc, variant=0,
+    """Champ de bataille (z -300 → -404, refBC4) : terre calcinée et cendre, cratères (fissures éteintes dans le
+    couloir, incandescentes sur les côtés), grands bâtons de mage plantés le long des deux accotements (≈ 20 de haut,
+    orbes de 2,4), murs et tours en ruine rapprochés du couloir, arcade effondrée sous l'aqueduc, armes abandonnées,
+    feux de camp entourés de petits bâtons, camp de tentes, menhirs gravés ; l'AQUEDUC ruiné et sombre (refBC3) passe
+    au-dessus du couloir en z = -352 : grande brèche à droite (x 100 → 164, cascade), travée tombée à gauche
+    (x -158 → -126), parapets édentés, deux travées affaissées."""
+    place(b, "remparts", "aqueduc", (0, 0, Z_AQUEDUC), group="Monuments/Aqueduc", attente=_attente_aqueduc, variant=3,
           largeur=2 * X_FOND, ouverture=OUVERTURE_AQUEDUC, dessous=DESSOUS_AQUEDUC, hauteur=H_AQUEDUC,
-          rupture=RUPTURE_AQUEDUC)
-    tours = ((-84, -318, 10, 44, 0), (-160, -388, 12, 34, 1), (92, -392, 11, 52, 2))
+          rupture=RUPTURES_AQUEDUC, affaisse=AFFAISSEMENTS_AQUEDUC)
+    tours = ((-72, -322, 10, 44, 0), (-160, -388, 12, 34, 1), (74, -394, 11, 52, 2))
     for i, (x, z, r, h, v) in enumerate(tours):
         place(b, "remparts", "ruine_tour", (x, 0, z), yaw=face_couloir(x), group=f"Bataille/Tour{i}",
               emprise=(2 * r, 2 * r, h), variant=v, rayon=r, hauteur=h)
-    murs = ((-66, -380, -90, 36, 18, 0), (-122, -330, 0, 40, 16, 1), (66, -318, 90, 30, 20, 2), (150, -372, 20, 34, 14, 3),
-            (-112, -376, 75, 30, 12, 0))
+    murs = ((-66, -380, -90, 36, 18, 0), (-122, -330, 0, 40, 16, 1), (70, -312, 90, 24, 20, 2), (150, -372, 20, 34, 14, 3),
+            (-112, -376, 75, 30, 12, 0), (-62, -342, -90, 18, 12, 3), (60, -380, 90, 20, 13, 0))
     for i, (x, z, yaw, L, h, v) in enumerate(murs):
         place(b, "remparts", "ruine_mur", (x, 0, z), yaw=yaw, group=f"Bataille/Mur{i}", emprise=(L, 5, h), variant=v,
               longueur=L, hauteur=h, epaisseur=5)
-    for i, (x, z, yaw, v) in enumerate(((-128, -392, -60, 0), (138, -324, 70, 1))):
+    for i, (x, z, yaw, v) in enumerate(((-128, -392, -60, 0), (138, -324, 70, 1), (64, -340, 90, 3))):
         place(b, "remparts", "arche_effondree", (x, 0, z), yaw=yaw, group=f"Bataille/Arche{i}", emprise=(30, 6, 26),
               variant=v, largeur=30, hauteur=26)
-    # bâtons de mage plantés le long du couloir et dans la prairie
-    batons = ((-50, -306), (50, -314), (-50.5, -336), (50, -362), (-50, -398), (50.5, -388), (-72, -350),
-              (78, -344), (-100, -366), (110, -398), (-58, -322), (60, -376))
-    for i, (x, z) in enumerate(batons):
-        place(b, "mobilier", "baton_mage", (x, 0, z), yaw=37 * i, group=f"Bataille/Baton{i}", emprise=(2, 2, 10), variant=i % 4)
+    # grands bâtons de mage le long des accotements, penchés vers l'extérieur
+    for i, (x, z, t) in enumerate(GRANDS_BATONS):
+        v = i % 4
+        place(b, "mobilier", "baton_mage", (x, 0, z), yaw=_penche_dehors(x, v), group=f"Bataille/GrandBaton{i}",
+              emprise=(4, 4, 21), variant=v, taille=t)
+    # petits bâtons plantés en cercle autour de deux feux de camp
+    for j, (fx, fz) in enumerate(FEUX_ANNEAUX):
+        for k in range(3):
+            a = math.radians(90 + 120 * k)
+            x, z = fx + 4.5 * math.cos(a), fz + 4.5 * math.sin(a)
+            place(b, "mobilier", "baton_mage", (x, 0, z), yaw=37 * (3 * j + k), group=f"Bataille/Baton{3 * j + k}",
+                  emprise=(2, 2, 10), variant=(j + k) % 4)
     armes = (("epee_plantee", -52, -312, 0), ("epee_plantee", 53, -330, 1), ("epee_plantee", -51, -372, 2),
              ("epee_plantee", 52, -402, 3), ("bouclier", -54, -330, 0), ("bouclier", 52, -370, 1),
              ("armes_abandonnees", -88, -342, 0), ("armes_abandonnees", 84, -366, 1), ("armes_abandonnees", -96, -400, 2),
-             ("bouclier", 70, -334, 2), ("armes_abandonnees", 50.5, -321, 3), ("epee_plantee", -49.5, -390, 1),
-             ("epee_plantee", 49.5, -395, 0), ("bouclier", -49.5, -383, 3))
+             ("bouclier", 70, -334, 2), ("armes_abandonnees", 50.5, -319, 3), ("epee_plantee", -49.5, -390, 1),
+             ("epee_plantee", 49.5, -399, 0), ("bouclier", -49.5, -383, 3))
     for i, (fn, x, z, v) in enumerate(armes):
         place(b, "mobilier", fn, (x, 0, z), yaw=23 * i, group=f"Bataille/{fn}{i}", emprise=(4, 4, 5), variant=v)
     for i, (x, z, v) in enumerate(((-78, -405, 1), (76, -326, 0), (118, -382, 3), (-140, -340, 2), (-131, -316, 3))):
@@ -1019,7 +1103,7 @@ def bataille(b: Builder) -> None:
         with b.at((x, 0, z), yaw=yaw, group=f"Bataille/Tente{i}"):
             tente(b, variant=v)
         b.__dict__.setdefault("poses", []).append((f"Bataille/Tente{i}", "tente", n0, len(b.parts)))
-    for i, (x, z, v) in enumerate(((-58.5, -368, 1), (64, -398, 3), (-150, -298, 1))):
+    for i, (x, z, v) in enumerate(((-58.5, -368, 1), (57, -403, 3), (-150, -298, 1))):
         place(b, "mobilier", "banniere", (x, 0, z), group=f"Bataille/Banniere{i}", emprise=(4.2, 1.8, 12), variant=v,
               hauteur=11)
     place(b, "mobilier", "nuee_grimoires", (-84, 0, -372), group="Bataille/Nuee", emprise=(10, 10, 12), variant=3,
@@ -1029,7 +1113,7 @@ def bataille(b: Builder) -> None:
     for i, (x, z, v) in enumerate(((-152, -331, 2), (124, -310, 0), (-170, -312, 1), (168, -312, 3))):
         place(b, "mobilier", "arbre_mort", (x, 0, z), group=f"Bataille/ArbreMort{i}", emprise=(10, 10, 15), variant=v,
               hauteur=15)
-    for i, (x, z, v) in enumerate(((-62, -338, 0), (58, -342, 1), (-60, -402, 2))):
+    for i, (x, z, v) in enumerate(((-100, -308, 0), (58, -342, 1), (-60, -402, 2))):
         place(b, "mobilier", "rocher", (x, 0, z), yaw=40 * i, group=f"Bataille/Rocher{i}", emprise=(5, 5, 4), variant=v,
               taille=3.5)
 
@@ -1039,19 +1123,21 @@ def bataille(b: Builder) -> None:
 # ---------------------------------------------------------------------------
 
 def place_rituelle(b: Builder) -> None:
-    """Place rituelle (z -404 → -498) : cercle magique au sol (voir cercle_magique), obélisques noirs à flammes,
-    racines démoniaques, épines, braseros, cristaux ; l'ARBRE DÉMONIAQUE à droite, des ÎLOTS FLOTTANTS enchaînés à
-    gauche ; deux fils de lumière cramoisie relient le cercle à la porte du château (dans le sol)."""
+    """Place rituelle (z -404 → -498) : cercle magique au sol (voir cercle_magique), six grands obélisques noirs à
+    flammes (28), grandes racines démoniaques qui encadrent le cercle, épines, braseros, cristaux ; l'ARBRE
+    DÉMONIAQUE à droite (les ÎLOTS FLOTTANTS sont posés par ilots(), après les falaises qui les ancrent) ; deux fils
+    de lumière violette relient le cercle à la porte du château (dans le sol)."""
     cercle_magique(b)
     obelisques = ((-53, -418, 0), (53, -418, 1), (-58, -448, 2), (58, -448, 0), (-53, -478, 1), (53, -478, 2))
     for i, (x, z, v) in enumerate(obelisques):
-        place(b, "abime", "obelisque", (x, 0, z), yaw=face_couloir(x), group=f"Place/Obelisque{i}", emprise=(5, 5, 18),
-              variant=v, hauteur=16)
-    racines = ((-78, -412, 30, 0), (82, -424, -20, 1), (-88, -470, 75, 2), (-70, -494, 5, 3), (96, -486, -60, 0),
-               (-120, -440, 100, 1))
-    for i, (x, z, yaw, v) in enumerate(racines):
-        place(b, "abime", "racine_geante", (x, 0, z), yaw=yaw, group=f"Place/Racine{i}", emprise=(24, 6, 10), variant=v,
-              longueur=24, hauteur=10)
+        place(b, "abime", "obelisque", (x, 0, z), yaw=face_couloir(x), group=f"Place/Obelisque{i}", emprise=(7, 7, 35),
+              variant=v, hauteur=28)
+    # racines démoniaques : trois grandes au bord de la place, le long du couloir (cadre du cercle), trois plus loin
+    racines = ((-67, -430, -90, 0, 30, 14), (67, -462, 90, 1, 30, 14), (-67, -476, -90, 2, 30, 14), (82, -424, -20, 1, 24, 10),
+               (96, -486, -60, 0, 24, 10), (-120, -440, 100, 1, 24, 10))
+    for i, (x, z, yaw, v, L, h) in enumerate(racines):
+        place(b, "abime", "racine_geante", (x, 0, z), yaw=yaw, group=f"Place/Racine{i}", emprise=(L, 6, h), variant=v,
+              longueur=L, hauteur=h)
     for i, (x, z, v) in enumerate(((-50, -432, 0), (50.5, -462, 1), (-50.5, -490, 3), (51, -410, 2), (66, -440, 1),
                                    (-68, -456, 0), (49.5, -440, 3), (-49.5, -459, 3))):
         place(b, "mobilier", "epines_racines", (x, 0, z), yaw=50 * i, group=f"Place/Epines{i}", emprise=(4, 4, 5),
@@ -1062,18 +1148,7 @@ def place_rituelle(b: Builder) -> None:
                                       (174, -404, 1, 6), (-170, -478, 2, 6))):
         place(b, "abime", "cristaux", (x, 0, z), yaw=30 * i, group=f"Place/Cristaux{i}", emprise=(6, 6, 7), variant=v, taille=t)
     place(b, "abime", "arbre_demon", (X_ARBRE, 0, Z_ARBRE), yaw=face_couloir(1), group="Monuments/Arbre",
-          emprise=(70, 70, H_ARBRE), variant=0, hauteur=H_ARBRE)
-    # îlots flottants (repos sur rien : magie voulue), enchaînés à des ancrages au sol ; le troisième s'écarte de la
-    # tour gauche du château (x = -118) pour s'en détacher dans la vue finale
-    ilots = ((-92, 46, -428, 14, ((12, -46, -8), (-16, -46, -4))),
-             (-136, 66, -466, 18, ((6, -66, -14), (-16, -66, 4))),
-             (-118, 78, -490, 12, ((8, -78, 10),)),
-             (104, 60, -414, 12, ((-18, -60, 6),)))
-    for i, (x, y, z, t, ancres) in enumerate(ilots):
-        place(b, "abime", "ilot_flottant", (x, y, z), group=f"Place/Ilot{i}", emprise=(t, t, t * 0.8), variant=i, taille=t,
-              ancres=ancres)
-    place(b, "mobilier", "lucioles", (-110, 30, -460), group="Place/LuciolesIlots", emprise=(40, 40, 50), variant=1,
-          rayon=20, hauteur=50, nombre=30)
+          emprise=(136, 136, H_ARBRE), variant=0, hauteur=H_ARBRE)
 
 
 def chateau(b: Builder) -> None:
@@ -1082,8 +1157,67 @@ def chateau(b: Builder) -> None:
     place(b, "abime", "chateau_demon", (0, 0, (Z_CHATEAU + Z_SORTIE) / 2), yaw=180, group="Monuments/Chateau",
           attente=_attente_chateau, variant=0, largeur=2 * X_FOND, profondeur=PROF_CHATEAU, ouverture=OUVERTURE,
           h_passage=H_PASSAGE)
-    place(b, "mobilier", "lucioles", (0, 34, Z_CHATEAU + 6), group="Chateau/Lucioles", emprise=(36, 36, 30), variant=1,
-          rayon=18, hauteur=30, nombre=30)
+
+
+# Îlots flottants (x, y, z, taille, variante) haut dans le ciel au-dessus de la place, et le point visé pour leur
+# ancrage sur le dessus de la falaise la plus proche (une chaîne en biais par îlot)
+ILOTS = ((-100, 104, -470, 30, 0, (-200, -464)), (-162, 124, -490, 26, 1, (-210, -486)),
+         (-150, 90, -420, 22, 2, (-200, -414)), (98, 112, -384, 24, 3, (198, -380)))
+
+
+def _ancrage_falaise(b: Builder, x: float, z: float, rayon: float = 14.0, d: float = 1.3, depart=None):
+    """Point (x, y, z) d'un ancrage de 2,6 × 2,6 posé à plat sur une colonne de falaise (`Cotes/Falaise*`, blocs
+    `Roche`) près de (x, z), le plus haut possible ; aucune autre pièce de la falaise ne le recouvre ni ne coupe la
+    chaîne tendue depuis `depart` (point d'accroche sous l'îlot). None sinon."""
+    boites = [(_bornes(p), p) for p in b.parts if p.group.startswith("Cotes/Falaise")]
+    roches = [(lo, hi) for (lo, hi), p in boites if p.name == "Roche" and p.shape == "block"]
+
+    def coupe_chaine(a_, b_):
+        a_, b_ = np.asarray(a_, float), np.asarray(b_, float)
+        L = float(np.linalg.norm(b_ - a_))
+        for t in np.arange(0.0, max(0.0, L - 2.5), 0.8) / max(L, 1e-6):
+            q = a_ + (b_ - a_) * t
+            for (lo, hi), _p in boites:
+                if lo[0] - 0.4 < q[0] < hi[0] + 0.4 and lo[1] - 0.4 < q[1] < hi[1] + 0.4 and lo[2] - 0.4 < q[2] < hi[2] + 0.4:
+                    return True
+        return False
+
+    best = None
+    for dx in np.arange(-rayon, rayon + 0.1, 2.0):
+        for dz in np.arange(-rayon, rayon + 0.1, 2.0):
+            xx, zz = x + float(dx), z + float(dz)
+            tops = [hi[1] for (lo, hi) in roches
+                    if lo[0] <= xx - d and hi[0] >= xx + d and lo[2] <= zz - d and hi[2] >= zz + d]
+            if not tops:
+                continue
+            y = max(tops)
+            if any(lo[0] < xx + d + 0.3 and hi[0] > xx - d - 0.3 and lo[2] < zz + d + 0.3 and hi[2] > zz - d - 0.3
+                   and hi[1] > y + 0.05 for (lo, hi), _p in boites):
+                continue
+            score = y - 0.3 * math.hypot(float(dx), float(dz))
+            if best is not None and score <= best[0]:
+                continue
+            if depart is not None and coupe_chaine(depart, (xx, y + 2.7, zz)):
+                continue
+            best = (score, (xx, float(y), zz))
+    return None if best is None else best[1]
+
+
+def ilots(b: Builder) -> None:
+    """Îlots de roche noire qui flottent par magie haut au-dessus de la place (85-120, contre le ciel), chacun tenu
+    par une chaîne en biais vers un ancrage sur le dessus de la falaise la plus proche ; lucioles violettes autour."""
+    for i, (x, y, z, t, v, (ax, az)) in enumerate(ILOTS):
+        u = np.array([ax - x, 0.0, az - z])
+        u /= np.linalg.norm(u)
+        pt = _ancrage_falaise(b, ax, az, depart=(x + u[0] * t * 0.39, y - 3.4, z + u[2] * t * 0.32))
+        if pt is None:
+            pt = (ax, 0.0, az)
+        ancre = (pt[0] - x, pt[1] - y, pt[2] - z)
+        place(b, "abime", "ilot_flottant", (x, y, z), group=f"Place/Ilot{i}", emprise=(t, t, t * 0.8), variant=v,
+              taille=t, ancres=(ancre,))
+    for i, (x, y, z, r, h, n) in enumerate(((-100, 80, -470, 16, 30, 10), (-162, 102, -490, 13, 26, 8))):
+        place(b, "mobilier", "lucioles", (x, y, z), group=f"Place/LuciolesIlots{i}", emprise=(2 * r, 2 * r, h), variant=1,
+              rayon=r, hauteur=h, nombre=n)
 
 
 # ---------------------------------------------------------------------------
@@ -1195,11 +1329,14 @@ def build_zone(seed: int = 7) -> Builder:
     place_rituelle(b)
     chateau(b)
     cotes(b)
+    ilots(b)
     limites(b)
     reperes(b)
     decouper(b)
-    for p in b.parts:                       # petites pièces décoratives : jamais collidables
-        if p.collide and max(p.size) < 1.0:
+    for p in b.parts:                       # petites pièces décoratives (ou petites et hors de portée) : sans collision
+        if not p.collide:
+            continue
+        if max(p.size) < 1.0 or (max(p.size) < 3.0 and _bornes(p)[0][1] > 12.0):
             p.collide = False
     return b
 
@@ -1241,6 +1378,20 @@ def trop_bas_au_dessus(b: Builder, y_min: float = Y_LIBRE) -> list:
     return out
 
 
+def sous_34_au_dessus(b: Builder, y_max: float = 34.0) -> list:
+    """Ce qui passe au-dessus du couloir (|x| < 46) avec son dessous entre 30 et 34 (hors lucioles) : ce qui
+    enjambe le couloir doit garder son dessous à 34 ou plus."""
+    out = []
+    for p in b.parts:
+        if _est_sol(p.group) or p.name == "Luciole":
+            continue
+        lo, hi = _bornes(p)
+        if lo[0] < X_LIBRE and hi[0] > -X_LIBRE and lo[1] < y_max and hi[1] > Y_LIBRE \
+                and hi[2] > Z_SORTIE and lo[2] < Z_ABORDS:
+            out.append((p.group, p.name, round(lo[1], 2)))
+    return out
+
+
 FEUILLAGES = ("sapin_sombre", "arbre_mort", "lucioles", "nuee_grimoires")
 
 
@@ -1262,6 +1413,10 @@ def _accepte(ga: str, gb: str) -> str | None:
         return "racines de l'arbre sur la place et contre la falaise"
     if "Monuments/Aqueduc" in paire and racines & {"Bataille", "Cotes"}:
         return "ruines et falaises sous les arches de l'aqueduc"
+    if "Monuments/Colline" in paire and any("/RacineColline" in g for g in (ga, gb)):
+        return "racines qui sortent du pied de la colline"
+    if racines == {"Place", "Cotes"} and any("/Ilot" in g for g in (ga, gb)):
+        return "ancrage d'îlot posé sur la falaise"
     return None
 
 
@@ -1388,11 +1543,13 @@ def main() -> None:
     attente = sorted({p.name for p in b.parts if p.name.startswith("ATTENTE_")})
     gene = couloir_libre(b)
     bas = trop_bas_au_dessus(b)
+    sous34 = sous_34_au_dessus(b)
     neon = sum(1 for p in b.parts if p.material == "Neon")
     transp = sum(1 for p in b.parts if 0 < p.transparency < 1 and not p.name.startswith("ATTENTE_"))
     print(json.dumps({"pieces": len(b.parts), "neon": neon, "transparentes": transp, "fichier": str(out),
                       "en_attente": attente, "couloir_encombre": gene[:20], "nb_couloir_encombre": len(gene),
                       "trop_bas_au_dessus_du_couloir": bas[:20], "nb_trop_bas": len(bas),
+                      "enjambe_sous_34": sous34[:20],
                       "hors_budget": hors_budget()[:20]}, ensure_ascii=False))
     if args.stats:
         for k, v in b.stats().items():

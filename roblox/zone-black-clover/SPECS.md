@@ -110,7 +110,12 @@ Poses : `(-128, 0, -392)` yaw -60 v0 ; `(138, 0, -324)` yaw 70 v1.
   brisé encore debout.
 - Renvoie `{"emprise": (largeur, 8), "hauteur": hauteur}`.
 
-### `aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rupture=(100.0, 164.0))` — ≤ 560
+### `aqueduc(b, variant=0, largeur=478, ouverture=94, dessous=36, hauteur=62, rupture=(100.0, 164.0), affaisse=None)` — ≤ 560
+
+*Finition* : pierre sombre (seuls les claveaux et l'archivolte de l'arche centrale restent clairs), `rupture` accepte
+une liste de tronçons (la première brèche a la cascade ; zone.py pose (100, 164) et (-158, -126)), une travée sur
+trois perd son parapet hors de |x| < 60, `affaisse` = {(x0, x1) : affaissement} abaisse tablier, parapets et canal
+d'une travée. Posé en variante 3 (plus de lierre).
 Pose : `(0, 0, -352)`, `yaw = 0` : l'aqueduc court le long de X (monde) de -239 à +239, en travers du couloir.
 - **Piles** de 10 (x) × 10 (z) : les deux piles du couloir ont leurs faces intérieures en `|x| = ouverture/2 = 47`
   (piles de 47 à 57, socles jusqu'à `|x| = 46,5` au plus près) ; les autres piles au pas de 32 (axes en `±52,
@@ -151,7 +156,10 @@ bois `bois`, `bois_fonce`, `bois_noir` (colombages), `bois_gris` (granges), `boi
 ou `cramoisi_fonce`. Mobilier à appeler : `mobilier.enseigne(b, texte, variant)` (origine sur la face du mur,
 dépasse vers -Z), `mobilier.lanterne_murale`, `mobilier.tonneaux`, `mobilier.caisses`, `mobilier.etal`.
 
-### `chaumiere(b, variant=0, largeur=14, profondeur=12)` — ≤ 60
+### `chaumiere(b, variant=0, largeur=14, profondeur=12, lumieres="toutes")` — ≤ 60
+
+*Finition* : `lumieres="eteintes"` (maison abandonnée : la fenêtre éclairée devient une vitre noire, condamnée de
+planches une fois sur deux).
 Poses : champs gauche z -70 (12 × 12, v3), champs droite z -46 (v1), village gauche z -88 (v0) et z -186 (v2),
 village droite z -106 (v1) et z -143 (v4).
 - Maison basse d'un niveau et combles : murs de moellons en pixels (chaînes d'angle claires), **chaume épais** en
@@ -160,7 +168,10 @@ village droite z -106 (v1) et z -143 (v4).
 - Variantes (≥ 5) : 0 faîtage parallèle à la rue ; 1 pignon sur rue et lucarne ; 2 toit d'ardoise moussu ;
   3 en L avec appentis ; 4 **toit à moitié effondré** (trou, chevrons calcinés) : village abandonné.
 
-### `maison_pierre(b, variant=0, largeur=16, profondeur=14, etages=2, enseigne=None)` — ≤ 90
+### `maison_pierre(b, variant=0, largeur=16, profondeur=14, etages=2, enseigne=None, lumieres="toutes")` — ≤ 90
+
+*Finition* : `lumieres` = "toutes", "faible" (deux bougies) ou "eteintes" (vitres noires, planches, lanterne
+décrochée ; le foyer d'une forge reste rougeoyant).
 Poses : village gauche z -106 (v0, `enseigne="FORGE"`), village droite z -88 (v1) et z -182 (v2,
 `enseigne="AUBERGE"`).
 - Maison de pierre à deux niveaux, **pignon d'ardoise très pentu** sur rue, lucarne, cheminée, volets, porte sous
@@ -204,7 +215,10 @@ l'extérieur jusqu'à `x = -99`, z de -141 à -167.
 - Le cimetière (posé par `zone.py`) occupe z -132 → -140 et -170 → -176, x -60 → -92 : laisser libre.
 - Variantes : 0 (posée) ; 1 sans effondrement pour une autre pose.
 
-### `maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=None)` — ≤ 95
+### `maison_haute(b, variant=0, largeur=14, profondeur=14, etages=3, enseigne=None, fioles=False)` — ≤ 95
+
+*Finition* : `fioles=True` pose trois fioles lumineuses (Neon) à la fenêtre du premier étage tournée vers l'entrée ;
+la tourelle de la v5 a une flèche en aiguille.
 Poses : bourg gauche z -204 (v0, 3 étages), z -220 (v1, 4, `enseigne="BIBLIOTHÈQUE"`), z -280 (v2, 3,
 `enseigne="POTIONS"`), z -294 (v3, 4, largeur 12) ; bourg droite z -231 (v4, 4), z -277 (v5, 3,
 `enseigne="HERBORISTE"`), z -293 (v2, 4).
@@ -303,6 +317,9 @@ couloir et l'entrée.
 - Renvoie `{"emprise": (longueur, 36), "hauteur": hauteur}`.
 
 ### `tour_grimoires(b, variant=0, rayon=16, hauteur=118)` — ≤ 620
+
+*Finition* : corps et balcon fixés à 80 (baies et cordons calés sur 80 / 0,68), toit en aiguille jusqu'à `hauteur`
+(zone.py : 138), planche GRIMOIRES sur deux potences, grimoires sortant des baies en repère direct.
 Pose : `(-94, 0, -250)`, `yaw = -90` : la porte regarde la placette et le couloir (+X monde).
 - **Tour ronde** de pierre, **la plus claire du bourg** (`pierre_claire`, `pierre_pale`, `pierre`, en assises) :
   talus (rayon + 1,5), corps Ø 32 jusqu'à ≈ 92 (léger fruit, ou trois étages séparés de cordons `pierre_pale` vers
@@ -376,6 +393,9 @@ Pose : `(0, 0, -523)`, `yaw = 180` : -Z local regarde les arrivants (+Z monde) ;
   "hauteur": ≈ 150}`.
 
 ### `arbre_demon(b, variant=0, hauteur=150)` — ≤ 420
+
+*Finition* : tronc de Ø ≈ 30 au pied, quatre longues griffes basses vers le couloir (pointes à 55-62 de l'axe) d'où
+pendent des vrilles, veine violette continue sur la face du tronc tournée vers le couloir et sous les griffes.
 Pose : `(150, 0, -462)`, `yaw = 90` (l'avant regarde le couloir).
 - **Arbre noir colossal** : tronc de 3 ou 4 brins **torsadés** (blocs `racine`, `racine_claire`, `obsidienne` tendus
   de point à point, rotation progressive) de Ø ≈ 20 à la base à ≈ 8 vers 80, puis 4 à 6 maîtresses branches en
@@ -389,7 +409,11 @@ Pose : `(150, 0, -462)`, `yaw = 90` (l'avant regarde le couloir).
   50 (l'îlot flottant de droite est en (104, 60, -414)).
 - Renvoie `{"emprise": (68, 68), "hauteur": hauteur}`.
 
-### `ilot_flottant(b, variant=0, taille=14, ancres=())` — ≤ 90 (chaînes comprises)
+### `ilot_flottant(b, variant=0, taille=14, ancres=())` — ≤ 95 (chaîne comprise)
+
+*Finition* : grand cône renversé et deux ou trois cônes secondaires décalés, racines qui pendent, cristaux ; zone.py
+pose quatre îlots de 22 à 30 entre 90 et 125 de haut, chacun avec une ancre sur le dessus d'une falaise (chaîne en
+biais, maillons allongés au-delà de 90 de long).
 Poses (`yaw = 0`, ancres = décalages alignés sur le monde, de l'origine vers un point au sol) :
 `(-92, 46, -428)` t 14, ancres `((12, -46, -8), (-16, -46, -4))` v0 ; `(-136, 66, -466)` t 18,
 `((6, -66, -14), (-16, -66, 4))` v1 ; `(-98, 78, -490)` t 12, `((-6, -78, 10),)` v2 ; `(104, 60, -414)` t 12,
@@ -417,6 +441,8 @@ Poses `(x, z, longueur, profondeur, hauteur, yaw)` : `(-205, -330, 60, 50, 34, -
 - Renvoie `{"emprise": (longueur, profondeur), "hauteur": hauteur}`.
 
 ### `obelisque(b, variant=0, hauteur=16)` — ≤ 26
+
+*Finition* : fût et socle épaissis avec la hauteur, coupe et flammes × 1,5 au-delà de 22 (zone.py : 28).
 Poses : `(-53, -418)` v0, `(53, -418)` v1, `(-58, -448)` v2, `(58, -448)` v0, `(-53, -478)` v1, `(53, -478)` v2 ;
 `yaw = face_couloir(x)`.
 - Obélisque noir : socle en deux gradins (≤ 5 × 5 : rien en `|x| < 50`), fût effilé (`obsidienne`, `chateau`, de

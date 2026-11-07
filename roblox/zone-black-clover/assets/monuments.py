@@ -483,8 +483,10 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
     ZS = math.sin(a) * X + math.cos(a) * Z
     AXS = np.abs(XS)
     paliers = []
+    # (le cinquième palier remonte sur l'arrière du crâne jusqu'à ≈ 55 % de sa hauteur : il paraît enfoui, refBC1)
     for (dy, rx, rz, cz, x_libre, z_libre) in ((8.6, 50.0, 46.0, 1.0, 25.0, -22.0), (15.6, 46.0, 41.0, 4.0, 29.5, -15.0),
-                                               (22.6, 41.0, 34.0, 11.0, 33.0, -4.0), (28.9, 33.0, 26.0, 20.0, 29.0, 12.0)):
+                                               (22.6, 41.0, 34.0, 11.0, 33.0, -4.0), (28.9, 33.0, 26.0, 20.0, 29.0, 12.0),
+                                               (38.6, 27.0, 19.0, 29.0, 40.0, 20.0)):
         m = ((XS / (rx * lob)) ** 2 + ((ZS - cz) / (rz * lob)) ** 2) <= 1.0
         m &= ~((ZS < z_libre) & (AXS < x_libre))
         m &= masques[-1]
@@ -495,7 +497,7 @@ def colline_crane(b, variant: int = 0, largeur: float = 110, profondeur: float =
         yb = H
         for n_, (yt, m) in enumerate(paliers):
             for (i, kz, w, h) in mask_rects(m.T):
-                col = vary(("sapin", "sapin_fonce", "sapin", "sapin_fonce")[n_], rng, 0.05)
+                col = vary(("sapin", "sapin_fonce", "sapin", "sapin_fonce", "mousse")[n_], rng, 0.05)
                 b.box((xe[i], yb, ze[kz]), (xe[i + w], yt, ze[kz + h]), col, studs="top", name="Epaulement")
             yb = yt
 

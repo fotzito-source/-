@@ -977,9 +977,9 @@ def _cone_renverse(b, rng, cx, y, cz, larg, prof, h, n, name="Roche") -> float:
     """Cône de roche renversé en gradins tournés (n blocs qui rétrécissent) sous (cx, y, cz), terminé par une pointe
     en diamant. Renvoie le y de la pointe."""
     for i in range(n):
-        f = 1.0 - 0.8 * i / n
+        f = 1.0 - 0.82 * i / n
         hh = h / n * (1.15 - 0.1 * i)
-        yaw = (18.0 if i % 2 else -14.0) + float(rng.uniform(-8, 8))
+        yaw = (7.0 if i % 2 else -5.0) + float(rng.uniform(-3, 3))
         b.boxc((cx + 0.03 * larg * (i % 2), y - hh / 2, cz - 0.02 * larg * (i % 2)), (larg * f, hh, prof * f), roche(rng),
                yaw=yaw, name=name)
         y -= hh
@@ -1004,9 +1004,9 @@ def ilot_flottant(b, variant: int = 0, taille: float = 14, ancres=()) -> dict:
         b.box((-rx, -1.4, -rz), (rx, 0, rz), dessus, studs="top", name="Dessus")
         b.boxc((0.06 * t, -1.0, -0.05 * t), (0.7 * t, 1.6, 0.56 * t), roche(rng), yaw=32, studs="top", name="Rebord")
         depth = 0.8 * t
-        y_bas = _cone_renverse(b, rng, 0.0, -1.4, 0.0, 0.94 * t, 0.75 * t, depth, 5)
-        # cônes secondaires décalés (silhouette d'îlot arraché, pas de toupie)
-        sec = [(0.3, 0.22, 0.42, 0.5), (-0.32, -0.12, 0.36, 0.42)] + ([(0.05, -0.3, 0.3, 0.36)] if t >= 26 else [])
+        y_bas = _cone_renverse(b, rng, 0.0, -1.4, 0.0, 0.94 * t, 0.75 * t, depth, 4)
+        # cônes secondaires décalés vers le bord (silhouette d'îlot arraché en plusieurs crocs, pas de toupie)
+        sec = [(0.34, 0.2, 0.36, 0.52), (-0.36, -0.1, 0.32, 0.44)] + ([(0.04, -0.3, 0.28, 0.38)] if t >= 26 else [])
         bouts = [(0.0, y_bas, 0.0)]
         for i, (ox, oz, fl, fp) in enumerate(sec):
             yb_ = _cone_renverse(b, rng, ox * t, -1.4 - 0.12 * t, oz * t, fl * t, 0.8 * fl * t, fp * t, 3)

@@ -261,7 +261,7 @@ def chaudron(b, variant: int = 0) -> dict:
         b.cyl((0, 0.9, 0), 1.0, 0.4, c("fer_fonce"), name="Fond")
         b.cyl((0, 2.7, 0), 1.5, 0.3, c("fer"), name="Bord")
         b.cyl((0, 2.88, 0), 1.2, 0.12, c(teinte), name="Potion", **NEON)
-        for (x, y, z, r) in ((0.4, 3.1, -0.2, 0.32), (-0.5, 3.2, 0.3, 0.24), (0.1, 3.5, 0.4, 0.16)):
+        for (x, y, z, r) in ((0.4, 3.1, -0.2, 0.32), (-0.5, 3.12, 0.3, 0.24), (0.1, 3.08, 0.35, 0.16)):
             b.ball((x, y, z), r, c(teinte), name="Bulle", **NEON)
     return {"emprise": (4.0, 4.0), "hauteur": 3.9}
 
@@ -282,6 +282,8 @@ def baton_mage(b, variant: int = 0, taille: float = 1.0) -> dict:
     k = float(taille)
     bois = (c("bois_noir"), c("bois_mort"), c("bois_fonce"), c("racine"))[v]
     orbe = c(ORBES[v])
+    if k >= 1.5:
+        return _grand_baton(b, v, k, bois, orbe)
     t = math.radians((7, -9, 5, -6)[v])
     d = np.array([math.sin(t) * 0.7, math.cos(t), math.sin(t) * 0.7])
     d /= np.linalg.norm(d)
@@ -308,7 +310,7 @@ def baton_mage(b, variant: int = 0, taille: float = 1.0) -> dict:
             _poutre(b, top, q1, 0.3 * k, bois, name="Crosse", **DECO)
             _poutre(b, q1, q2, 0.28 * k, bois, name="Crosse", **DECO)
             _poutre(b, q2, q3, 0.24 * k, bois, name="Crosse", **DECO)
-            b.ball(q3 + V(0.15, -0.65, 0), 0.5 * k, orbe, name="Orbe", **NEON)
+            b.ball(q3 + V(0.1, -0.5, 0), 0.5 * k, orbe, name="Orbe", **NEON)            # pendu au bout de la crosse
             h = q2[1] + 0.3 * k
         elif v == 2:
             b.cyl(top + V(0, 1.1, 0), 0.95 * k, 0.18 * k, c("laiton"), axis="z", name="Anneau", **DECO)
@@ -324,6 +326,47 @@ def baton_mage(b, variant: int = 0, taille: float = 1.0) -> dict:
             h = top[1] + 1.8 * k
         b.ball(top, 0.3 * k, c("laiton") if v != 3 else c("cramoisi"), name="Bague", **DECO)
     return {"emprise": (1.8 * k, 1.8 * k), "hauteur": round(float(h), 2)}
+
+
+def _grand_baton(b, v: int, k: float, bois, orbe) -> dict:
+    """Grand bâton de mage (taille ≥ 1,5) : planté de biais (≈ 20°), fût coudé, ligatures, deux rubans qui pendent,
+    tête en cage de trois griffes recourbées autour d'un gros orbe lumineux (Neon). Penche vers +X+Z local (v0, v2)
+    ou -X-Z local (v1, v3) ; ≈ 9,8 × taille de haut, la tête à ≈ 2,7 × taille du pied."""
+    def unit(x):
+        x = np.asarray(x, float)
+        return x / np.linalg.norm(x)
+
+    t = math.radians((17, -21, 15, -19)[v])
+    d = unit((math.sin(t) * 0.7, math.cos(t), math.sin(t) * 0.7))
+    cote = unit(np.cross(d, (0.0, 1.0, 0.0)))
+    kink = math.radians((9, -10, -8, 11)[v])
+    d2 = unit(d * math.cos(kink) + cote * math.sin(kink))      # le haut du fût est coudé sur le côté
+    e1 = unit(np.cross(d2, (0.0, 0.0, 1.0)))
+    e2 = np.cross(d2, e1)
+    p1 = d * 4.6 * k
+    p2 = p1 + d2 * 3.6 * k
+    with b.group("BatonMage"):
+        b.box((-0.9 * k, 0, -0.9 * k), (0.9 * k, 0.3 * k, 0.9 * k), c("terre_fonce"), studs="top", name="Butte")
+        _poutre(b, d * -0.25 * k, p1, 0.36 * k, bois, name="Fut")
+        _poutre(b, p1 - d * 0.15 * k, p2, 0.3 * k, bois, name="Fut")
+        l1, l2 = d * 2.4 * k, p2 - d2 * 0.9 * k
+        _poutre(b, l1 - d * 0.22 * k, l1 + d * 0.22 * k, 0.52 * k, c("toile_ecru"), name="Ligature", **DECO)
+        _poutre(b, l2 - d2 * 0.2 * k, l2 + d2 * 0.2 * k, 0.46 * k, c("cuir_brun"), name="Ligature", **DECO)
+        for (dx_, L_, col) in ((0.2, 2.6, "toile_cramoisie"), (-0.24, 1.9, "toile_noire")):      # côte à côte
+            q = l2 + cote * dx_ * k + e2 * 0.24 * k
+            b.boxc(tuple(q + np.array([0.0, -L_ * k / 2 + 0.1 * k, 0.0])), (0.36 * k, L_ * k, 0.1), c(col),
+                   yaw=float(np.degrees(np.arctan2(-cote[2], cote[0]))), name="Ruban", **FIN)
+        ctr = p2 + d2 * 1.35 * k
+        for i in range(3):
+            ph = math.radians(90 + 120 * i)
+            r = e1 * math.cos(ph) + e2 * math.sin(ph)
+            q1 = p2 + d2 * 0.6 * k + r * 0.95 * k
+            q2 = p2 + d2 * 2.35 * k + r * 0.32 * k
+            _poutre(b, p2 - d2 * 0.1 * k, q1, 0.22 * k, bois, name="Griffe", **DECO)
+            _poutre(b, q1, q2, 0.16 * k, c("epine") if v == 3 else bois, name="Griffe", **FIN)
+        b.ball(ctr, 0.72 * k, orbe, name="Orbe", **NEON)
+        b.ball(p2, 0.32 * k, c("laiton") if v != 3 else c("cramoisi"), name="Bague", **DECO)
+    return {"emprise": (2 * 3.2 * k, 2 * 3.2 * k), "hauteur": round(float(p2[1] + 2.4 * k), 2)}
 
 
 def epee_plantee(b, variant: int = 0) -> dict:
@@ -469,7 +512,7 @@ def etal(b, variant: int = 0) -> dict:
         for i in range(2):                                   # livres
             col = c(CUIRS[int(rng.integers(len(CUIRS)))])
             b.boxc((-1.4 + 2.6 * i, 3.1, 0.6), (1.2, 0.4, 0.9), col, yaw=float(rng.uniform(-15, 15)), name="Livre", **DECO)
-        b.box((1.6, 2.9, 0.2), (2.8, 3.3, 1.1), c("herbe_seche"), name="Herbes", **DECO)
+        b.box((1.6, 2.9, 0.2), (2.8, 3.42, 1.1), c("herbe_seche"), name="Herbes", **DECO)
     return {"emprise": (6.8, 4.2), "hauteur": 6.6}
 
 
