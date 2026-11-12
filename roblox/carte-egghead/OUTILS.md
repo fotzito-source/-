@@ -40,7 +40,10 @@ Dossiers produits (ignorés par git sauf mention) : `build/` (parts.json), `aper
   dans le monde vaut `R_y(yaw) · (0, 0, -1) = (-sin yaw, 0, -cos yaw)` (yaw 90 : l'avant regarde -X ; yaw 180 : +Z).
 - **Rotations libres** : matrices `rot_x(deg)`, `rot_y(deg)`, `rot_z(deg)`, composées de droite à gauche :
   `rot_y(30) @ rot_x(20)` incline d'abord de 20° autour de X, puis tourne de 30° autour de Y. Partout où un
-  paramètre `rot=` existe, un nombre seul vaut un yaw en degrés.
+  paramètre `rot=` existe, un nombre seul vaut un yaw en degrés. `repere_normale(n)` (axe Y local = `n`) et
+  `repere_direction(d, haut)` (axe X local = `d`, axe Y au plus près de `haut`) construisent des rotations à partir
+  de directions. Les matrices sont celles des `CFrame` Roblox : colonnes = axes X, Y, Z locaux dans le monde
+  (`RightVector`, `UpVector`, `-LookVector`).
 - **Groupes** : `b.group("Toit")` et `b.at(..., group="Labo")` deviennent des `Model` imbriqués dans Roblox et des
   collections dans Blender. Le groupe racine `Reperes` devient un `Folder`. Le groupe `Sol` est rangé en blocs
   de 64 × 64 (`b.decouper`) : avec StreamingEnabled, Roblox envoie de toute façon les pièces une à une selon leur
@@ -48,7 +51,7 @@ Dossiers produits (ignorés par git sauf mention) : `build/` (parts.json), `aper
   (`ModelStreamingMode`).
 - **Précision** : tailles et positions arrondies à 4 décimales, matrices de rotation à 6. Lune range ensuite les
   flottants des propriétés sur une grille de 2^-16 (≈ 0,000015 stud) : sans effet visible.
-- **Couleurs** : `"#RRGGBB"`, `"#RGB"` ou tuple `(r, g, b)` 0-255 ; `shade(c, 0.85)` assombrit, `shade(c, 1.2)`
+- **Couleurs** : `"#RRGGBB"`, `"#RGB"` ou tuple `(r, g, b)` 0-255 (`hexrgb` convertit) ; `shade(c, 0.85)` assombrit, `shade(c, 1.2)`
   éclaircit, `mix(a, b, t)` mélange, `varier(c, b.rng, 0.05)` tire une nuance voisine (casse les grands aplats).
   La palette de la carte viendra de la bible de style (`palette.py`) ; les fichiers de l'atelier utilisent des
   constantes locales provisoires.
