@@ -602,9 +602,8 @@ class Builder:
 
         - Plein (par défaut) : 1 cylindre. `creux=n` (8-16) : tube creux de n lames (une lame à plat au fond) :
           on peut marcher dedans (couloir vitré). Les lames se recouvrent un peu aux arêtes ; une lame sur deux est
-          plus longue de 0,04 (leurs faces de bout ne sont jamais dans le même plan). Un
-          personnage mesure environ 5 studs : hauteur intérieure 2 × (rayon − épaisseur des lames), donc rayon ≥ 4
-          pour un couloir praticable.
+          plus longue de 0,04 (leurs faces de bout ne sont jamais dans le même plan). Un personnage mesure environ
+          5 studs : hauteur intérieure 2 × (rayon − épaisseur des lames), donc rayon ≥ 4 pour un couloir praticable.
         - `colliers` : 0, un nombre (1 = au milieu ; 2 = aux deux bouts ; k = régulièrement, bouts compris) ou une
           liste de fractions (0 → p0, 1 → p1) : bagues opaques un peu plus larges (`couleur_collier`). Une bague
           posée à un bout dépasse de 0,05 stud (sa face ne se confond pas avec le bout du tube). Tube plein : bague

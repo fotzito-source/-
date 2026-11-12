@@ -51,8 +51,9 @@ Dossiers produits (ignorés par git sauf mention) : `build/` (parts.json), `aper
   (`ModelStreamingMode`).
 - **Précision** : tailles et positions arrondies à 4 décimales, matrices de rotation à 6. Lune range ensuite les
   flottants des propriétés sur une grille de 2^-16 (≈ 0,000015 stud) : sans effet visible.
-- **Couleurs** : `"#RRGGBB"`, `"#RGB"` ou tuple `(r, g, b)` 0-255 (`hexrgb` convertit) ; `shade(c, 0.85)` assombrit, `shade(c, 1.2)`
-  éclaircit, `mix(a, b, t)` mélange, `varier(c, b.rng, 0.05)` tire une nuance voisine (casse les grands aplats).
+- **Couleurs** : `"#RRGGBB"`, `"#RGB"` ou tuple `(r, g, b)` 0-255 (`hexrgb` convertit) ; `shade(c, 0.85)`
+  assombrit, `shade(c, 1.2)` éclaircit, `mix(a, b, t)` mélange, `varier(c, b.rng, 0.05)` tire une nuance voisine
+  (casse les grands aplats).
   La palette de la carte viendra de la bible de style (`palette.py`) ; les fichiers de l'atelier utilisent des
   constantes locales provisoires.
 - **Aléatoire** : `b.rng` (numpy, graine fixe) ; jamais `random` : la carte doit se reconstruire à l'identique.
