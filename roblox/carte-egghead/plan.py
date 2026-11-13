@@ -932,10 +932,12 @@ BUDGET_FONCTION = {
 }
 
 
-def budget_appel(fonction: str, params: dict | None = None) -> tuple[float, float, float]:
+def budget_appel(fonction: str, params: dict | None = None, variante: int = 0) -> tuple[float, float, float]:
     """Plafond (pièces, Neon, transparentes) d'un appel, formules résolues avec ses paramètres."""
     p = params or {}
     pieces, neon, transp = BUDGET_FONCTION[fonction]
+    if fonction == "ciel.piece_or" and variante == 1:
+        pieces = 8                      # une pièce sur quatre porte une petite étoile en relief (SPECS.md)
     if fonction.endswith("connecteur"):
         pieces = 14 + 0.7 * p.get("largeur", 8)
     elif fonction.endswith("groupe_palmiers"):
