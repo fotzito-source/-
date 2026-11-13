@@ -1163,7 +1163,7 @@ def connecteur(b, variant=0, largeur=8, profondeur=12, hauteur=16, couleur="lava
             nm = max(1, n * 2 - 1)
             for k in range(nm):
                 x = -W / 2 + 0.8 + (k + 1) * (W - 1.6) / (nm + 1)
-                b.box((x - 0.3, yv0 + 0.02, zw - 0.25), (x + 0.3, yv1 + 0.02, zw + 0.05), BLANC, collide=False,
+                b.box((x - 0.3, yv0 + 0.02, zw - 0.22), (x + 0.3, yv1 + 0.02, zw + 0.05), BLANC, collide=False,
                       name="Meneau")
             b.box((-W / 2 + 0.8, yv1, zw - 0.25), (W / 2 - 0.8, yv1 + 0.5, zw + 0.1), BLANC, collide=False,
                   name="Meneau")

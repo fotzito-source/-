@@ -289,10 +289,10 @@ def _conflits(parts, interdits, praticables, base) -> list:
 def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteur: float | None = None,
                     **params) -> dict:
     """Jardinière ronde de Ø `diametre` à bordure rayée rouge et blanc (anneau à section carrée de 10 segments
-    sous Ø 9, 12 au-delà, studs), terre `haie` à studs, boules de haie, et `n` palmiers de hauteurs différentes (18 → 28 ;
-    `hauteur` = le plus grand), penchés vers l'extérieur : le grand presque droit, les petits très penchés (en V,
-    couronnes séparées, comme les paires de EH4). Pièces ≤ 16 + 28 n (en pratique 42 / 67 / 93 pour n = 1 / 2
-    / 3) : le grand palmier a 7 lames par étage (26), les autres 6 (24).
+    sous Ø 9, 12 au-delà, studs), terre `haie` à studs, boules de haie, et `n` palmiers de hauteurs différentes
+    (18 → 28 ; `hauteur` = le plus grand), penchés vers l'extérieur : le grand presque droit, les petits très
+    penchés (en V, couronnes séparées, comme les paires de EH4). Pièces ≤ 16 + 28 n (en pratique 42 / 66 / 95
+    pour n = 1 / 2 / 3, Ø 6 / 8 / 10) : le grand palmier a 7 lames par étage (26), les autres 6 (24).
     Placement : la fonction lit `plan.PARCELLES` et `plan.ZONES_PRATICABLES` dans le repère de la carte ; si une
     couronne entre dans une parcelle ou un escalier, ou traverse une façade alors que la jardinière est dans une
     zone praticable, les palmiers sont refaits penchés loin du conflit (secteur de lames réduit). Le résumé
