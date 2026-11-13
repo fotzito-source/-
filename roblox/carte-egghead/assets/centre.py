@@ -160,8 +160,8 @@ def _lampe_soucoupe(b, x, z, y, hauteur=5.5, coque="bleu_roi"):
 
 def stand_vente(b, variant=0, **params):
     """Stand de vente : kiosque rond à toit-dôme rouge, lambrequin rayé rouge et blanc et pièce d'or géante, sur un
-    socle carré arrondi 28 × 28 blanc à bord rayé rouge ; zone de vente en demi-disque pointillé (rayon 14) devant
-    (au nord, -Z local). ≤ 90 pièces, ≤ 6 Neon. Aucun texte."""
+    socle carré arrondi 28 × 28 blanc à bord rayé rouge ; zone de vente en demi-disque pointillé (plan.ZONE_VENTE : r 20, arcs
+    hors du socle seulement) devant (au nord, -Z local). ≤ 90 pièces, ≤ 6 Neon. Aucun texte."""
     W = float(params.get("largeur", plan.CENTRE["Vente"]["emprise"][0]))
     D = float(params.get("profondeur", plan.CENTRE["Vente"]["emprise"][1]))
     rz = float(params.get("rayon_zone", plan.ZONE_VENTE["rayon"]))
@@ -216,6 +216,11 @@ def stand_vente(b, variant=0, **params):
         rd = toit.info["rayon_dome"]
         assert h_dome - e_bord <= h_cl <= h_dome + e_bord
         b.ellipsoid((0, y_bord, 0), (2 * rd, 2 * h_cl, 2 * rd), blanc, name="Cloche", collide=False)
+        # 4 méridiens blancs (tranches d'ellipsoïde de même centre que le dôme, 0,1 en saillie) : 8 fuseaux rouge et
+        # blanc, l'auvent rayé de refEH1 lisible d'en haut ; leur moitié basse reste dans la cloche
+        for j in range(4):
+            b.ellipsoid((0, y_bord + e_bord, 0), (0.6, 2 * h_dome + 0.2, 2 * rd + 0.2), blanc,
+                        rot=rot_y(45.0 * j), name="Meridien", collide=False, shadow=False)
         h_lb = 2.4                                      # lambrequin : dépasse de 0,2 le dessus du bord
         y_lb = y_bord + e_bord + 0.2 - h_lb / 2
         b.anneau((0, y_lb, 0), r_bord + 0.22, h_lb, [rouge, blanc], 16, depart=0, section="plat",
@@ -312,16 +317,10 @@ def machine(b, variant=0, **params):
             d = p0 - cible
             p1 = cible + d / np.linalg.norm(d) * (r_bulle + 0.15)
             b.cyl_entre(p0, p1, 0.13, c("cyan"), material="Neon", collide=False, shadow=False, name="Arc")
-    # tuyaux en J à l'arrière : montée depuis le plateau, coude, retour vers le piédestal
-    col_t = mix(c("indigo"), c("dalle_labo"), 0.4)
-    with b.group("Tuyaux"):
-        for sx in (-1, 1):
-            x = sx * 1.25
-            zt = D / 2 - 1.3
-            yt = h1 + 2.2
-            b.cyl((x, (h1 - 0.1 + yt) / 2, zt), 0.5, yt - h1 + 0.1, col_t, name="Tuyau")
-            b.ball((x, yt, zt), 0.5, col_t, name="Coude")
-            b.cyl_entre((x, yt, zt), (x, yt, zb + 1.3), 0.5, col_t, name="Tuyau")
+    # pied évasé du piédestal à bague d'or (finition : plus de tuyaux en J, qui faisaient des pattes)
+    with b.group("Pied"):
+        b.cyl((0, h1 + 0.275, zb), 2.7, 0.65, blanc, studs="top", name="Pied")
+        b.cyl((0, h1 + 0.72, zb), 2.35, 0.3, c("or"), studs="top", name="Bague")
     return {"emprise": (W, D), "hauteur": round(y_boule + r_boule, 2)}
 
 
@@ -435,13 +434,15 @@ def monument(b, variant=0, **params):
     with b.at((0, y0, 0), group="Oeuf"):
         sommet = oeuf_replique(b, k, dents=int(params.get("dents", 10)), meridiens=2)
         # collision de l'œuf : cylindre invisible dans son ventre (le joueur bute sur la coquille, pas sur sa boîte)
-        b.cyl((0, (3.8 + 21.0) / 2, 0), 8.0, 21.0 - 3.8, blanc, transparency=1.0, shadow=False,
+        f = k / 0.14                                   # cotes réglées à k = 0,14
+        b.cyl((0, (3.8 + 21.0) / 2 * f, 0), 8.0 * f, (21.0 - 3.8) * f, blanc, transparency=1.0, shadow=False,
               name="CollisionOeuf")
     # -- anneau de données (arcs bleu roi / bleu nuit, incliné) et cubes en arc
     with b.group("Donnees"):
         y_a = y0 + 100 * k
         for j in range(2):
-            b.anneau((0, y_a, 0), 13.4, 0.26, [c("bleu_roi"), c("bleu_nuit")], 24, arc=165, depart=7.5 + 180 * j,
+            b.anneau((0, y_a, 0), 13.4 * k / 0.14, 0.26, [c("bleu_roi"), c("bleu_nuit")], 24, arc=165,
+                     depart=7.5 + 180 * j,
                      rot=rot_x(7) @ rot_z(3), section="plat", largeur=1.15, collide=False, shadow=False,
                      name="Anneau")
     with b.group("Cubes"):
@@ -507,7 +508,7 @@ def panneau_quetes(b, variant=0, **params):
     ≤ 25 pièces, ≤ 4 Neon, ≤ 2 transparentes."""
     blanc = c("blanc_labo")
     Wf, Hf = 10.0, 6.0
-    yc = 11.6
+    yc = float(params.get("y_cadre", 11.6))
     with b.group("Socle"):
         b.cyl((0, 0.3, 0), 1.7, 0.6, blanc, studs="top", name="Emetteur")
         b.cyl((0, 0.35, 0), 1.95, 0.3, c("indigo"), name="Bague")
@@ -547,10 +548,45 @@ def apparition(b, variant=0, **params):
         b.anneau((0, 0.12, 0), R + 1.6, 0.28, c("cyan"), 16, depart=0, section="plat", largeur=0.5,
                  material="Neon", collide=False, shadow=False, name="Halo")
     n0 = len(b.parts)
-    with b.group("Potelets"):
-        for j in range(4):
-            a = math.radians(45 + 90 * j)
-            _potelet(b, 7.5 * math.cos(a), -7.5 * math.sin(a))
+    if params.get("potelets", True):
+        with b.group("Potelets"):
+            for j in range(4):
+                a = math.radians(45 + 90 * j)
+                _potelet(b, 7.5 * math.cos(a), -7.5 * math.sin(a))
     y_sol = float(b.to_world((0, 0, 0))[1])
     h = max([0.41] + [float(bornes_part(p)[1][1]) - y_sol for p in b.parts[n0:]])
-    return {"emprise": (14.0, 14.0), "hauteur": round(h, 2)}
+    e = 14.0 if params.get("potelets", True) else round(2 * (R + 1.6 + 0.25), 1)
+    return {"emprise": (e, e), "hauteur": round(h, 2)}
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Portail violet (anneau ouvert, finition)
+# --------------------------------------------------------------------------------------------------------------
+
+def portail_anneau(b, variant=0, **params):
+    """Portail ouvert, lisible des deux côtés : anneau vertical violet à section carrée (R 5,2, 16 segments) sur un
+    socle rond à studs de Ø 10, deux pieds rayés à bague d'or, voile Neon violet translucide (on passe au travers),
+    petit dôme lavande et boule d'or au sommet. Avant -Z local. ≈ 26 pièces, 1 Neon, 1 transparente."""
+    R = float(params.get("rayon", 5.2))
+    e = 1.2
+    vio, lav = c("violet"), c("lavande")
+    yc = 0.5 + R + e / 2                               # le segment du bas s'enfonce de 0,1 dans le socle
+    with b.group("Socle"):
+        b.cyl((0, 0.3, 0), 5.0, 0.6, c("blanc_labo"), studs="top", name="Socle")
+        b.cyl((0, 0.25, 0), 5.35, 0.3, c("or"), name="Bague")
+    with b.group("Pieds"):
+        for sx in (-1, 1):
+            x = sx * (R - 0.6)
+            ya = 0.55
+            yb = yc - math.sqrt(max(R * R - x * x, 0.0)) + 0.3
+            b.cone_etage((x, ya, 0), 0.75, 0.75, yb - ya, [vio, c("blanc_labo")], etages=3, name="Pied")
+            b.cyl((x, ya + 0.3, 0), 0.95, 0.4, c("or"), name="Bague")
+    with b.group("Anneau"):
+        b.anneau((0, yc, 0), R, e, vio, 16, axe="z", section="carre", depart=0, name="Anneau")
+        b.cyl((0, yc, 0), R - e / 2 + 0.05, 0.2, c("neon_violet"), axis="z", material="Neon", transparency=0.55,
+              collide=False, shadow=False, name="Voile")
+    with b.group("Sommet"):
+        yt = yc + R + e / 2
+        b.ellipsoid((0, yt, 0), (3.2, 2.6, 2.0), lav, collide=False, name="Dome")
+        b.ball((0, yt + 1.6, 0), 0.6, c("or"), collide=False, name="Boule")
+    return {"emprise": (2 * (R + e / 2), 10.7), "hauteur": round(yt + 2.2, 2)}

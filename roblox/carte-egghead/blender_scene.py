@@ -365,6 +365,9 @@ def reset_scene() -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
+SANS_OMBRE = "#sans_ombre"
+
+
 def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> dict:
     data = json.loads(Path(parts_path).read_text(encoding="utf-8"))
     parts = data["parts"]
@@ -379,6 +382,8 @@ def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> di
             continue  # repères invisibles (Spawn…) et collisions invisibles : rien à rendre
         g = p["group"] or "Divers"
         key = "/".join(g.split("/")[:split_depth])
+        if not p.get("shadow", True):
+            key += SANS_OMBRE          # pièces sans ombre (Roblox CastShadow = false) : objet à part, sans ombre
         accs.setdefault(key, MeshAccum())
         add_part(accs[key], p, stud_scale)
         if p.get("label"):
@@ -390,6 +395,8 @@ def build(parts_path: Path, stud_scale: float = 1.0, split_depth: int = 2) -> di
             cols[top] = bpy.data.collections.new(top)
             root.children.link(cols[top])
         ob = build_object(key.replace("/", "_"), acc, mat, cols[top])
+        if key.endswith(SANS_OMBRE):
+            ob.visible_shadow = False
         tris[key] = sum(len(f) - 2 for f in acc.faces)
     lab_col = bpy.data.collections.new("Panneaux")
     root.children.link(lab_col)

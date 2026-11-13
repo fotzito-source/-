@@ -33,6 +33,16 @@ C01-C16, G01-G07 citées ci-dessous).
   `planche_sol_ciel.png`, `crops/*.png`. Qualité visée : au moins celle des meilleurs assets des zones finies
   (`/home/user/-/roblox/zone-demon-slayer/rendus/`, `/home/user/-/roblox/zone-black-clover/rendus/`).
 
+> **État final (livraison, 13/11).** Ces fiches sont la commande de départ ; le code livré s'en écarte ainsi
+> (cotes dans `plan.py`) : plan du juge (pelouse 410 × 637, parcelles 110 × 102, bandes d'entrée 16 × 102, tapis à
+> ±48,5 sans portails de tête) ; centre : stand 28 × 24 en (-16,5 ; 244,5) et zone de vente de rayon 20 centrée en
+> (-15 ; 245), machine en (25 ; 240) sans tuyaux en J, monument en (0 ; 126) avec réplique à k 0,085, panneau des
+> quêtes en (14 ; 151), podium Ø 38 en (0 ; 35,5), apparition en (0 ; 205) sans potelets, `centre.portail_anneau`
+> en (0 ; -105), deux kiosques à dôme en (±29,5 ; -170,5) ; nouveau module `assets/esplanade.py` (`front_labo`,
+> 118 de haut, écran abstrait ; `aire_nacelle`) ; `ciel.skyline_lointaine` (36 tours pâles, sans collision) ;
+> fenêtre de l'œuf ≤ 125 ; tours en baie du rang 1 à 62-94 ; `Tours/Limites` et `Tours/FondsDeBaie` posés par
+> carte.py ; `groupe_palmiers(..., portee=)` pour les petits palmiers de la bande arrière (±198 ; ±88).
+
 ---
 
 ## assets/tours_rondes.py
@@ -338,6 +348,10 @@ Construit en **coordonnées de la carte** (carte.py appelle `with b.at((0, 0, 0)
 - Aucune arche ni rien au-dessus du tapis (caméra) ; aucun Neon au sol hors des liserés.
 - Retour : `{"emprise": (112.86, ≈ 587), "hauteur": 1.0, "chevrons": 141}`.
 
+> **Finition (13/11)** : `plan.PORTAILS` est vide (plan du juge : rien de haut sur les têtes du tapis) ; la fonction
+> `tapis.portail` reste disponible mais n'est plus posée. Les repères `Parcelle_*` / `Entree_*` regardent le tapis
+> (côté E yaw 90, côté W yaw 270 ; voir CONVENTIONS § 4).
+
 ### tapis.py — `portail(b, variant=0, largeur=30, profondeur=16, hauteur=36)` — ≤ 90, ≤ 12 Neon, ≤ 1 verre
 Poses : `plan.PORTAILS` : `Portail_Ouest` (-48,38 ; -289) variante 0 (entrée : les objets apparaissent, Neon
 `neon_violet`) et `Portail_Est` (48,38 ; -289) variante 1 (sortie, Neon `cyan`), **yaw 180** : l'avant (-Z local)
@@ -404,7 +418,7 @@ Images : planche `planche_petits_batiments.png` et `planche_sol_ciel.png` (A01-A
 | Fonction | Recette | Plafond | Poses |
 |---|---|---|---|
 | `palmier(b, variant=0, hauteur=18, courbure=1.0)` | M01 : stipe annelé courbe (7 segments), 8 palmes en 2 ellipsoïdes, 4 noix ; variantes : courbure à gauche / à droite, 6 ou 8 palmes | 28 | via les groupes |
-| `groupe_palmiers(b, variant=0, n=2, diametre=8, hauteur=None)` | jardinière **ronde** de Ø `diametre` à bordure rayée rouge et blanc (anneau carré de 12-16 segments, studs), terre `haie` et 3-6 boules de haie, `n` palmiers de hauteurs différentes (18 → 28 ; `hauteur` = le plus grand), courbures opposées | 16 + 28 n | 22 (marges, angles, U, parvis des coins) |
+| `groupe_palmiers(b, variant=0, n=2, diametre=8, hauteur=None, portee=1)` | jardinière **ronde** de Ø `diametre` à bordure rayée rouge et blanc (anneau carré de 12-16 segments, studs), terre `haie` et 3-6 boules de haie, `n` palmiers de hauteurs différentes (18 → 28 ; `hauteur` = le plus grand), courbures opposées | 16 + 28 n | 22 (marges, angles, U, parvis des coins) |
 | `jardiniere(b, variant=0, largeur=12, profondeur=6, palmier=True)` | M03 : bordure rayée M04 (segments de 2, carré blanc aux angles), 10-14 boules de haie sur deux rangs, un palmier au centre | 70 | 18 (trottoir extérieur, contre les façades) |
 | `lampadaire(b, variant=0, hauteur=9)` | v0 : **à écran** M07 (écran Neon `cyan` vers l'avant, rien d'écrit) ; v1 : **soucoupe** M08 | 10, 1 Neon | 74 |
 | `banc(b, variant=0)` | M10 arrondi ; assise et dossier `orange`, `turquoise`, `rose_bonbon` ou `jaune_citron` selon la variante | 10 | 26 |
@@ -516,7 +530,9 @@ Chaque pose de `plan.MOBILIER` : `with b.at((x, y, z), yaw=yaw, group=f"Mobilier
 - `hauteur_libre` : aucune pièce dont le dessous est entre 5 et 40 au-dessus d'une zone praticable
   (`plan.zone_praticable`) et dont l'aire horizontale dépasse 64, hors liste blanche (`Centre/Vente`,
   `Tapis/Portail_*`, `Mobilier/*` lampadaires, palmiers et panneaux).
-- `fenetre_oeuf` : rien au-dessus de `plan.FENETRE_OEUF["hauteur_max"]` (80) dans |x| < 70, z -447 → -367.
+- `fenetre_oeuf` : rien au-dessus de `plan.FENETRE_OEUF["hauteur_max"]` (125 depuis la finition) dans |x| < 70,
+  z -572 → -402 ; `visee_oeuf` : depuis l'œil d'apparition, les bâtiments de la fenêtre restent sous le dessous du
+  nuage ; `reperes_parcelles` : boîtes et avant des repères `Parcelle_*` / `Entree_*` conformes au plan.
 - `spawn` : un seul repère `Spawn` ; `reperes` : tous ceux de `plan.REPERES` présents.
 - `sol_sans_studs` : toute dalle de `Sol`, `Trottoirs`, `Routes` porte des studs sur le dessus.
 

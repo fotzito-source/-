@@ -52,7 +52,7 @@ NOM = "CarteEgghead"
 VERSION = "1.0"
 VUES = dict(plan.VUES)
 
-MODULES_ASSETS = ("tapis", "centre", "tours_rondes", "tours_formes", "ciel", "mobilier")
+MODULES_ASSETS = ("tapis", "centre", "tours_rondes", "tours_formes", "ciel", "mobilier", "esplanade")
 
 # --- Couleurs du sol (palette.py ; tons dérivés par mix / shade seulement) ----------------------------------------
 SOL_VERT = coul("sol_vert")
@@ -67,7 +67,9 @@ VOIE = coul("voie")
 BLANC = coul("blanc_labo")
 ROUGE = coul("rouge")
 OR = coul("or")
-MUR = mix(coul("skyline"), coul("blanc_labo"), 0.5)
+MUR = coul("skyline")                 # finition : le mur de fond se lit comme une façade lointaine (bande vitrée)
+VITRE_MUR = coul("hublot")
+FOND_BAIE = mix(coul("lavande"), coul("blanc_labo"), 0.55)
 BANDEAU = coul("lavande")
 PROVISOIRE = coul("lavande")
 VERRE_TUBE = coul("verre")
@@ -354,6 +356,8 @@ def routes(b: Builder) -> None:
                     b.box((c - T / 2, 0, z0), (c + T / 2, hm, z0 + 1), BLANC, studs="top", name="Tiret")
             # --- lignes de rive : anneau intérieur et anneau extérieur, raccordés aux angles sans recouvrement --
             anneaux = ((TX + rr, TZS + rr, TZN + rr), (RX - rr - 1, RZS - rr - 1, RZN - rr - 1))
+            if not getattr(plan, "LIGNES_DE_RIVE", True):
+                anneaux = ()
             for (lx, lzs, lzn) in anneaux:        # ligne sur [lx, lx + 1] (et symétriques), [lzs, lzs + 1], …
                 for s, cote in ((1, "est"), (-1, "ouest")):
                     # le long de Z, entre les lignes nord et sud (qui couvrent les angles), coupée aux passages
@@ -377,7 +381,8 @@ def routes(b: Builder) -> None:
             sens = (("est", c_int, c_ext, (0, -1), (-TZN, TZS)), ("ouest", -c_int, -c_ext, (0, 1), (-TZN, TZS)),
                     ("sud", ci_s, ce_s, (1, 0), (-TX, TX)), ("nord", -ci_n, -ce_n, (-1, 0), (-TX, TX)))
             for cote, fi, fe, d, (s0, s1) in sens:
-                for voie, fixe, dirv, decal in (("int", fi, d, 0.0), ("ext", fe, (-d[0], -d[1]), plan.FLECHE_PAS / 2)):
+                phase = getattr(plan, "FLECHE_PHASE", 0.0)
+                for voie, fixe, dirv, decal in (("int", fi, d, phase), ("ext", fe, (-d[0], -d[1]), phase)):
                     k = math.ceil((s0 - decal) / plan.FLECHE_PAS)
                     while k * plan.FLECHE_PAS + decal <= s1:
                         sc = k * plan.FLECHE_PAS + decal
@@ -424,7 +429,7 @@ def sol_couronne(b: Builder) -> None:
             dalles(b, -EX, EX, -EZ, -AZN, y, VOIE, "Esplanade")
             # rangées de tirets blancs (comme les places de la référence) : 3 rangées de tirets 6 × 1 tous les 12
             z_f = plan.ALIGNEMENT_Z_NORD
-            for zr in (-z_f - 22, -z_f - 44, -z_f - 66):
+            for zr in (-z_f - 22, -z_f - 66):          # la rangée du milieu laisse place au port de nacelles
                 for k in range(-10, 11):
                     xc = 12 * k
                     if abs(xc) + 3 > plan.ESPLANADE_X - 8:
@@ -439,6 +444,9 @@ def _mur(b: Builder, x0, x1, z0, z1, y0, yb, y1, bandeau_x, bandeau_z) -> None:
     b.box((x0, y0, z0), (x1, yb, z1), MUR, name="Mur")
     b.box((x0 - bandeau_x[0], yb, z0 - bandeau_z[0]), (x1 + bandeau_x[1], y1, z1 + bandeau_z[1]), BANDEAU,
           studs="top", name="Bandeau")
+    # bande vitrée de 2,5 vers y 24 (mêmes débords que le bandeau) : une façade lointaine, pas un mur nu
+    b.box((x0 - bandeau_x[0], 23.0, z0 - bandeau_z[0]), (x1 + bandeau_x[1], 25.5, z1 + bandeau_z[1]), VITRE_MUR,
+          name="Vitrage")
 
 
 def mur_de_fond(b: Builder) -> None:
@@ -547,6 +555,82 @@ def couronne(b: Builder, suivi: Suivi) -> None:
               e["yaw"], f"Tours/{e['id']}", prov)
 
 
+def limites(b: Builder) -> None:
+    """Barrière de collision invisible et continue sur la ligne des façades (plan.LIMITE_FACADES), qui suit le
+    renfoncement de l'esplanade : 8 blocs (est, ouest, sud, nord ×2, flancs ×2, fond), de y 0,4 à 40, transparence 1,
+    collision, sans ombre ni studs, groupe Tours/Limites. On ne passe plus dans les coulisses de la couronne."""
+    L = plan.LIMITE_FACADES
+    r, e = L["retrait"], L["epaisseur"]
+    y0, y1 = L["bas"], L["haut"]
+    AX, AZS, AZN = plan.ALIGNEMENT_X, plan.ALIGNEMENT_Z_SUD, plan.ALIGNEMENT_Z_NORD
+    EX, EZ = plan.ESPLANADE_X, plan.ESPLANADE_Z
+    kw = dict(transparency=1.0, collide=True, shadow=False, name="Limite")
+    blocs = []
+    for s in (1, -1):
+        blocs.append((s * (AX + r), s * (AX + r + e), -(AZN + r + e), AZS + r + e))            # est / ouest
+        blocs.append((s * (EX + r), s * (AX + r + e), -(AZN + r + e), -(AZN + r)))             # nord, de part et d'autre
+        blocs.append((s * (EX + r), s * (EX + r + e), -(EZ + r + e), -(AZN + r)))              # flancs de l'esplanade
+    blocs.append((-(AX + r), AX + r, AZS + r, AZS + r + e))                                     # sud
+    blocs.append((-(EX + r + e), EX + r + e, -(EZ + r + e), -(EZ + r)))                        # fond de l'esplanade
+    with b.group("Tours"):
+        with b.group("Limites"):
+            for (xa, xb, za, zb) in blocs:
+                x0, x1 = sorted((xa, xb))
+                z0, z1 = sorted((za, zb))
+                b.box((x0, y0, z0), (x1, y1, z1), coul("blanc_labo"), **kw)
+
+
+def _intervalles_vides() -> list[tuple[str, float, float]]:
+    """Intervalles du rang 1 réservés aux repères de milieu de côté (fonction None, largeur ≤ 60) : (côté, s0, s1)."""
+    out = []
+    for cote, seq in plan.RANG1.items():
+        s = plan.COTES[cote]["s0"]
+        for item in seq:
+            if item[1] is None and item[0] <= 60:
+                out.append((cote, s, s + item[0]))
+            s += item[0]
+    return out
+
+
+def fonds_de_baie(b: Builder) -> None:
+    """Murs pleins derrière les éléments ronds du rang 1 (tours en baie, kiosques ronds), de toute la largeur de leur
+    intervalle, à la profondeur de leur axe ; et derrière les repères de milieu de côté, à la profondeur des ailes
+    (14) : les interstices de part et d'autre d'un cylindre montrent une façade, pas les coulisses. Dessus à studs."""
+    F = plan.FONDS_DE_BAIE
+    hy, ep, rb = F["hauteur"], F["epaisseur"], F["retrait_bouts"]
+    y0 = plan.NIVEAU_COURONNE - 0.3
+    murs = [(e["cote"], e["s0"], e["s1"], e["d"]) for e in plan.CEINTURE if e["rang"] == 1 and e["forme"] == "rond"]
+    murs += [(cote, s0, s1, 14.0) for (cote, s0, s1) in _intervalles_vides()]
+    with b.group("Tours"):
+        with b.group("FondsDeBaie"):
+            for (cote, s0, s1, d) in murs:
+                pts = [plan.cote_vers_monde(cote, s, dd)[:2] for s in (s0 + rb, s1 - rb) for dd in (d - ep / 2, d + ep / 2)]
+                xs, zs = [p[0] for p in pts], [p[1] for p in pts]
+                b.box((min(xs), y0, min(zs)), (max(xs), plan.NIVEAU_COURONNE + hy, max(zs)), FOND_BAIE, studs="top",
+                      name="FondDeBaie")
+            # carrés d'angle : deux murs le long de leurs bords côté rue (x = ±271, z = ±367 / -402), du coin de la
+            # rue au mur de fond : vu du carrefour, la placette d'angle (palmiers, grande tour) a des côtés pleins
+            AX, CX = plan.ALIGNEMENT_X, plan.COURONNE_X
+            e_m = plan.MUR_FOND_EPAISSEUR
+            for sx in (1, -1):
+                for sz, az, cz in ((1, plan.ALIGNEMENT_Z_SUD, plan.COURONNE_Z_SUD),
+                                   (-1, plan.ALIGNEMENT_Z_NORD, plan.COURONNE_Z_NORD)):
+                    xa, xb = sorted((sx * (AX + 0.2), sx * (AX + 0.2 + ep)))
+                    za, zb = sorted((sz * (az + 0.2), sz * (cz - e_m - 0.1)))
+                    b.box((xa, y0, za), (xb, plan.NIVEAU_COURONNE + hy, zb), FOND_BAIE, studs="top", name="FondDAngle")
+                    xa, xb = sorted((sx * (AX + 0.2 + ep), sx * (CX - e_m - 0.1)))
+                    za, zb = sorted((sz * (az + 0.2), sz * (az + 0.2 + ep)))
+                    b.box((xa, y0, za), (xb, plan.NIVEAU_COURONNE + hy, zb), FOND_BAIE, studs="top", name="FondDAngle")
+
+
+def esplanade(b: Builder, suivi: Suivi) -> None:
+    """Port de nacelles de l'esplanade nord : aires rondes à nacelle garée (plan.AIRES_NACELLES)."""
+    for a in plan.AIRES_NACELLES:
+        R = plan.AIRE_NACELLE_RAYON
+        poser(b, suivi, a["id"], "esplanade.aire_nacelle", a["variante"], {"rayon": R},
+              (a["x"], plan.NIVEAU_COURONNE, a["z"]), 0, f"Mobilier/{a['id']}", ("rond", R, 0.3, 0))
+
+
 def _ame(suivi: Suivi, e: dict) -> float:
     r = suivi.resultats.get(e["id"]) or {}
     a = r.get("ame")
@@ -608,10 +692,12 @@ def tubes(b: Builder, suivi: Suivi) -> None:
                             acc += seg
                         if geant:
                             col = coul("jaune_or") if i % 2 == 0 else coul("orange")
-                            b.anneau(tuple(c), 7.6, 2.4, col, 12, axe=tuple(d), section="carre", depart=15 * i,
+                            b.anneau(tuple(c), plan.TUBE_RAYON_ANNEAU["geant"], 2.4, col, 12, axe=tuple(d),
+                                     section="carre", depart=15 * i,
                                      collide=False, name="Anneau")
                         else:
-                            b.anneau(tuple(c), 3.2, 1.2, OR, 6, axe=tuple(d), section="carre", collide=False,
+                            b.anneau(tuple(c), plan.TUBE_RAYON_ANNEAU["fin"], 1.2, OR, 6, axe=tuple(d),
+                                     section="carre", collide=False,
                                      name="Anneau")
 
 
@@ -627,6 +713,7 @@ def ciel(b: Builder, suivi: Suivi) -> None:
     cb = plan.CABLE
     poser(b, suivi, "Cable", cb["fonction"], cb["variante"], {"depart": cb["de"], "arrivee": cb["a"]}, (0, 0, 0), 0,
           "Ciel/Cable", lambda bb: bb.cyl_entre(cb["de"], cb["a"], 1.0, PROVISOIRE, collide=False, name="Provisoire"))
+    n_volants = len(b.parts)
     for n in plan.NACELLES:
         poser(b, suivi, n["id"], "ciel.nacelle", n["variante"],
               {"rayon": n["rayon"], "inclinaison": plan.NACELLE_INCLINAISON}, (n["x"], n["y"], n["z"]), n["yaw"],
@@ -640,9 +727,16 @@ def ciel(b: Builder, suivi: Suivi) -> None:
     dg = plan.DIRIGEABLE
     poser(b, suivi, "Dirigeable", dg["fonction"], dg["variante"], {"longueur": dg["longueur"]},
           (dg["x"], dg["y"], dg["z"]), dg["yaw"], "Ciel/Dirigeable", ("boule", dg["longueur"] / 4))
+    # objets volants (nacelles, pièces d'or, dirigeable) sans ombre portée : pas de taches sombres sur la pelouse ni
+    # sur les parcelles des joueurs (CastShadow = false dans Roblox ; l'œuf, son nuage et les cumulus n'en ont pas)
+    for p in b.parts[n_volants:]:
+        p.shadow = False
     for cu in plan.CUMULUS:
         poser(b, suivi, cu["id"], plan.CUMULUS_FONCTION, cu["variante"], {"largeur": cu["largeur"]},
               (cu["x"], cu["y"], cu["z"]), 0, f"Ciel/Cumulus/{cu['id']}", ("boule", cu["largeur"] / 2))
+    # skyline lointaine C07 (coordonnées de la carte : pose à l'origine), dans le modèle Ciel (Persistent)
+    poser(b, suivi, "Skyline", plan.SKYLINE_FONCTION, 0, {"tours": plan.SKYLINE}, (0, 0, 0), 0, "Ciel/Skyline",
+          lambda bb: None)
 
 
 _PROV_MOBILIER = {"lampadaire": ("rond", 0.6, 9, 0), "groupe_palmiers": None, "jardiniere": None,
@@ -684,6 +778,9 @@ def build_carte(seed: int = 7) -> Builder:
     reperes(b)
     tapis_et_centre(b, suivi)
     couronne(b, suivi)
+    limites(b)
+    fonds_de_baie(b)
+    esplanade(b, suivi)
     tubes(b, suivi)
     ciel(b, suivi)
     mobilier(b, suivi)
@@ -903,6 +1000,36 @@ def verifications(b: Builder) -> dict:
     m = tours & visible & (hi[:, 1] > F["hauteur_max"] + plan.NIVEAU_COURONNE + 1e-6) & \
         _inter_rect(lo, hi, F["x0"], F["x1"], F["z0"], F["z1"])
     pb["fenetre_oeuf"] += [(nomme(i), round(float(hi[i, 1]), 1)) for i in np.flatnonzero(m)[:8]]
+    # --- repères des parcelles et des entrées : boîte monde = géométrie du plan (0,01 près), avant vers le tapis -------
+    rep = {p.name: i for i, p in enumerate(parts) if p.group == GROUPE_REPERES}
+    for pc in plan.PARCELLES:
+        es = pc["escalier"]
+        signe = 1 if pc["cote"] == "E" else -1
+        for nom, (x0, x1, z0, z1) in ((f"Parcelle_{pc['id']}", (pc["x0"], pc["x1"], pc["z0"], pc["z1"])),
+                                     (f"Entree_{pc['id']}", (es["x0"], es["x1"], es["z0"], es["z1"]))):
+            i = rep.get(nom)
+            if i is None:
+                continue
+            ecarts = [abs(float(v) - w) for v, w in ((lo[i, 0], x0), (hi[i, 0], x1), (lo[i, 2], z0), (hi[i, 2], z1))]
+            avant = -np.array(parts[i].rot, float).reshape(3, 3)[:, 2]        # LookVector (-Z local)
+            if max(ecarts) > 0.01 or avant[0] * -signe < 0.999 or abs(float(lo[i, 1])) > 0.01:
+                pb["reperes_parcelles"].append((nom, [round(float(v), 2) for v in (lo[i, 0], hi[i, 0], lo[i, 2],
+                                                                                    hi[i, 2])],
+                                                [round(float(v), 3) for v in avant]))
+    # --- visée de l'œuf : depuis l'œil d'apparition, les bâtiments de la fenêtre restent sous le dessous du nuage ----
+    ox, oy, oz = plan.OEIL_APPARITION
+    dans_f = tours & visible & _inter_rect(lo, hi, F["x0"], F["x1"], F["z0"], F["z1"])
+    elev_bat = [math.degrees(math.atan2(hi[i, 1] - oy, oz - hi[i, 2])) for i in np.flatnonzero(dans_f)
+                if oz - hi[i, 2] > 1]
+    nuage = [i for i, g in enumerate(groupes) if g.startswith("Ciel/Oeuf/Nuage")]
+    # minorant de l'angle du bas du nuage : coin bas et avant de la boîte de chaque flocon (plus bas et plus proche que
+    # la surface réelle) ; on ne garde que les flocons dans le cône de la fenêtre (|azimut| ≤ 20°)
+    elev_nuage = [math.degrees(math.atan2(lo[i, 1] - oy, oz - hi[i, 2])) for i in nuage
+                  if abs(math.degrees(math.atan2(pos_x := (lo[i, 0] + hi[i, 0]) / 2 - ox, oz - hi[i, 2]))) <= 20]
+    visee = {"batiments_max_deg": round(max(elev_bat), 2) if elev_bat else None,
+             "nuage_bas_deg": round(min(elev_nuage), 2) if elev_nuage else None}
+    if elev_bat and elev_nuage and max(elev_bat) >= min(elev_nuage):
+        pb["visee_oeuf"].append(visee)
     # --- repères ----------------------------------------------------------------------------------------------------
     noms_rep = [p.name for p in parts if p.group == GROUPE_REPERES]
     spawn = [p for p in parts if p.group == GROUPE_REPERES and p.name == "Spawn"]
@@ -951,7 +1078,8 @@ def verifications(b: Builder) -> dict:
                                     tuple(round(v) for v in cap)))
         propres = _compter([p for p in parts if not p.group.startswith(("Provisoire/",)) and
                             _racine(p.group) in ("Sol", "Trottoirs", "Routes", "TracesParcelles", GROUPE_REPERES)
-                            or p.group.startswith(("Tours/MurDeFond", "Tours/Tubes"))])
+                            or p.group.startswith(("Tours/MurDeFond", "Tours/Tubes", "Tours/Limites",
+                                                   "Tours/FondsDeBaie"))])
         tot["carte"] = list(propres)
         for mod, (cap, capn, capt) in plan.BUDGETS.items():
             v = tot.get(mod, [0, 0, 0])
@@ -981,6 +1109,7 @@ def verifications(b: Builder) -> dict:
         "nb_provisoires": len(provisoires),
         # information : emplacements de la couronne dont l'asset sort de son emprise sous y 40 (id → (écart, pièce))
         "debordements": dict(sorted(debord.items(), key=lambda kv: -kv[1][0])),
+        "visee_oeuf": visee,
         "faces_confondues_meme_teinte": ctl["faces_confondues_meme_teinte"],
         "problemes": problemes,
     }

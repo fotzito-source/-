@@ -117,10 +117,11 @@ devant le monument de l'œuf (avant au sud) ; le podium (avant au sud, centre li
 
 ### 3.5 Ce qui reste VIDE et comment on le voit
 
-- Les **8 parcelles** (111 × 105) et leurs **zones d'escalier** (15 × 55 côté tapis) : seulement la pelouse et sa
-  grille, les repères `Parcelle_*` / `Entree_*` (invisibles), et le groupe facultatif `TracesParcelles` (équerres
-  dorées aux quatre coins de chaque parcelle, bord blanc de la zone d'escalier, au ras du sol : supprimable).
-- Les **allées** entre le tapis et les parcelles (|x| 56,5 → 80) : rien de solide. Les écarts entre rangées : un
+- Les **8 parcelles** (110 × 102 dans le plan final, § 9) et leurs **bandes d'entrée** (16 × 102 côté tapis) :
+  seulement la pelouse et sa grille, les repères `Parcelle_*` / `Entree_*` (invisibles), et le groupe facultatif
+  `TracesParcelles` (équerres dorées aux quatre coins de chaque parcelle, bord blanc de la bande d'entrée, au ras du
+  sol : supprimable).
+- Les **allées** entre le tapis et les parcelles (|x| 56,5 → 81) : rien de solide. Les écarts entre rangées : un
   lampadaire au bout extérieur, rien qui barre le passage.
 - Le **centre du podium** (Ø 20) : libre pour la statue du jeu. La **zone de vente** : un tracé au sol seulement.
 - **Au-dessus** des zones praticables : rien de large entre 5 et 40 (caméra) ; tubes ≥ 70, nacelles ≥ 55.
@@ -131,9 +132,9 @@ devant le monument de l'œuf (avant au sud) ; le podium (avant au sud, centre li
 |---|---|
 | Sol, marquages, bordures | 0 → 0,6 |
 | Mobilier (bancs, potelets, feux, lampadaires, palmiers) | 1 → 30 |
-| Pièces du centre | podium 2,5 · stand 18 · machine 15 · panneau 16 · monument 32 · portails 36 |
-| Rang 1 de la couronne | connecteurs 14-20 · boutiques et kiosques 16-28 · tambours 36-44 · fusées 46-58 |
-| Rang 2 | 115-245 ; fenêtre de l'œuf ≤ 80 |
+| Pièces du centre | podium 2,5 · stand 18 · machine 17 · panneau des quêtes 13 · monument 24 · portail violet 16 · kiosques à dôme 27 (plus de portails de tête) |
+| Rang 1 de la couronne | connecteurs 14-20 · boutiques et kiosques 16-28 · tours en baie (hublots, fusées) 62-94 · front du laboratoire 118 |
+| Rang 2 | 115-245 ; fenêtre de l'œuf ≤ 125 |
 | Repères de milieu de côté / d'angle | 195-215 / 230-250 |
 | Tubes, nacelles, pièces d'or | 55-210 |
 | Œuf et nuage | 202 → 610 |
@@ -159,14 +160,17 @@ La marge (≈ 4 500 pièces) sert à la finition (détails ajoutés après les c
 |---|---|---|
 | `capture1` | (2,03 ; 66,1 ; 319) → (-2,06 ; 18,23 ; 231,29), 70,6° ; **2000 × 1077** (ou 1000 × 539) | reproduire refEH1 : les formes doivent coïncider (tapis, stand, machine, parcelles, couronne) |
 | `capture2` | (156,2 ; 52,7 ; 361,3) → (112,97 ; 16,7 ; 278,62), 69,3° ; **2000 × 1050** (ou 1000 × 525) | reproduire refEH2 |
-| `aerienne`, `plan` | calculées par rendu.py sur l'emprise | vue d'ensemble, contrôle du plan |
-| `aerienne_sud` | (420, 520, 980) → (0, 40, -60), 48° | la carte et l'œuf derrière |
-| `joueur` | (-3, 8, 219) → (-3, 5,5, 206,5), 70° | ce que voit un joueur à l'apparition |
-| `ciel` | (-3, 6, 215) → (0, 230, -900), 62° | l'œuf dans la fenêtre, au-dessus des tours |
-| `oeuf` | (0, 30, -250) → (0, 400, -900), 46° | l'œuf de près (contrôle de la recette) |
-| `rue` | (262, 7, 150) → (264, 30, -60), 66° | le trottoir est et le front de rue |
-| `coin` | (140, 18, -190) → (311, 120, -407), 66° | le repère d'angle NE et son tube |
-| `nord` | (0 ; 66,1 ; -319) → (0 ; 18,23 ; -231,3), 70,6° | le pendant de capture1, vers le sud |
+| `aerienne` | (-500, 520, 720) → (0, 100, -330), 50° | vue d'ensemble depuis le côté du soleil, l'œuf au fond |
+| `plan` | calculée par rendu.py sur l'emprise de tout le modèle | dessus, ciel compris |
+| `plan_carte` | (0, 4500, -62,5) → (0, 0, -62,55), 13,4° ; 1200 × 1500 | dessus de la carte seule, nord en haut |
+| `aerienne_sud` | (595, 978, 980) → (0, 130, -240), 50° | la carte et l'œuf derrière, depuis le sud-est |
+| `joueur` | (0, 8, 217,5) → (0, 5,5, 205), 70° | caméra Roblox par défaut derrière l'apparition |
+| `ciel` | (0, 8, 217,5) → (0, 300, -900), 62° | l'œuf dans la fenêtre, au-dessus des tours |
+| `oeuf` | (0, 30, -250) → (0, 440, -900), 46° | l'œuf de près (contrôle de la recette) |
+| `rue` | (228, 8, 205) → (236, 32, -40), 66° | la route est, le trottoir et le front de rue |
+| `coin` | (140, 18, -225) → (311, 120, -442), 66° | le repère d'angle NE et son tube |
+| `nord` | (0 ; 66,1 ; -354) → (0 ; 18,23 ; -266,3), 70,6° | le pendant de capture1, vers le sud |
+| `esplanade` | (-40, 9, -318) → (0, 80, -560), 68° | l'esplanade nord, le front du laboratoire et l'œuf |
 | `centre` | (32, 34, 292) → (-4, 6, 170), 60° | stand, machine, monument, podium |
 
 ## 7. Propriété intellectuelle
@@ -223,3 +227,41 @@ dans `plan.py` ; l'origine ne change pas (milieu du tapis et des 8 parcelles). C
    des écarts : les palmes ne couvrent pas les parcelles) ; câble de l'œuf ancré en (-80 ; -600), derrière la
    couronne du fond ; tubes `Tube_Nord_Ouest` (N-T-184 → F-T-102) et `Tube_Coin_NE` (F-T102 → E-T-320).
 8. **Non construits** : les piliers orange (effets de parcelle), comme prévu.
+
+## 10. Finition A (13/11, après les trois critiques et l'arbitrage)
+
+- **Repères** : `Entree_*` couvrent exactement les bandes d'entrée (16 × 102 au sol), `Parcelle_*` les emprises
+  (110 × 102) ; avant vers le tapis (E yaw 90, W yaw 270) ; repères de zone de 8 de haut ; contrôle dans
+  `carte.verifications` (`reperes_parcelles`). Zone de vente du juge : r 20 centrée en (-15 ; 245), arcs hors socle.
+- **Couronne fermée** : barrière invisible continue sur la ligne des façades (`Tours/Limites`, y 0,4 → 40, suit le
+  renfoncement) ; murs de fond de baie derrière chaque élément rond du rang 1 et derrière les repères de milieu de
+  côté (`Tours/FondsDeBaie`, 24 de haut) ; contrôle `verif_marche.py --couronne` : 0 case atteinte derrière la ligne.
+- **Front de rue relevé** : tours en baie du rang 1 à 62-94 de haut, les 5 kiosques de baie remplacés par des tours
+  à hublots ; tours de bureaux E-T-80 et S-T-80 à 150, bandes vitrées ; skyline pâle C07 (36 tours, Ciel) au-delà du
+  mur de fond, mur de fond `skyline` à bande vitrée.
+- **Esplanade** : le plateau de 75 et la galerie de 20 laissent place au front du laboratoire (`esplanade.front_labo`,
+  118 de haut, grand écran abstrait Neon sans texte tourné vers le sud) ; visée de l'œil d'apparition : haut des
+  bâtiments de la fenêtre à 8,6°, dessous du nuage à 9,6° et plus (`verifications()["visee_oeuf"]`) ; port de
+  nacelles (4 aires rondes à nacelle garée) et 4 jardinières à palmier.
+- **Axe du ciel** : réplique du monument à k 0,085 (sommet à 7,7° vu de l'apparition), panneau des quêtes à x 14 et abaissé, nacelle de l'axe retirée
+  (N1 / N3 à ±115, y 92), H5 hors du cône du nuage, ligne de pièces nord basse (58-68) sans les 5 pièces centrales ;
+  nuage en cumulus (couronne basse resserrée, flocons de flanc, bandes inclinées de 8-10° en sens contraires) ; arc
+  de cubes en 3 grappes, tailles 5 à 16.
+- **Centre** : portail en anneau ouvert (`centre.portail_anneau`), dôme du stand à méridiens blancs, machine sans
+  tuyaux en J (pied évasé à bague d'or), plaque d'apparition sans potelets ; plus de palmiers autour du monument, de
+  panneaux ni de champignons au nord du U ; coupoles du U en (±30 ; -20).
+- **Route** : plus de lignes de rive, flèches par paires au pas de 83 (phase 45), plus de passages piétons au nord.
+- **Export** : `Ciel` en `ModelStreamingMode = Persistent` (relu), `StreamingTargetRadius` 1 200 dans la place de
+  démo, `SpawnLocation` invisible et traversable au-dessus de la plaque, `AppliquerStuds` mode « materiau » sur
+  Plastic ; `export/*.blend` ignoré par git.
+
+## 11. Livraison (13/11)
+
+- Bande arrière des parcelles : quatre petits palmiers de 16 en bac de Ø 5 aux places des arbres de la référence
+  (±198 ; ±88), couronne réduite (`groupe_palmiers(..., portee=0,65)`, rayon ≈ 5) qui reste hors des parcelles.
+- Rendus finaux dans `rendus/` (1600 × 900, captures au format des captures, `plan_carte` en 1200 × 1500 ; vues
+  `rue`, `esplanade` et `aerienne_sud` recadrées). Les planches de comparaison avec les captures de l'utilisateur
+  sont envoyées à part, hors du dépôt (public) : les captures montrent un autre jeu et des pseudos de joueurs.
+- Retouches de livraison : réplique du monument à k 0,085 (sommet à 7,7° vu de l'apparition, sous le nuage à 9,6°) ;
+  nacelles, pièces d'or et dirigeable sans ombre portée (pas de taches sur les parcelles).
+- Carte livrée : 13 565 pièces, 835 Neon, 46 verre, 72 transparentes ; `problemes` vide ; README.md.

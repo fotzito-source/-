@@ -103,7 +103,9 @@ TIRET_PAS = 16                                    # 6 de trait, 10 de vide
 TIRET_ARRET_COIN = 4                              # les tirets s'arrêtent à 4 studs des carrés d'angle
 LIGNE_RIVE_LARGEUR = 1
 LIGNE_RIVE_RETRAIT = 2                            # ligne de rive à 2 du bord : [219, 220] et [250, 251] (de même en Z)
-FLECHE_PAS = 96                                   # une flèche par voie tous les 96, décalée de 48 d'une voie à l'autre
+LIGNES_DE_RIVE = False                            # finition : chaussée unie jusqu'aux bordures, comme refEH2
+FLECHE_PAS = 83                                   # flèches par paires (voie intérieure et extérieure au même s) tous les 83
+FLECHE_PHASE = 45                                 # une paire en s = 45 (route sud : x ≈ 45, rétroprojection de refEH2)
 FLECHE_LONGUEUR = 9                               # hampe 1,4 × 6 + tête en chevron de 3
 BORDURE_LARGEUR = 1                               # bordure rayée rouge et blanc côté route des deux trottoirs
 BORDURE_DESSUS = NIVEAU_TROTTOIR + 0.2            # 0,6 : la bordure dépasse le trottoir de 0,2
@@ -114,15 +116,13 @@ BORDURE_RAYURE = 4                                # 4 rouges, 4 blancs (bloc rou
 SENS_VOIE_INTERIEURE = "antihoraire"
 
 # Passages piétons (zébras de 2 × 10, 9 bandes) : sur la route est en z ≈ 137 (mesuré, juge), en miroir sur la
-# route ouest, et deux autres au nord (z -137) pour l'équilibre des rues
+# route ouest (juge) ; les deux du nord ont été retirés à la finition (absents de la référence)
 PASSAGE_LARGEUR = 10
 PASSAGE_BANDE = 2
 PASSAGE_ECART = 2
 PASSAGES_PIETONS = [
     {"id": "Passage_E_Sud", "cote": "est", "s": 137.0},
-    {"id": "Passage_E_Nord", "cote": "est", "s": -137.0},
     {"id": "Passage_O_Sud", "cote": "ouest", "s": 137.0},
-    {"id": "Passage_O_Nord", "cote": "ouest", "s": -137.0},
 ]
 
 # =====================================================================================================
@@ -194,18 +194,21 @@ CENTRE = {
                       "demi-disque pointillé devant le bord nord (ZONE_VENTE)"},
     "Machine": {"x": 25.0, "z": 240.0, "emprise": (12, 10), "hauteur": 17, "yaw": 0,
                 "fonction": "centre.machine", "variante": 0},
-    "Monument": {"x": 0.0, "z": 126.0, "emprise": (34, 36), "hauteur": 32, "yaw": 180,
-                 "fonction": "centre.monument", "variante": 0,
-                 "note": "à la place du sanctuaire des quêtes (x -17 → 17, z 108 → 144) ; l'avant regarde le sud"},
+    "Monument": {"x": 0.0, "z": 126.0, "emprise": (34, 36), "hauteur": 24, "yaw": 180,
+                 "fonction": "centre.monument", "variante": 0, "params": {"echelle": 0.085},
+                 "note": "à la place du sanctuaire des quêtes (x -17 → 17, z 108 → 144) ; l'avant regarde le sud ; "
+                         "réplique à k 0,085 (livraison) : son sommet (≈ 20,5, 7,7° vu de l'apparition) passe nettement "
+                         "sous le nuage de l'œuf (9,6°) : plus de « totem » de deux œufs"},
     "Vitrine": {"x": 0.0, "z": 35.5, "emprise": (38, 38), "hauteur": 2.5, "yaw": 180,
                 "fonction": "centre.vitrine", "variante": 0, "params": {"diametre": 38},
                 "note": "podium octogonal Ø 38 (juge) ; disque central de Ø 20 LIBRE (statue du jeu) ; z 35,5 (mesuré "
                         "35 ± 5) : ses faces nord et sud (16,5 et 54,5) ne tombent pas sur une ligne de la grille"},
-    "Quetes": {"x": 0.0, "z": 151.0, "emprise": (12, 4), "hauteur": 16, "yaw": 180,
-               "fonction": "centre.panneau_quetes", "variante": 0,
-               "note": "panneau holographique sans texte devant le monument (le PNJ des quêtes est au sanctuaire)"},
-    "Apparition": {"x": 0.0, "z": 205.0, "emprise": (14, 14), "hauteur": 1.5, "yaw": 0,
-                   "fonction": "centre.apparition", "variante": 0,
+    "Quetes": {"x": 14.0, "z": 151.0, "emprise": (12, 4), "hauteur": 13, "yaw": 180,
+               "fonction": "centre.panneau_quetes", "variante": 0, "params": {"y_cadre": 8.6},
+               "note": "panneau holographique sans texte, de côté (x 14) et abaissé : vu de l'apparition, il ne se "
+                       "lit plus comme un écran sur le ventre de l'œuf"},
+    "Apparition": {"x": 0.0, "z": 205.0, "emprise": (10, 10), "hauteur": 0.5, "yaw": 0,
+                   "fonction": "centre.apparition", "variante": 0, "params": {"rayon": 3.2, "potelets": False},
                    "note": "point d'apparition neutre (juge : sur l'axe ; le joueur de refEH1 est en (-3 ; 207))"},
     # deux kiosques à dôme contre le bord intérieur des voies, au nord du U (les « portails » de A), tournés vers l'axe ;
     # centres au demi-stud (juge : (±29 ; -170) ±12) : les faces de leurs socles ne tombent pas sur la grille
@@ -217,18 +220,15 @@ CENTRE = {
                     "fonction": "tours_formes.kiosque", "variante": 3,
                     "params": {"type": "dome", "largeur": 20, "profondeur": 20, "hauteur": 26},
                     "note": "même modèle, autre schéma (dôme violet) ; avant vers -X"},
-    # portail violet lumineux (cadre de 10 × 3, 14 de haut, rôle inconnu : téléporteur ?) : portique à fond bleu nuit
-    # et liseré Neon violet, face au sud
-    "Portail": {"x": 0.0, "z": -105.0, "emprise": (10, 4), "hauteur": 14, "yaw": 180,
-                "fonction": "tours_formes.connecteur", "variante": 3,
-                "params": {"largeur": 10, "profondeur": 4, "hauteur": 14, "couleur": "violet",
-                           "accent": "neon_violet"},
+    # portail violet lumineux (cadre de 10 × 3, 14 de haut, rôle inconnu : téléporteur ?) : anneau vertical ouvert,
+    # voile Neon violet translucide, lisible des deux côtés (finition : plus de boîte fermée)
+    "Portail": {"x": 0.0, "z": -105.0, "emprise": (12, 10), "hauteur": 16, "yaw": 180,
+                "fonction": "centre.portail_anneau", "variante": 0,
                 "note": "portail violet (±20)"},
 }
-# Zone de vente : demi-disque de rayon 14 en pointillés, centré au milieu du bord nord du stand (le juge mesure un
-# demi-disque r 20 centré sur le stand, ouvert vers le nord : z 225 → 245 ; centre.stand_vente le trace devant
-# le bord nord, à rayon_zone près)
-ZONE_VENTE = {"x": -16.5, "z": 232.5, "rayon": 14.0}
+# Zone de vente : demi-disque du juge, rayon 20 centré en (-15 ; 245), ouvert vers le nord (z 225 → 245) ; son arc
+# pointillé tombe sur celui de refEH1 ; centre.stand_vente ne trace que les arcs hors du socle (côtés et nord)
+ZONE_VENTE = {"x": -15.0, "z": 245.0, "rayon": 20.0}
 VITRINE_RAYON_LIBRE = 10.0                              # centre du podium : rien au-dessus du dessus du podium
 SPAWN = {"x": 0.0, "z": 205.0, "yaw": 0}                # point d'apparition neutre ; regard vers le nord (-Z)
 
@@ -356,89 +356,89 @@ RANG1 = {
     "est": [   # côté soleil : orange, jaune d'or, rouge, citron ; accents bleu roi, turquoise
         (8,) + _cx(1, 16, "orange", "bleu_roi"),                                                # bout nord
         (27, RF + ".kiosque", 3, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -376
-        (24, RR + ".tour_fusee", 0, {"hauteur": 52, "diametre": 20, "type": "blanche"}),          # baie -355
+        (24, RR + ".tour_fusee", 0, {"hauteur": 84, "diametre": 20, "type": "blanche"}),          # baie -355
         (8,) + _cx(0, 16, "jaune_or", "bleu_roi"),
         (30, RF + ".boutique_arche", 2, {"hauteur": 28, "profondeur": 16}),                      # devant -320
         (8,) + _cx(1, 14, "orange", "turquoise"),
-        (34, RR + ".tour_hublots", 0, {"hauteur": 44, "diametre": 30}),                          # baie -280
+        (34, RR + ".tour_hublots", 0, {"hauteur": 78, "diametre": 30}),                          # baie -280
         (8,) + _cx(2, 16, "jaune_citron", "rouge"),
         (30, RF + ".kiosque", 1, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -240
         (8,) + _cx(3, 18, "orange", "bleu_roi"),
-        (34, RF + ".kiosque", 0, {"type": "dome", "hauteur": 24, "profondeur": 28}),             # baie -200
+        (34, RR + ".tour_hublots", 2, {"hauteur": 90, "diametre": 30}),                          # baie -200
         (8,) + _cx(0, 16, "rouge", "jaune_citron"),
         (30, RF + ".boutique_arche", 1, {"hauteur": 26, "profondeur": 16}),                      # devant -160
         (8,) + _cx(1, 14, "jaune_or", "turquoise"),
-        (34, RR + ".tour_fusee", 2, {"hauteur": 58, "diametre": 22, "type": "capsule"}),        # baie -120
+        (34, RR + ".tour_fusee", 2, {"hauteur": 92, "diametre": 22, "type": "capsule"}),        # baie -120
         (8,) + _cx(2, 16, "orange", "bleu_roi"),
         (30, RF + ".kiosque", 0, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -80
         (8,) + _cx(3, 18, "jaune_or", "rouge"),
-        (27, RR + ".tour_fusee", 3, {"hauteur": 48, "diametre": 20, "type": "blanche"}),         # baie -43,5
+        (27, RR + ".tour_fusee", 3, {"hauteur": 80, "diametre": 20, "type": "blanche"}),         # baie -43,5
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "jaune_or", "accent": "violet"}),  # aile du repère
         (44, None, 0, {}),                                                                      # repère E (manette)
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "jaune_or", "accent": "violet"}),  # aile du repère
-        (27, RR + ".tour_fusee", 1, {"hauteur": 46, "diametre": 20, "type": "capsule"}),        # baie 43,5
+        (27, RR + ".tour_fusee", 1, {"hauteur": 76, "diametre": 20, "type": "capsule"}),        # baie 43,5
         (8,) + _cx(0, 16, "orange", "turquoise"),
         (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant 80
         (8,) + _cx(1, 14, "jaune_citron", "bleu_roi"),
-        (34, RR + ".tour_hublots", 1, {"hauteur": 42, "diametre": 30}),                          # baie 120
+        (34, RR + ".tour_hublots", 1, {"hauteur": 86, "diametre": 30}),                          # baie 120
         (8,) + _cx(2, 16, "rouge", "jaune_citron"),
         (30, RF + ".kiosque", 2, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 160
         (8,) + _cx(3, 18, "jaune_or", "turquoise"),
-        (34, RF + ".kiosque", 2, {"type": "boutons", "hauteur": 18, "profondeur": 28}),          # baie 200
+        (34, RR + ".tour_hublots", 3, {"hauteur": 80, "diametre": 30}),                          # baie 200
         (8,) + _cx(0, 16, "orange", "bleu_roi"),
         (30, RF + ".boutique_arche", 2, {"hauteur": 26, "profondeur": 16}),                      # devant 240
         (8,) + _cx(1, 14, "jaune_or", "rouge"),
-        (34, RR + ".tour_hublots", 2, {"hauteur": 40, "diametre": 30}),                          # baie 280
+        (34, RR + ".tour_hublots", 2, {"hauteur": 74, "diametre": 30}),                          # baie 280
         (8,) + _cx(2, 16, "orange", "turquoise"),
         (30, RF + ".kiosque", 1, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant 320
         (8,) + _cx(3, 18, "jaune_citron", "bleu_roi"),
-        (24, RR + ".tour_fusee", 3, {"hauteur": 50, "diametre": 20, "type": "blanche"}),         # bout sud
+        (24, RR + ".tour_fusee", 3, {"hauteur": 70, "diametre": 20, "type": "blanche"}),         # bout sud
     ],
     "ouest": [   # côté lagon : turquoise, bleu roi, blanc labo, vert lime ; accents orange, jaune
         (8,) + _cx(1, 16, "turquoise", "jaune_or"),                                             # bout nord
         (27, RF + ".kiosque", 1, {"type": "arcade", "hauteur": 22, "profondeur": 14}),          # devant -376
-        (24, RR + ".tour_fusee", 1, {"hauteur": 48, "diametre": 20, "type": "capsule"}),        # baie -355
+        (24, RR + ".tour_fusee", 1, {"hauteur": 80, "diametre": 20, "type": "capsule"}),        # baie -355
         (8,) + _cx(0, 16, "turquoise", "orange"),
         (30, RF + ".kiosque", 3, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -320
         (8,) + _cx(1, 14, "bleu_roi", "jaune_citron"),
-        (34, RR + ".tour_hublots", 3, {"hauteur": 42, "diametre": 30}),                          # baie -280
+        (34, RR + ".tour_hublots", 3, {"hauteur": 86, "diametre": 30}),                          # baie -280
         (8,) + _cx(2, 16, "blanc_labo", "turquoise"),
         (30, RF + ".boutique_arche", 1, {"hauteur": 28, "profondeur": 16}),                      # devant -240
         (8,) + _cx(3, 18, "turquoise", "orange"),
-        (34, RR + ".tour_fusee", 3, {"hauteur": 56, "diametre": 22, "type": "capsule"}),        # baie -200
+        (34, RR + ".tour_fusee", 3, {"hauteur": 94, "diametre": 22, "type": "capsule"}),        # baie -200
         (8,) + _cx(0, 16, "bleu_roi", "jaune_or"),
         (30, RF + ".kiosque", 2, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -160
         (8,) + _cx(1, 14, "vert_lime", "bleu_roi"),
-        (34, RF + ".kiosque", 1, {"type": "dome", "hauteur": 24, "profondeur": 28}),             # baie -120
+        (34, RR + ".tour_hublots", 0, {"hauteur": 78, "diametre": 30}),                          # baie -120
         (8,) + _cx(2, 16, "turquoise", "orange"),
         (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant -80
         (8,) + _cx(3, 18, "bleu_roi", "jaune_citron"),
-        (27, RR + ".tour_fusee", 2, {"hauteur": 50, "diametre": 20, "type": "blanche"}),         # baie -43,5
+        (27, RR + ".tour_fusee", 2, {"hauteur": 82, "diametre": 20, "type": "blanche"}),         # baie -43,5
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "bleu_roi", "accent": "orange"}),  # aile du repère
         (44, None, 0, {}),                                                                      # repère O (tête-boule)
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "bleu_roi", "accent": "orange"}),  # aile du repère
-        (27, RR + ".tour_fusee", 1, {"hauteur": 46, "diametre": 20, "type": "capsule"}),        # baie 43,5
+        (27, RR + ".tour_fusee", 1, {"hauteur": 76, "diametre": 20, "type": "capsule"}),        # baie 43,5
         (8,) + _cx(0, 16, "turquoise", "jaune_or"),
         (30, RF + ".kiosque", 0, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 80
         (8,) + _cx(1, 14, "blanc_labo", "bleu_roi"),
-        (34, RR + ".tour_hublots", 3, {"hauteur": 44, "diametre": 30}),                          # baie 120
+        (34, RR + ".tour_hublots", 3, {"hauteur": 90, "diametre": 30}),                          # baie 120
         (8,) + _cx(2, 16, "bleu_roi", "orange"),
         (30, RF + ".boutique_arche", 1, {"hauteur": 28, "profondeur": 16}),                      # devant 160
         (8,) + _cx(3, 18, "turquoise", "jaune_citron"),
-        (34, RR + ".tour_fusee", 0, {"hauteur": 58, "diametre": 22, "type": "blanche"}),         # baie 200
+        (34, RR + ".tour_fusee", 0, {"hauteur": 88, "diametre": 22, "type": "blanche"}),         # baie 200
         (8,) + _cx(0, 16, "vert_lime", "bleu_roi"),
         (30, RF + ".kiosque", 3, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant 240
         (8,) + _cx(1, 14, "turquoise", "orange"),
-        (34, RF + ".kiosque", 3, {"type": "dome", "hauteur": 24, "profondeur": 28}),             # baie 280
+        (34, RR + ".tour_hublots", 1, {"hauteur": 80, "diametre": 30}),                          # baie 280
         (8,) + _cx(2, 16, "bleu_roi", "jaune_or"),
         (30, RF + ".boutique_arche", 2, {"hauteur": 26, "profondeur": 16}),                      # devant 320
         (8,) + _cx(3, 18, "blanc_labo", "turquoise"),
-        (24, RR + ".tour_fusee", 0, {"hauteur": 52, "diametre": 20, "type": "blanche"}),         # bout sud
+        (24, RR + ".tour_fusee", 0, {"hauteur": 72, "diametre": 20, "type": "blanche"}),         # bout sud
     ],
     "nord": [   # côté du labo (sous l'œuf) : violet, lavande, rose, magenta ; accents turquoise, citron
         (16,) + _cx(0, 16, "lavande", "turquoise"),                                             # bout ouest
         (30, RF + ".kiosque", 3, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -240
-        (20, RR + ".tour_hublots", 3, {"hauteur": 36, "diametre": 18}),                          # baie -215
+        (20, RR + ".tour_hublots", 3, {"hauteur": 70, "diametre": 18}),                          # baie -215
         (8,) + _cx(1, 14, "violet", "jaune_citron"),
         (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant -182
         (10,) + _cx(2, 16, "rose_bonbon", "turquoise"),                                         # angle du renfoncement
@@ -446,19 +446,20 @@ RANG1 = {
         (10,) + _cx(2, 16, "rose_bonbon", "turquoise"),                                         # angle du renfoncement
         (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant 182
         (8,) + _cx(1, 14, "violet", "turquoise"),
-        (20, RR + ".tour_fusee", 2, {"hauteur": 50, "diametre": 18, "type": "blanche"}),         # baie 215
+        (20, RR + ".tour_fusee", 2, {"hauteur": 76, "diametre": 18, "type": "blanche"}),         # baie 215
         (30, RF + ".kiosque", 2, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 240
         (16,) + _cx(0, 16, "lavande", "turquoise"),                                             # bout est
     ],
-    # fond de l'esplanade (z = -490, avant vers le sud) : le front bas du laboratoire, galerie de l'axe au centre ;
-    # rien au-dessus de 80 dans |x| < 70 (fenêtre de l'œuf)
+    # fond de l'esplanade (z = -490, avant vers le sud) : au centre, le front du laboratoire (≈ 118 de haut, grand
+    # écran abstrait tourné vers le sud : la version île du bâtiment à écran géant de la référence) ; rien au-dessus
+    # de FENETRE_OEUF["hauteur_max"] dans |x| < 70 (la visée de l'apparition vers le dessous du nuage passe au-dessus)
     "fond": [
         (25,) + _cx(1, 14, "violet", "jaune_citron"),
         (30, RF + ".kiosque", 0, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -100
         (8,) + _cx(3, 18, "lavande", "turquoise"),
         (30, RF + ".kiosque", 3, {"type": "dome", "hauteur": 22, "profondeur": 28}),             # fenêtre -62
         (8,) + _cx(2, 14, "lavande", "jaune_citron"),
-        (78, C, 0, {"hauteur": 20, "profondeur": 14, "couleur": "blanc_labo", "accent": "violet"}),  # galerie de l'axe
+        (78, "esplanade.front_labo", 0, {"hauteur": 118, "profondeur": 44}),                      # front du labo
         (8,) + _cx(2, 14, "lavande", "jaune_citron"),
         (30, RF + ".kiosque", 1, {"type": "boutons", "hauteur": 18, "profondeur": 28}),          # fenêtre 62
         (8,) + _cx(3, 18, "lavande", "turquoise"),
@@ -484,27 +485,27 @@ RANG1 = {
         (16,) + _cx(0, 16, "rose_bonbon", "turquoise"),                                         # bout ouest
         (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant -240
         (8,) + _cx(1, 14, "creme", "rouge"),
-        (34, RR + ".tour_hublots", 1, {"hauteur": 44, "diametre": 30}),                          # baie -200
+        (34, RR + ".tour_hublots", 1, {"hauteur": 84, "diametre": 30}),                          # baie -200
         (8,) + _cx(2, 16, "magenta", "vert_lime"),
         (30, RF + ".kiosque", 0, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -160
         (8,) + _cx(3, 18, "rose_bonbon", "turquoise"),
-        (34, RR + ".tour_fusee", 2, {"hauteur": 54, "diametre": 22, "type": "capsule"}),        # baie -120
+        (34, RR + ".tour_fusee", 2, {"hauteur": 90, "diametre": 22, "type": "capsule"}),        # baie -120
         (8,) + _cx(0, 16, "creme", "magenta"),
         (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant -80
         (8,) + _cx(1, 14, "rose_bonbon", "vert_lime"),
-        (27, RR + ".tour_hublots", 3, {"hauteur": 38, "diametre": 24}),                          # baie -43,5
+        (27, RR + ".tour_hublots", 3, {"hauteur": 76, "diametre": 24}),                          # baie -43,5
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "rose_bonbon", "accent": "turquoise"}),  # aile
         (44, None, 0, {}),                                                                      # repère S (damier)
         (8, C, 1, {"hauteur": 16, "profondeur": 14, "couleur": "rose_bonbon", "accent": "turquoise"}),  # aile
-        (27, RR + ".tour_fusee", 0, {"hauteur": 50, "diametre": 20, "type": "blanche"}),         # baie 43,5
+        (27, RR + ".tour_fusee", 0, {"hauteur": 80, "diametre": 20, "type": "blanche"}),         # baie 43,5
         (8,) + _cx(2, 16, "magenta", "turquoise"),
         (30, RF + ".kiosque", 2, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant 80
         (8,) + _cx(3, 18, "creme", "rouge"),
-        (34, RF + ".kiosque", 1, {"type": "dome", "hauteur": 24, "profondeur": 28}),             # baie 120
+        (34, RR + ".tour_hublots", 2, {"hauteur": 66, "diametre": 30}),                          # baie 120 (tube SE)
         (8,) + _cx(0, 16, "rose_bonbon", "vert_lime"),
         (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant 160
         (8,) + _cx(1, 14, "magenta", "turquoise"),
-        (34, RR + ".tour_fusee", 1, {"hauteur": 48, "diametre": 22, "type": "capsule"}),        # baie 200
+        (34, RR + ".tour_fusee", 1, {"hauteur": 62, "diametre": 22, "type": "capsule"}),        # baie 200 (tube SE au-dessus, y ≥ 71)
         (8,) + _cx(2, 16, "creme", "rouge"),
         (30, RF + ".kiosque", 0, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 240
         (16,) + _cx(3, 16, "rose_bonbon", "turquoise"),                                         # bout est
@@ -518,7 +519,7 @@ RANG2 = {
         (-320, 50, RR + ".tour_galettes", 0, 200, 54, {}),
         (-240, 50, RF + ".tour_bourrelets", 3, 150, 44, {}),
         (-160, 50, RF + ".cone_etoile", 0, 130, 40, {}),
-        (-80, 50, RF + ".tour_bureaux", 3, 180, 34, {}),
+        (-80, 50, RF + ".tour_bureaux", 3, 150, 34, {}),
         (0, 26, RF + ".tour_manette", 1, 195, 48, {"largeur_manette": 72, "repere": "milieu_est"}),
         (80, 50, RR + ".tour_soucoupe", 1, 160, 56, {}),
         (160, 50, RR + ".tour_tete_boule", 2, 150, 42, {}),
@@ -544,17 +545,17 @@ RANG2 = {
         (182, 50, RF + ".tour_damier", 2, 130, 44, {}),
         (240, 50, RR + ".tour_soucoupe", 3, 150, 48, {}),
     ],
-    # derrière le fond de l'esplanade : les deux tours qui cadrent l'œuf et le plateau du laboratoire au centre
+    # derrière le fond de l'esplanade : les deux tours qui cadrent l'œuf (le front du laboratoire, au rang 1, occupe
+    # le centre ; le plateau de 75 a été retiré à la finition)
     "fond": [
         # à ±102 : leurs galettes et coiffes (plus larges que le fût au-dessus de 40) restent hors de |x| < 70
         (-102, 50, RR + ".tour_galettes", 2, 245, 58, {"repere": "fenetre_ouest"}),
-        (0, 50, RF + ".plateau_disques", 0, 75, 56, {"repere": "fenetre_oeuf"}),
         (102, 50, RF + ".tour_bourrelets", 0, 240, 52, {"repere": "fenetre_est"}),
     ],
     "sud": [
         (-240, 50, RR + ".tour_tete_boule", 1, 150, 42, {}),
         (-160, 50, RR + ".tour_bulbe", 1, 115, 46, {}),
-        (-80, 50, RF + ".tour_bureaux", 2, 175, 34, {}),
+        (-80, 50, RF + ".tour_bureaux", 2, 150, 34, {}),
         (0, 28, RF + ".tour_damier", 1, 215, 52, {"repere": "milieu_sud"}),
         (80, 50, RR + ".tour_champignon", 1, 170, 56, {}),
         (160, 50, RF + ".tour_anneau", 3, 125, 40, {}),
@@ -570,10 +571,12 @@ COINS = [
     {"id": "Coin_SO", "coin": "so", "fonction": RR + ".tour_soucoupe", "variante": 2, "hauteur": 230, "diametre": 70},
 ]
 
-# Fenêtre de l'œuf : au fond de l'esplanade nord, |x| < 70, aucun bâtiment au-dessus de 80 (front du fond ≤ 24,
-# plateau du laboratoire 75) : depuis l'apparition, le dessous du nuage (y ≈ 202, à 1 100 studs) reste visible
-# au-dessus du plateau ; les tours de 245 et 240 (x = ±100, z -540) cadrent l'œuf.
-FENETRE_OEUF = {"x0": -70.0, "x1": 70.0, "z0": -FOND_Z, "z1": -ALIGNEMENT_Z_NORD, "hauteur_max": 80.0}
+# Fenêtre de l'œuf : au fond de l'esplanade nord, |x| < 70, aucun bâtiment au-dessus de 125 (front du laboratoire
+# 118) : depuis l'œil d'apparition (0 ; 8 ; 217,5), le haut du front (z -490) est à 9,0° au-dessus de l'horizon et le
+# dessous du nuage à 10° et plus (contrôle : verifications()["visee_oeuf"]) ; les tours de 245 et 240 (x = ±102,
+# z -540) cadrent l'œuf.
+FENETRE_OEUF = {"x0": -70.0, "x1": 70.0, "z0": -FOND_Z, "z1": -ALIGNEMENT_Z_NORD, "hauteur_max": 125.0}
+OEIL_APPARITION = (0.0, 8.0, 217.5)      # œil du joueur à l'apparition (caméra Roblox par défaut)
 
 # --- Tubes de verre entre tours (≥ 60 de haut) : extrémités dans l'âme des tours (cachées), colliers visibles --
 # type « fin » : C04, rayon 2,5, anneaux d'or hexagonaux tous les 24 (sinusoïde si « onde » > 0) ;
@@ -588,6 +591,17 @@ TUBES = [
     {"id": "Tube_Coin_SE", "de": "S-T80", "vers": "E-T320", "y": 80.0, "type": "fin", "onde": 6},
 ]
 TUBE_RAYON = {"fin": 2.5, "geant": 6.0}
+TUBE_RAYON_ANNEAU = {"fin": 2.8, "geant": 7.0}      # ligne médiane des colliers : ils serrent le verre (finition)
+
+# --- Fermeture de la couronne au niveau de la rue (finition, critique technique) ------------------------------------
+# Barrière de collision invisible et continue sur la ligne des façades (transparence 1, collision, sans ombre ni
+# studs, groupe Tours/Limites), de y 0,4 à 40, qui suit le renfoncement de l'esplanade : on ne passe plus dans les
+# coulisses de la couronne. La caméra Roblox (Popper) ignore les pièces transparentes.
+LIMITE_FACADES = {"retrait": 0.2, "epaisseur": 1.0, "bas": NIVEAU_COURONNE, "haut": 40.0}
+# Fonds de baie visibles : un mur plein derrière chaque élément rond du rang 1 (tours en baie, kiosques ronds) et
+# derrière les repères de milieu de côté, de toute la largeur de leur intervalle, à la profondeur de leur axe : les
+# interstices de part et d'autre d'un cylindre montrent un mur de façade et non les coulisses.
+FONDS_DE_BAIE = {"hauteur": 24.0, "epaisseur": 1.8, "retrait_bouts": 0.05}
 TUBE_PAS_ANNEAUX = {"fin": 24.0, "geant": 36.0}
 
 _PREFIXES = {"est": "E", "ouest": "O", "nord": "N", "sud": "S", "fond": "F", "flanc_ouest": "FO", "flanc_est": "FE"}
@@ -707,16 +721,16 @@ NACELLES = [
     {"id": "Nacelle_O3", "x": -235.0, "y": 68.0, "z": -50.0, "yaw": 180, "variante": 0, "rayon": 7},
     {"id": "Nacelle_O4", "x": -235.0, "y": 66.0, "z": 0.0, "yaw": 180, "variante": 1, "rayon": 6},
     {"id": "Nacelle_O5", "x": -235.0, "y": 64.0, "z": 50.0, "yaw": 180, "variante": 2, "rayon": 7},
-    # trio devant la fenêtre de l'œuf, au-dessus de la marge nord de la pelouse, 120-128
-    {"id": "Nacelle_N1", "x": -60.0, "y": 120.0, "z": -330.0, "yaw": 90, "variante": 0, "rayon": 8},
-    {"id": "Nacelle_N2", "x": 0.0, "y": 128.0, "z": -345.0, "yaw": 90, "variante": 1, "rayon": 8},
-    {"id": "Nacelle_N3", "x": 60.0, "y": 120.0, "z": -330.0, "yaw": 90, "variante": 2, "rayon": 8},
-    # couche haute, éparse, 160-210
-    {"id": "Nacelle_H1", "x": -150.0, "y": 170.0, "z": -120.0, "yaw": 30, "variante": 0, "rayon": 9},
-    {"id": "Nacelle_H2", "x": 150.0, "y": 180.0, "z": 60.0, "yaw": 200, "variante": 1, "rayon": 9},
-    {"id": "Nacelle_H3", "x": -120.0, "y": 190.0, "z": 250.0, "yaw": 120, "variante": 2, "rayon": 9},
-    {"id": "Nacelle_H4", "x": 100.0, "y": 200.0, "z": -250.0, "yaw": 300, "variante": 0, "rayon": 9},
-    {"id": "Nacelle_H5", "x": 0.0, "y": 210.0, "z": -520.0, "yaw": 90, "variante": 1, "rayon": 10},
+    # paire de part et d'autre de la fenêtre de l'œuf, au-dessus de la marge nord de la pelouse, 92 (≈ 8,7° vue de
+    # l'apparition : sous le nuage, hors de l'axe ; finition : la nacelle de l'axe a été retirée)
+    {"id": "Nacelle_N1", "x": -115.0, "y": 92.0, "z": -330.0, "yaw": 90, "variante": 0, "rayon": 8},
+    {"id": "Nacelle_N3", "x": 115.0, "y": 92.0, "z": -330.0, "yaw": 90, "variante": 2, "rayon": 8},
+    # couche haute, éparse, 160-210 : au-dessus des écarts entre rangées et des routes, jamais des parcelles
+    {"id": "Nacelle_H1", "x": -150.0, "y": 170.0, "z": -144.0, "yaw": 30, "variante": 0, "rayon": 9},
+    {"id": "Nacelle_H2", "x": 150.0, "y": 180.0, "z": 0.0, "yaw": 200, "variante": 1, "rayon": 9},
+    {"id": "Nacelle_H3", "x": -120.0, "y": 190.0, "z": 144.0, "yaw": 120, "variante": 2, "rayon": 9},
+    {"id": "Nacelle_H4", "x": 235.0, "y": 200.0, "z": -250.0, "yaw": 300, "variante": 0, "rayon": 9},
+    {"id": "Nacelle_H5", "x": -205.0, "y": 195.0, "z": -470.0, "yaw": 90, "variante": 1, "rayon": 10},
     {"id": "Nacelle_H6", "x": 210.0, "y": 165.0, "z": -470.0, "yaw": 250, "variante": 2, "rayon": 9},
 ]
 NACELLE_INCLINAISON = 6.0    # degrés, vers l'avant
@@ -741,8 +755,11 @@ def _ligne_pieces(ident, p0, p1, n, y0, amplitude, periodes, plan="vertical_long
 
 PIECES_OR = (
     _ligne_pieces("Pieces_Ouest", (-262.0, -280.0), (-262.0, 80.0), 14, 74.0, 8.0, 1.5)
-    + [dict(p, y=round(100 + 25 * math.sin(math.pi * i / 12), 2))
-       for i, p in enumerate(_ligne_pieces("Pieces_Nord", (-150.0, -322.0), (150.0, -322.0), 13, 100.0, 0.0, 1))]
+    # ligne nord basse (58-68 : devant les tours du fond, sous le nuage), sans les 5 pièces |x| ≤ 50 qui passaient
+    # devant l'écran du laboratoire (finition)
+    + [dict(p, y=round(58 + 10 * math.sin(math.pi * i / 12), 2))
+       for i, p in enumerate(_ligne_pieces("Pieces_Nord", (-150.0, -322.0), (150.0, -322.0), 13, 58.0, 0.0, 1))
+       if abs(p["x"]) > 50]
     + _ligne_pieces("Pieces_Est", (235.0, 200.0), (235.0, 330.0), 6, 86.0, 4.0, 1)
 )
 PIECE_FONCTION = "ciel.piece_or"
@@ -756,9 +773,49 @@ CUMULUS = [
 ]
 CUMULUS_FONCTION = "ciel.cumulus"
 
+
+def _skyline() -> list[dict]:
+    """Skyline lointaine C07 (bible § 6.7) : tours simplifiées pâles au-delà du mur de fond (est / ouest : |x| 385 →
+    475 ; sud : z 480 → 560 ; nord : derrière les côtés nord, jamais dans |x| < 160), plus serrées derrière les
+    coins. Sans collision ni ombre, dans le modèle Ciel (Persistent). (x, z, hauteur, diamètre, teinte 0-3, forme
+    0-3)."""
+    import random
+    rng = random.Random(77)
+    out = []
+
+    def tour(x, z):
+        out.append({"x": round(x, 1), "z": round(z, 1), "h": round(rng.uniform(60, 170)),
+                    "d": round(rng.uniform(18, 38)), "teinte": rng.randrange(4), "forme": rng.randrange(4)})
+    for sx in (-1, 1):
+        for z in range(-430, 420, 95):                       # côtés est et ouest
+            tour(sx * rng.uniform(385, 475), z + rng.uniform(-25, 25))
+        for z in (-560.0, -620.0):                           # derrière les coins nord
+            tour(sx * rng.uniform(380, 440), z + rng.uniform(-15, 15))
+        for x in (230.0, 320.0):                             # derrière le côté nord, hors de la fenêtre de l'œuf
+            tour(sx * (x + rng.uniform(-15, 15)), -rng.uniform(530, 600))
+        for z in (500.0, 560.0):                             # derrière les coins sud
+            tour(sx * rng.uniform(380, 440), z + rng.uniform(-15, 15))
+    for x in range(-300, 301, 120):                          # derrière le côté sud
+        tour(x + rng.uniform(-30, 30), rng.uniform(480, 560))
+    return out
+
+
+SKYLINE = _skyline()
+SKYLINE_FONCTION = "ciel.skyline_lointaine"
+
 # Index du ciel (tout ce que pose assets/ciel.py, plus les tubes posés par carte.py)
 CIEL = {"oeuf": OEUF, "cable": CABLE, "nacelles": NACELLES, "pieces_or": PIECES_OR, "dirigeable": DIRIGEABLE,
-        "cumulus": CUMULUS}
+        "cumulus": CUMULUS, "skyline": SKYLINE}
+
+# Port de nacelles de l'esplanade nord (finition, critique artistique) : 4 aires rondes à studs (R 9, liseré d'or,
+# 8 points Neon cyan) avec une nacelle garée, à la place de la rangée de tirets du milieu ; tout reste sous 15.
+AIRES_NACELLES = [
+    {"id": "Aire_Nacelle_1", "x": -96.0, "z": -446.0, "variante": 0},
+    {"id": "Aire_Nacelle_2", "x": -36.0, "z": -446.0, "variante": 1},
+    {"id": "Aire_Nacelle_3", "x": 36.0, "z": -446.0, "variante": 2},
+    {"id": "Aire_Nacelle_4", "x": 96.0, "z": -446.0, "variante": 3},
+]
+AIRE_NACELLE_RAYON = 9.0
 
 # =====================================================================================================
 # 7. Mobilier (listes de poses : id, fonction de assets/mobilier.py, variante, x, y, z, yaw, params)
@@ -816,8 +873,10 @@ def _mobilier() -> list[dict]:
     for signe in (1, -1):
         for z in tuple(ECARTS_RANGEES_Z) + (PELOUSE_Z_SUD - 5.0, -(PELOUSE_Z_NORD - 6.0)):
             k += 1
-            pose(f"Palmiers_Marge_{k:02d}", "mobilier.groupe_palmiers", signe * 199, z,
-                 _yaw_vers(signe * 199, z, 0, 0), variante=k % 4, n=2, diametre=8)
+            # au droit des écarts : un seul palmier en bac de Ø 6 (le passage derrière les parcelles reste libre)
+            petit = z in ECARTS_RANGEES_Z
+            pose(f"Palmiers_Marge_{k:02d}", "mobilier.groupe_palmiers", signe * (198 if petit else 199), z,
+                 _yaw_vers(signe * 199, z, 0, 0), variante=k % 4, n=1 if petit else 2, diametre=6 if petit else 8)
     k = 0
     for signe in (1, -1):
         for z, x in zip(ECARTS_RANGEES_Z, (168.0, 172.0, 168.0)):
@@ -836,13 +895,10 @@ def _mobilier() -> list[dict]:
         x, z = sx * (PELOUSE_X + 6), (PELOUSE_Z_SUD + 6 if sz > 0 else -(PELOUSE_Z_NORD + 6))
         pose(f"Palmiers_Angle_{i + 1}", "mobilier.groupe_palmiers", x, z, _yaw_vers(x, z, 0, 0),
              variante=i, y=yt, n=3, diametre=10)
-    # Dans le U : quatre palmiers en pot autour du monument, deux coupoles près du podium, bancs
-    zm = CENTRE["Monument"]["z"]
-    for i, (x, dz) in enumerate(((-27, -14), (27, -14), (-27, 14), (27, 14))):
-        pose(f"Palmier_U_{i + 1}", "mobilier.groupe_palmiers", x, zm + dz, _yaw_vers(x, zm + dz, 0, zm),
-             variante=i, n=1, diametre=6)
+    # Dans le U : deux coupoles au nord du podium (hors de la bande podium-tapis), bancs ; plus de palmiers autour
+    # du monument (absents de la référence, ils masquaient les voies du tapis dans capture1)
     for i, x in enumerate((-30, 30)):
-        pose(f"Coupole_U_{i + 1}", "mobilier.coupole_miniature", x, 62, 180, variante=i)
+        pose(f"Coupole_U_{i + 1}", "mobilier.coupole_miniature", x, -20, 180, variante=i)
     for i, (x, z, yaw) in enumerate(((-30, 180, 90), (30, 180, 270), (-30, 80, 90), (30, 80, 270))):
         pose(f"Banc_U_{i + 1}", "mobilier.banc", x, z, yaw, variante=i % 4)
     # Bancs du trottoir intérieur, face à la pelouse, au droit du centre de chaque rangée
@@ -895,24 +951,26 @@ def _mobilier() -> list[dict]:
         x, z = sx * (ALIGNEMENT_X + 10), sz * (az + 10)
         pose(f"Palmiers_Coin_{cle.upper()}", "mobilier.groupe_palmiers", x, z, yaw, variante=i, y=NIVEAU_COURONNE,
              n=2, diametre=8)
-        x, z = sx * (TROTTOIR_EXT_X - 9), sz * (az - 9)
-        pose(f"Coupole_Coin_{cle.upper()}", "mobilier.coupole_miniature", x, z, yaw, variante=(i + 2) % 4, y=yt)
+        # (finition : plus de coupole au coin du trottoir extérieur, elle bouchait le passage)
     # Esplanade nord : deux palmiers au pied du laboratoire (comme les deux arbres au pied de l'écran de la référence)
+    # et quatre jardinières rondes à palmier aux bords du port de nacelles
     for i, sx in enumerate((-1, 1)):
-        x, z = sx * 46.0, -(ESPLANADE_Z - 9.0)
+        x, z = sx * 48.0, -(ESPLANADE_Z - 9.0)
         pose(f"Palmiers_Esplanade_{i + 1}", "mobilier.groupe_palmiers", x, z, 180, variante=i + 1,
              y=NIVEAU_COURONNE, n=2, diametre=8)
+    for i, (x, z) in enumerate(((-124.0, -416.0), (124.0, -416.0), (-124.0, -476.0), (124.0, -476.0))):
+        pose(f"Palmier_Port_{i + 1}", "mobilier.groupe_palmiers", x, z, _yaw_vers(x, z, 0, -446), variante=i,
+             y=NIVEAU_COURONNE, n=1, diametre=6)
     # Panneaux-pictogrammes : angles de la pelouse (sur le trottoir intérieur) et abords du centre
     for i, (x, z, picto) in enumerate(((211, 270, "etoile"), (-211, 270, "piece"), (211, -300, "eclair"),
                                        (-211, -300, "planete"))):
         pose(f"Panneau_{i + 1}", "mobilier.panneau", x, z, 90 if x > 0 else 270, variante=i % 4, y=yt,
              picto=picto)
-    for i, (x, z, yaw, picto) in enumerate(((-30, 266, 0, "piece"), (33, 222, 0, "eclair"),
-                                            (-33, -282, 180, "cornet"), (33, -282, 180, "etoile"))):
+    for i, (x, z, yaw, picto) in enumerate(((-30, 266, 0, "piece"), (33, 222, 0, "eclair"))):
         pose(f"Panneau_Centre_{i + 1}", "mobilier.panneau", x, z, yaw, variante=(i + 1) % 4, picto=picto)
-    # Champignons lumineux en bordure intérieure du U (petits, sans collision)
+    # Champignons lumineux en bordure intérieure du U (petits, sans collision) ; rien au nord des kiosques (référence)
     k = 0
-    for z in (-250, -205, -130, -70, 200):
+    for z in (-130, -70, 200):
         for signe in (1, -1):
             k += 1
             pose(f"Champignon_{k:02d}", "mobilier.champignon_lumineux", signe * 37, z, 0, variante=k % 2)
@@ -927,6 +985,16 @@ def _mobilier() -> list[dict]:
              variante=0, y=yt, longueur=16)
         pose(f"Rambarde_{k}b", "mobilier.rambarde", sx * (PELOUSE_X - 9), sz * (tz - 1.8), 0,
              variante=0, y=yt, longueur=16)
+    # Bande arrière des parcelles (juge : arbres observés en (-197 ; 89) et (-196 ; -87), par symétrie (±198 ; ±88)) :
+    # un petit palmier de 16 en bac de Ø 5, couronne réduite (portée 0,65, rayon ≈ 5) qui ne passe pas au-dessus des
+    # parcelles (|x| ≤ 191). Posés en dernier : le tirage aléatoire des autres objets ne change pas.
+    k = 0
+    for sz in (1, -1):
+        for signe in (1, -1):
+            k += 1
+            x, z = signe * 198.0, sz * 88.0
+            pose(f"Palmier_Arriere_{k}", "mobilier.groupe_palmiers", x, z, _yaw_vers(x, z, 0, z), variante=k % 4,
+                 n=1, diametre=5, hauteur=16, portee=0.65)
     return m
 
 
@@ -937,22 +1005,32 @@ MOBILIER = _mobilier()
 # =====================================================================================================
 
 
+REPERE_ZONE_HAUT = 8.0      # hauteur des repères de zone (le bas reste au sol) : la racine du joueur (y ≈ 3) y entre
+YAW_PARCELLE = {"E": 90, "W": 270}   # avant (-Z local) des repères Parcelle_* et Entree_* : vers le tapis
+
+
 def _reperes() -> list[dict]:
+    """Repères. Convention : l'avant (-Z local, LookVector) d'un repère Parcelle_X ou Entree_X regarde le tapis
+    (côté E : yaw 90, côté W : yaw 270) ; leur taille locale est (profondeur le long de Z monde, hauteur, largeur en
+    X monde) : Parcelle (102, 8, 110), Entree (102, 8, 16). Base posée par
+    base:PivotTo(Reperes.Parcelle_X.CFrame * CFrame.new(0, -4, 0)) (CFrame au centre de la boîte, 4 au-dessus du
+    sol) pour un modèle dont l'entrée regarde -Z et dont le pivot est au sol."""
+    hz = REPERE_ZONE_HAUT
     r = [{"nom": "Spawn", "centre": (SPAWN["x"], 0.0, SPAWN["z"]), "taille": (8, 1, 8), "yaw": SPAWN["yaw"]}]
     for p in PARCELLES:
         r.append({"nom": f"Parcelle_{p['id']}", "centre": (p["x"], 0.0, p["z"]),
-                  "taille": (PARCELLE_LARGEUR, 1, PARCELLE_PROFONDEUR), "yaw": 0})
+                  "taille": (PARCELLE_PROFONDEUR, hz, PARCELLE_LARGEUR), "yaw": YAW_PARCELLE[p["cote"]]})
     for p in PARCELLES:
         e = p["escalier"]
         r.append({"nom": f"Entree_{p['id']}", "centre": ((e["x0"] + e["x1"]) / 2, 0.0, p["z"]),
-                  "taille": (e["x1"] - e["x0"], 1, ESCALIER_LONGUEUR), "yaw": 90 if p["cote"] == "W" else 270})
+                  "taille": (ESCALIER_LONGUEUR, hz, e["x1"] - e["x0"]), "yaw": YAW_PARCELLE[p["cote"]]})
     # zones de tête (16 × 8 du juge, réduites à la bande) : apparition à l'ouest (regard vers le sud, sens du flux),
     # disparition à l'est (les objets y arrivent en remontant vers le nord)
     ht = 2 * abs(TAPIS_Z_APPARITION - TAPIS_Z_TETE)
     r.append({"nom": "Tapis_Debut", "centre": (TAPIS_AXE[0][0], TAPIS_DESSUS, TAPIS_Z_APPARITION),
-              "taille": (TAPIS_BANDE, 1, ht), "yaw": 180})
+              "taille": (TAPIS_BANDE, hz, ht), "yaw": 180})
     r.append({"nom": "Tapis_Fin", "centre": (TAPIS_AXE[-1][0], TAPIS_DESSUS, TAPIS_Z_APPARITION),
-              "taille": (TAPIS_BANDE, 1, ht), "yaw": 0})
+              "taille": (TAPIS_BANDE, hz, ht), "yaw": 0})
     for i, (x, z) in enumerate(TAPIS_AXE):
         r.append({"nom": f"Tapis_{i + 1:02d}", "centre": (x, TAPIS_DESSUS, z), "taille": (2, 1, 2), "yaw": 0})
     for nom in ("Vente", "Machine", "Monument", "Vitrine", "Quetes"):
@@ -960,7 +1038,7 @@ def _reperes() -> list[dict]:
         r.append({"nom": nom, "centre": (c["x"], 0.0, c["z"]), "taille": (c["emprise"][0], 1, c["emprise"][1]),
                   "yaw": c["yaw"]})
     r.append({"nom": "ZoneVente", "centre": (ZONE_VENTE["x"], 0.0, ZONE_VENTE["z"] - ZONE_VENTE["rayon"] / 2),
-              "taille": (2 * ZONE_VENTE["rayon"], 1, ZONE_VENTE["rayon"]), "yaw": 0})
+              "taille": (2 * ZONE_VENTE["rayon"], hz, ZONE_VENTE["rayon"]), "yaw": 0})
     # un point d'apparition par parcelle (juge), regard vers la parcelle
     for a in APPARITIONS_PARCELLES:
         r.append({"nom": f"Apparition_{a['id']}", "centre": (a["x"], 0.0, a["z"]), "taille": (6, 1, 6),
@@ -983,22 +1061,26 @@ VUES = {
     "ciel": ((0.0, 8.0, 217.5), (0.0, 300.0, -900.0), 62.0),
     "oeuf": ((0.0, 30.0, -250.0), (0.0, 440.0, -900.0), 46.0),
     # rues et couronne
-    "rue": ((262.0, 7.0, 150.0), (264.0, 30.0, -60.0), 66.0),
+    # (livraison) depuis la voie intérieure de la route est, dans le sens de la circulation : front de rue à droite,
+    # trottoir intérieur et pelouse à gauche ; la file de nacelles de la route ne passe plus devant l'œuf
+    "rue": ((228.0, 8.0, 205.0), (236.0, 32.0, -40.0), 66.0),
     "coin": ((140.0, 18.0, -225.0), (311.0, 120.0, -442.0), 66.0),
     # pendant de capture1 vers le sud, symétrique par rapport au milieu de la pelouse (z -17,5)
     "nord": ((0.0, 66.1, -354.0), (0.0, 18.23, -266.3), 70.6),
-    # l'esplanade nord, son laboratoire et l'œuf au-dessus, depuis la marge nord de la pelouse
-    "esplanade": ((-40.0, 9.0, -318.0), (0.0, 60.0, -560.0), 68.0),
+    # l'esplanade nord, son laboratoire et l'œuf au-dessus, depuis la marge nord de la pelouse (livraison : visée
+    # relevée, la cassure de l'œuf entre dans le cadre)
+    "esplanade": ((-40.0, 9.0, -318.0), (0.0, 80.0, -560.0), 68.0),
     "centre": ((32.0, 34.0, 292.0), (-4.0, 6.0, 170.0), 60.0),
-    "aerienne_sud": ((420.0, 520.0, 980.0), (0.0, 40.0, -60.0), 48.0),
+    # (livraison) plus haute (32° de plongée) : la skyline lointaine du sud, au premier plan, ne masque plus la couronne
+    "aerienne_sud": ((595.0, 978.0, 980.0), (0.0, 130.0, -240.0), 50.0),
     # vue d'ensemble depuis le côté du soleil (-X / +Z) : toute la carte et l'œuf au fond (la vue « aerienne »
     # calculée par rendu.py se cadre sur l'emprise de toutes les pièces, ciel compris : la carte y serait petite)
-    "aerienne": ((-700.0, 700.0, 1100.0), (0.0, 60.0, -250.0), 50.0),
+    "aerienne": ((-500.0, 520.0, 720.0), (0.0, 100.0, -330.0), 50.0),
     # dessus quasi orthographique de la carte seule, esplanade et couronne du fond comprises (z -572 → 447 ; le haut
-    # de l'image = nord) ; rendre en 800 × 1000
+    # de l'image = nord) ; rendre en 1200 × 1500 (plan.RESOLUTIONS)
     "plan_carte": ((0.0, 4500.0, -62.5), (0.0, 0.0, -62.55), 13.4),
 }
-RESOLUTIONS = {"capture1": (2000, 1077), "capture2": (2000, 1050)}
+RESOLUTIONS = {"capture1": (2000, 1077), "capture2": (2000, 1050), "plan_carte": (1200, 1500)}
 
 # =====================================================================================================
 # 10. Budgets (pièces, Neon, verre/transparentes) — plafonds par module ; la carte entière ≤ 24 000 / 1 500 / 400
@@ -1012,6 +1094,7 @@ BUDGETS = {
     "ciel": (1300, 220, 60),
     "tapis+centre": (1400, 160, 12),
     "mobilier": (4800, 220, 30),       # poses de carte.py (MOBILIER) ; +200 (plan final : palmiers des écarts, esplanade)
+    "esplanade": (500, 60, 12),        # front du laboratoire, port de nacelles (assets/esplanade.py, finition)
 }
 # Plafond par appel (pièces, Neon, transparentes). « L » = largeur du connecteur.
 BUDGET_FONCTION = {
@@ -1040,9 +1123,13 @@ BUDGET_FONCTION = {
     "ciel.piece_or": (2, 0, 0),
     "ciel.dirigeable": (60, 6, 0),
     "ciel.cumulus": (30, 0, 0),
+    "ciel.skyline_lointaine": (260, 0, 0),
+    "esplanade.front_labo": (260, 40, 4),
+    "esplanade.aire_nacelle": (40, 9, 1),
+    "centre.portail_anneau": (40, 4, 1),
     "tapis.tapis": (480, 40, 0),
     "tapis.portail": (90, 12, 1),
-    "centre.stand_vente": (90, 6, 0),
+    "centre.stand_vente": (96, 6, 0),           # +4 méridiens du dôme (finition)
     "centre.machine": (50, 6, 1),
     "centre.monument": (120, 20, 0),
     "centre.vitrine": (60, 10, 0),

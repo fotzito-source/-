@@ -87,7 +87,9 @@ ANNEAU_PIXELS = ((28, 2, -1), (40, 1, -1), (86, 3, 1), (100, 1, -1), (150, 2, -1
 CUBES_CENTRE = (0.0, 150.0, 24.0)
 CUBES_R = 124.0
 CUBES_PENTE = 24.0          # le plan de l'arc penche vers l'arrière (+Z local) : l'arc ne cache pas la cassure
-CUBES_ARC = (14.0, 196.0)   # angles dans le plan de l'arc (0 = +X, 90 = sommet)
+CUBES_ARC = (-10.0, 170.0)  # angles dans le plan de l'arc (0 = +X, 90 = sommet) : arc asymétrique (finition)
+# position de chaque cube le long de l'arc (0 → 1) : 3 grappes séparées par 2 trous, pas un diadème régulier
+CUBES_T = (0.0, 0.05, 0.09, 0.15, 0.2, 0.36, 0.4, 0.45, 0.5, 0.56, 0.6, 0.76, 0.8, 0.85, 0.89, 0.94, 0.97, 1.0)
 CUBES_COULEURS = ("cube_bleu", "lavande", "cube_bleu", "blanc_labo", "cube_bleu", "cyan", "lavande", "cube_bleu",
                   "cube_bleu", "lavande", "cube_bleu", "cyan", "blanc_labo", "cube_bleu", "lavande", "cube_bleu",
                   "lavande", "cube_bleu")
@@ -193,7 +195,7 @@ def flocons_oeuf() -> list:
         t = 2 * math.pi * (i + 0.5) / 16 + rng.uniform(-0.06, 0.06)
         d = 80 + 10 * math.cos(2 * t) + rng.uniform(-10, 10)
         rr = 1.0 + rng.uniform(-0.06, 0.04)
-        x, z = 136 * rr * math.cos(t), 104 * rr * math.sin(t)
+        x, z = 118 * rr * math.cos(t), 92 * rr * math.sin(t)
         ap = rng.uniform(0.56, 0.66)
         y = NUAGE_BAS + 2 + d * ap / 2 + rng.uniform(0, 9)
         out.append(((x, y, z), (d * rng.uniform(1.1, 1.25), d * ap, d * 0.96), math.degrees(-t) + 90, 0))
@@ -202,7 +204,7 @@ def flocons_oeuf() -> list:
         t = 2 * math.pi * i / 12 + 0.26 + rng.uniform(-0.08, 0.08)
         d = 74 + rng.uniform(-12, 12)
         x, z = 98 * math.cos(t), 72 * math.sin(t)
-        y = -8 + 7 * math.sin(t) + rng.uniform(-3, 3)
+        y = 4 + 7 * math.sin(t) + rng.uniform(-3, 3)
         out.append(((x, y, z), (d * 1.1, d * rng.uniform(0.76, 0.86), d), math.degrees(-t) + 90, 0))
     # couronne haute : 10 flocons de tailles inégales qui serrent l'œuf (l'œuf est « posé dedans ») ; devant
     # (côté carte) plus bas, plus plats et plus larges : un coussin, pas une boule devant le ventre de l'œuf
@@ -218,11 +220,11 @@ def flocons_oeuf() -> list:
     # gros flocons derrière l'œuf : ils dépassent de part et d'autre de la coquille vus de la carte
     for x, z, y, d in ((-66, 60, 30, 66), (60, 68, 36, 70), (-4, 90, 42, 62), (100, 26, 22, 56), (-102, 22, 20, 54)):
         out.append(((float(x), float(y), float(z)), (d * 1.05, d * 0.9, d), 0.0, 0))
-    # petits flocons aux bouts : la silhouette s'affine
+    # gros flocons de flanc (finition) : le contour monte des bouts jusqu'à y ≈ +50 vers x ±120 : un cumulus bombé,
+    # pas une soucoupe ; le devant (z < 0) reste bas sur le ventre de l'œuf
     for sx in (-1, 1):
-        for x, z, y, d in ((178, 14, -28, 58), (160, -52, -32, 50), (156, 66, -30, 52)):
-            out.append(((sx * x, float(y), float(z) * (1 if sx > 0 else -1)), (d * 1.1, d * 0.66, d),
-                        sx * 20.0, 0))
+        for x, y, z, d in ((125, 30, 5, 92), (95, 50, 35, 84)):
+            out.append(((sx * x, float(y), float(z)), (d * 1.05, d * 0.85, d), sx * 15.0, 0))
     return out
 
 
@@ -390,11 +392,11 @@ def oeuf_labo(b, variant: int = 0, echelle: float = 1.6, **params) -> dict:
     with b.group("Cubes"):
         a0, a1 = CUBES_ARC
         for i, nom in enumerate(CUBES_COULEURS):
-            t = i / (n - 1)
-            th = math.radians(a0 + (a1 - a0) * (t + 0.03 * math.sin(7.0 * t)))
-            r = CUBES_R + rng.uniform(-7, 7)
-            p = ctr + r * (math.cos(th) * ex + math.sin(th) * ey) + rng.uniform(-6, 6) * ez
-            cote = 7.5 + 7.5 * math.sin(math.pi * (0.15 + 0.85 * t)) + rng.uniform(-1.2, 1.2)
+            t = CUBES_T[i] if i < len(CUBES_T) else i / (n - 1)
+            th = math.radians(a0 + (a1 - a0) * t)
+            r = CUBES_R + rng.uniform(-15, 15)
+            p = ctr + r * (math.cos(th) * ex + math.sin(th) * ey) + rng.uniform(-8, 8) * ez
+            cote = (5.0, 9.0, 16.0, 6.5, 12.0, 7.0, 14.0, 5.5, 10.0)[i % 9] + rng.uniform(-0.8, 0.8)
             R = rot_y(rng.uniform(0, 90)) @ rot_x(rng.uniform(10, 35)) @ rot_z(rng.uniform(10, 35))
             neon = nom == "cyan"
             b.part("block", (cote * k,) * 3, p * k, R, c(nom), material="Neon" if neon else "SmoothPlastic",
@@ -408,7 +410,9 @@ def oeuf_labo(b, variant: int = 0, echelle: float = 1.6, **params) -> dict:
     with b.group("Bandes"):
         for j, (y, nom) in enumerate(BANDES_NUAGE):
             rx, rz = ellipse_nuage(y, BANDES_MARGE)
-            incl = rot_x(1.2 if j == 0 else -1.0) @ rot_z(-1.0 if j == 0 else 1.2)
+            # inclinées de 8 à 10° en sens contraires (finition) : deux orbites qui croisent les flancs du cumulus,
+            # à demi cachées dans les flocons, et non deux anneaux plats de soucoupe
+            incl = rot_x(9 if j == 0 else -7) @ rot_z(-6 if j == 0 else 8)
             with b.at((0, y * k, 0), rot=incl):
                 neon = nom == "cyan"
                 _bande_ellipse(b, rx * k, rz * k, 1.2 * k, 2.5 * k, c(nom), 40, decale=math.radians(4.5 + 22.5 * j),
@@ -680,3 +684,48 @@ def cumulus(b, variant: int = 0, largeur: float = 220, **params) -> dict:
             hi = np.maximum(hi, np.array(ctr) + demi.max())
     return {"emprise": (round(float(hi[0] - lo[0]), 1), round(float(hi[2] - lo[2]), 1)),
             "hauteur": round(float(hi[1]), 1)}
+
+
+# =====================================================================================================================
+# Skyline lointaine (C07, finition)
+# =====================================================================================================================
+
+SKYLINE_TEINTES = ("skyline", ("skyline", "bleu_roi", 0.25), ("skyline", "turquoise", 0.35), ("skyline", "blanc_labo", 0.5))
+
+
+def _teinte_skyline(i: int):
+    t = SKYLINE_TEINTES[i % 4]
+    return c(t) if isinstance(t, str) else mix(c(t[0]), c(t[1]), t[2])
+
+
+def skyline_lointaine(b, variant: int = 0, tours=(), **params) -> dict:
+    """Skyline pâle au-delà du mur de fond (bible § 6.7) : tours simplifiées de 3 à 5 pièces (fût, dôme, 1 ou 2
+    disques ou galettes), en `skyline` et ses trois variantes, sans détail. `tours` : liste de dicts (x, z, h, d,
+    teinte, forme) en coordonnées de la carte (pose à l'origine). Sans collision ni ombre. ≈ 4,5 pièces par tour."""
+    kw = {"collide": False, "shadow": False}
+    n0 = len(b.parts)
+    for i, t in enumerate(tours):
+        x, z, H, D = float(t["x"]), float(t["z"]), float(t["h"]), float(t["d"])
+        col = _teinte_skyline(int(t.get("teinte", 0)))
+        clair = mix(col, c("blanc_labo"), 0.35)
+        sombre = mix(col, c("bleu_roi"), 0.18)
+        r = D / 2
+        forme = int(t.get("forme", 0)) % 4
+        with b.group(f"Tour_{i + 1:02d}"):
+            y0 = -4.0                                    # pied caché sous le niveau du sol de la carte
+            if forme == 2:                               # galettes : fût fin et 3 lentilles
+                b.cyl((x, (y0 + H) / 2, z), 0.42 * r, H - y0, col, name="Fut", **kw)
+                for j in range(3):
+                    yj = H * (0.45 + 0.22 * j)
+                    b.ellipsoid((x, yj, z), (D * (1.1 - 0.15 * j), 0.18 * D, D * (1.1 - 0.15 * j)),
+                                clair if j % 2 == 0 else sombre, name="Galette", **kw)
+                b.ellipsoid((x, H, z), (0.6 * D, 0.35 * D, 0.6 * D), clair, name="Dome", **kw)
+            else:
+                b.cyl((x, (y0 + H) / 2, z), r, H - y0, col, name="Fut", **kw)
+                b.ellipsoid((x, H, z), (D - 0.6, 0.55 * D, D - 0.6), clair, name="Dome", **kw)
+                if forme in (1, 3):                      # disque débordant (chapeau, plateau)
+                    b.cyl((x, H * 0.72, z), r * 1.45, max(1.2, 0.06 * D), sombre, name="Disque", **kw)
+                if forme == 3:
+                    b.cyl((x, H * 0.5, z), r * 1.25, max(1.0, 0.05 * D), clair, name="Disque", **kw)
+    return {"tours": len(tours), "pieces": len(b.parts) - n0}
+

@@ -331,7 +331,8 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 		local ms = game:GetService("MaterialService")
 		local mv = ms:FindFirstChild("StudsCarte") or Instance.new("MaterialVariant")
 		mv.Name = "StudsCarte"
-		mv.BaseMaterial = Enum.Material.SmoothPlastic
+		-- les pièces à studs sont en Plastic : une variante de base SmoothPlastic ne s'y appliquerait pas
+		mv.BaseMaterial = Enum.Material.Plastic
 		mv.ColorMap = textureId
 		mv.StudsPerTile = tuile
 		mv.Parent = ms
@@ -351,6 +352,10 @@ return function(textureId: string, options: { tuile: number?, mode: string? }?)
 				n += 1
 			elseif opts.mode == "materiau" then
 				part.MaterialVariant = "StudsCarte"
+				-- la texture du MaterialVariant remplace les studs intégrés
+				for face in string.gmatch(part:GetAttribute("Studs"), "[^,]+") do
+					part[face .. "Surface"] = Enum.SurfaceType.Smooth
+				end
 				n += 1
 			else
 				-- la texture HD remplace les studs intégrés
@@ -385,6 +390,15 @@ end
 assert(counts.parts > 0, "parts.json ne contient aucune pièce")
 carte:SetAttribute("Version", tostring(meta.version or "1"))
 
+-- Streaming : le modèle Ciel (œuf sur son nuage, nacelles, pièces d'or, skyline lointaine ≈ 750 pièces sans
+-- collision) est toujours envoyé au client (Persistent) : l'œuf, à 1 100-1 200 studs de la moitié sud de la carte,
+-- reste visible avec StreamingEnabled. Coût mémoire faible (moins de 6 % des pièces) ; le reste de la carte garde
+-- le streaming par défaut.
+local ciel = groupCache["Ciel"]
+if ciel then
+	ciel.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+end
+
 -- Écriture du modèle -------------------------------------------------------------
 if not fs.isDir(outDir) then
 	fs.writeDir(outDir)
@@ -411,12 +425,16 @@ if repereSpawn then
 	local rotation = CFrame.new(0, 0, 0, r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9])
 	local bas = Vector3.new(repereSpawn.pos[1], repereSpawn.pos[2], repereSpawn.pos[3])
 		- rotation.UpVector * (repereSpawn.size[2] / 2)
-	spawnCF = CFrame.new(bas + rotation.UpVector * 0.5) * rotation
+	-- juste au-dessus de la plaque d'apparition de la carte (dessus à 0,41) : aucune pièce confondue
+	spawnCF = CFrame.new(bas + rotation.UpVector * 0.55) * rotation
 end
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "Apparition"
 spawn.Anchored = true
-spawn.Size = Vector3.new(10, 1, 10)
+spawn.Size = Vector3.new(8, 0.2, 8)
+-- invisible et traversable : la plaque dorée de la carte en tient lieu
+spawn.Transparency = 1
+spawn.CanCollide = false
 spawn.CFrame = spawnCF
 spawn.Color = Color3.fromRGB(236, 242, 250)
 spawn.Material = Enum.Material.SmoothPlastic
@@ -427,6 +445,11 @@ spawn.Neutral = true
 spawn.Parent = ws
 ws.StreamingEnabled = true
 ws.ModelStreamingBehavior = Enum.ModelStreamingBehavior.Improved
+-- Rayon de streaming porté à 1 200 (défaut 1 024) : depuis le sud de la carte, la couronne nord et l'esplanade
+-- (≈ 800-1 000 studs) restent chargées ; l'œuf (Ciel) est Persistent. Compromis mémoire : un peu plus de pièces
+-- gardées en mémoire sur mobile ; descendre à 1 024 si besoin, l'œuf reste visible grâce à Persistent.
+ws.StreamingTargetRadius = 1200
+ws.StreamingMinRadius = 128
 
 -- Plein soleil tropical, couleurs saturées : soleil haut et chaud, ombres nettes, ciel cyan, air limpide.
 -- Lighting.Technology est obsolète : LightingStyle + PrioritizeLightingQuality le remplacent.
@@ -563,6 +586,11 @@ local nPartsX, nMeshesX = compter(backXml)
 assert(nPartsX == counts.parts and nMeshesX == counts.ellipsoides, "relecture .rbxmx : comptes différents")
 local pivot = back.WorldPivotData
 assert(pivot ~= nil and pivot.Position.Magnitude < 1e-6, "relecture : pivot du modèle absent ou déplacé")
+for _, m in { back, backXml } do
+	local cielLu = m:FindFirstChild("Ciel")
+	assert(cielLu == nil or cielLu.ModelStreamingMode == Enum.ModelStreamingMode.Persistent,
+		"relecture : Ciel n'est pas Persistent")
+end
 -- Repères : dossier Reperes, pièces invisibles, sans collision, détectables
 local dossier = back:FindFirstChild(REPERES)
 assert(counts.reperes == 0 or (dossier and dossier:IsA("Folder")), "relecture : dossier Reperes absent")
@@ -592,6 +620,10 @@ assert(spawnLu and spawnLu:IsA("SpawnLocation"), "relecture : SpawnLocation abse
 local posApparition = spawnLu.CFrame.Position
 assert((posApparition - spawnCF.Position).Magnitude < 1e-3, "relecture : SpawnLocation déplacé")
 assert(wsLu.StreamingEnabled == true, "relecture : StreamingEnabled")
+assert(wsLu.StreamingTargetRadius == 1200, "relecture : StreamingTargetRadius")
+local cielPlace = cartePlace:FindFirstChild("Ciel")
+assert(cielPlace == nil or cielPlace.ModelStreamingMode == Enum.ModelStreamingMode.Persistent,
+	"relecture : Ciel n'est pas Persistent dans la place")
 local lightLu = place:GetService("Lighting")
 assert(math.abs(lightLu.ClockTime - lighting.ClockTime) < 1e-3 and lightLu:FindFirstChildOfClass("Atmosphere"),
 	"relecture : éclairage de la place")

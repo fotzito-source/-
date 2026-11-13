@@ -65,17 +65,25 @@ def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, **params):
 
 - Groupes racine posés par `carte.py` : `Sol` (pelouse, grille, sol de la couronne ; découpé en blocs de 64),
   `Trottoirs` (dalles, bordures rayées), `Routes` (voies, marquages, passages), `Tapis` (bande, bordures,
-  chevrons, `Portail_Ouest`, `Portail_Est`), `Centre` (un sous-modèle par pièce : `Vente`, `Machine`, `Monument`,
+  chevrons ; plus de portails de tête), `Centre` (un sous-modèle par pièce : `Vente`, `Machine`, `Monument`,
   `Vitrine`, `Quetes`, `Apparition`), `Tours` (un sous-modèle par emplacement, nommé par son id de `CEINTURE` :
-  `E-T-320`, `N-R1-05`, `Coin_NE`… ; plus `Tours/MurDeFond`, `Tours/Tubes`), `Ciel` (`Oeuf`, `Cable`, `Nacelles`,
-  `PiecesOr`, `Dirigeable`, `Cumulus`), `Mobilier` (un sous-modèle par pose, nommé par son id), `Reperes`
+  `E-T-320`, `N-R1-05`, `Coin_NE`… ; plus `Tours/MurDeFond`, `Tours/Tubes`, `Tours/Limites` (barrière invisible des
+  façades) et `Tours/FondsDeBaie` ; le front du laboratoire `F-R1-05` vient de `assets/esplanade.py`), `Ciel`
+  (`Oeuf`, `Cable`, `Nacelles`, `PiecesOr`, `Dirigeable`, `Cumulus`, `Skyline` ; modèle `Persistent` dans Roblox),
+  `Mobilier` (un sous-modèle par pose, nommé par son id ; aussi les `Aire_Nacelle_*` du port), `Reperes`
   (dossier), `TracesParcelles` (facultatif, supprimable).
 - Dans un asset, des sous-groupes parlants (`Socle`, `Fut`, `Galettes`, `Dome`, `Hublots`, `Neon`…) aident la
   relecture dans l'Explorer ; noms français génériques, **jamais un nom de la licence**.
-- Repères (`plan.REPERES`, posés par carte.py avec `b.repere`) : `Spawn` (-3, 0, 206,5) regard vers le nord ;
-  `Parcelle_W1…W4`, `Parcelle_E1…E4` (emprises complètes 111 × 105) ; `Entree_W1…E4` (zones d'escalier 15 × 55) ;
-  `Tapis_Debut`, `Tapis_Fin`, `Tapis_01…08` (sommets de l'axe du tapis dans le sens du flux) ; `Vente`, `Machine`,
-  `Monument`, `Vitrine`, `Quetes`, `ZoneVente`. Invisibles, sans collision, détectables.
+- Repères (`plan.REPERES`, posés par carte.py avec `b.repere`) : `Spawn` (0, 0, 205) regard vers le nord ;
+  `Parcelle_W1…W4`, `Parcelle_E1…E4` (emprises complètes 110 (x) × 102 (z) au sol) ; `Entree_W1…E4` (bandes d'entrée
+  16 (x) × 102 (z), |x| 65 → 81) ; `Tapis_Debut`, `Tapis_Fin`, `Tapis_01…08` (sommets de l'axe du tapis dans le sens
+  du flux) ; `Vente`, `Machine`, `Monument`, `Vitrine`, `Quetes`, `ZoneVente` (40 × 20, centre (-15 ; 235)) ;
+  `Apparition_W1…E4`. Invisibles, sans collision, détectables ; repères de zone de 8 de haut (bas au sol).
+  **Convention des parcelles** : l'avant (-Z local, `LookVector`) de `Parcelle_X` et `Entree_X` regarde le tapis
+  (côté E : yaw 90 ; côté W : yaw 270) ; taille locale (102, 8, 110) et (102, 8, 16). Une base dont l'entrée regarde
+  -Z se pose par `base:PivotTo(Reperes.Parcelle_X.CFrame * CFrame.new(0, -4, 0))` (le CFrame d'un repère est au
+  centre de sa boîte, 4 au-dessus du sol). `carte.verifications` contrôle ces boîtes (0,01 près).
+  Plus de `Portail_Ouest` / `Portail_Est` (le juge n'a rien vu de haut sur les têtes du tapis).
 
 ## 5. Couleurs et matériaux
 

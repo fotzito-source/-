@@ -168,8 +168,8 @@ SCHEMAS = {
     "tour_pneus": [   # T07
         {"pneus": "bleu_roi", "bandes": "turquoise", "dome": "turquoise", "anneaux": "orange",
          "halo": "neon_blanc", "socle": "blanc_labo", "fleche": "or"},                # V1 EH3
-        {"pneus": ("orange", "orange*0.85"), "bandes": "creme", "dome": "bleu_roi", "anneaux": "or",
-         "halo": "neon_blanc", "socle": "blanc_labo", "fleche": "or"},                # V2 rouille
+        {"pneus": ("orange", "jaune_or"), "bandes": "creme", "dome": "bleu_roi", "anneaux": "or",
+         "halo": "neon_blanc", "socle": "blanc_labo", "fleche": "or"},                # V2 soleil (finition : plus de brun)
         {"pneus": "rose_bonbon", "bandes": "blanc_labo", "dome": "violet", "anneaux": "or", "halo": "cyan",
          "socle": "blanc_labo", "fleche": "or"},                                      # V3 bonbon
         {"pneus": "vert_lime", "bandes": "bleu_nuit", "dome": "jaune_citron", "anneaux": "rouge",
@@ -244,8 +244,8 @@ SCHEMAS = {
     "tour_bureaux": [   # T12
         {"corps": "bleu_nuit", "bandes": "hublot", "dome": "turquoise", "corniche": "blanc_labo"},  # V1 (EH5)
         {"corps": "blanc_labo", "bandes": "bleu_roi", "dome": "orange", "corniche": "bleu_roi"},    # V2
-        {"corps": "violet", "bandes": "rose_bonbon", "dome": "lavande", "corniche": "rose_bonbon"},  # V3
-        {"corps": "orange", "bandes": "creme", "dome": "turquoise", "corniche": "creme"},            # V4
+        {"corps": "violet", "bandes": "hublot", "dome": "lavande", "corniche": "rose_bonbon"},       # V3 (bandes vitrées)
+        {"corps": "orange", "bandes": "hublot", "dome": "turquoise", "corniche": "creme"},           # V4 (bandes vitrées)
     ],
     "plateau_disques": [   # T14
         {"disques": "turquoise", "mat": "blanc_labo", "dessous": "turquoise*0.8", "points": "cyan"},  # V1

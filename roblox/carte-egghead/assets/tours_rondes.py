@@ -246,9 +246,11 @@ def _bilan(b, i0, D, H, ame, emprise=None, **extra):
 # T01 · Tour à galettes
 # --------------------------------------------------------------------------------------------------------------
 
-def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=True, **_):
+def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=True, pas=None, epaisseur=None, **_):
     """Pile de galettes (T01) : socle à studs, pied rayé, fût, galettes au pas de 0,2 D (on en ajoute pour remplir
-    la hauteur, jamais étirées) faites d'un bord vertical (cylindre) et d'une lentille bombée (ellipsoïde),
+    la hauteur, jamais étirées ; tour élancée, H > 3,5 D : pas 0,28 D et lentilles de 0,18 D, des galettes épaisses
+    et bien détachées comme EH5 au lieu d'un ressort ; `pas` / `epaisseur` en fraction de D pour forcer) faites
+    d'un bord vertical (cylindre) et d'une lentille bombée (ellipsoïde),
     longues fentes Neon incrustées dans le bord (3 à -50, 0, +50° sur une galette sur deux, 1 au milieu sur les
     autres : colonnes régulières), dernière galette sous la bande d'évents qui porte le dôme à deux yeux et
     3 méridiens, porte, antenne. Tout reste dans le disque D à toute hauteur. ≈ 80-95 pièces (≤ 140), ≈ 25-36 Neon (≤ 40)."""
@@ -260,8 +262,9 @@ def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=Tru
     R_p = 0.37 * D                      # pied rayé
     R_g = D / 2 - 0.5                   # bord des galettes (les fentes dépassent de 0,45 : Ø ≤ D)
     h_r = 0.075 * D                     # hauteur du bord vertical
-    e = 0.15 * D                        # épaisseur de la lentille au centre
-    pas = 0.20 * D
+    elancee = H > 3.5 * D
+    e = (epaisseur if epaisseur is not None else (0.18 if elancee else 0.15)) * D   # lentille, au centre
+    pas = (pas if pas is not None else (0.28 if elancee else 0.20)) * D
     R_b = R_f + 1.2                     # bande d'évents, support du dôme (le dôme est plus large que le fût)
     h_d = 0.9 * R_f                     # dôme
     y_d = H - h_d
@@ -842,7 +845,9 @@ def tour_fusee(b, variant=0, hauteur=55, diametre=20, type="blanche", **_):
     « blanche » (recette A) : jupe, corps en cigare (grand ellipsoïde dont le bas reste dans la jupe), 2 bandes,
     hublot emblème, flèche et feu Neon, 3 ailerons. « capsule » (recette B) : plinthe, corps à rainures et
     hublots, bande et filet, ogive pointue à 2 rangs de hublots (sa moitié basse reste dans le corps, jamais sous le
-    sol), sommet et feu Neon, 4 ailerons. ≤ 50 pièces, 1 Neon."""
+    sol), sommet et feu Neon, 4 ailerons. Fusée haute (70-100) : l'ogive garde au plus 1,25 D de demi-hauteur et
+    le corps s'allonge avec 2 rangs de hublots et une bague de plus (capsule) ; la blanche reçoit un hublot et une
+    bague de plus au-delà de 70. ≤ 50 pièces, 1 Neon."""
     i0 = len(b.parts)
     s = schema("tour_fusee", variant)
     H, D = float(hauteur), float(diametre)
@@ -852,16 +857,28 @@ def tour_fusee(b, variant=0, hauteur=55, diametre=20, type="blanche", **_):
     if type == "capsule":
         R_c = 0.42 * D
         y_o = (H - 3.0 * kf + 1.0) / 2          # centre de l'ogive : sa moitié basse descend jusqu'à y = 1
+        ho_max = 1.25 * D                       # fusée haute : l'ogive garde ses proportions, le corps s'allonge
+        if H - 3.0 * kf - y_o > ho_max:
+            y_o = H - 3.0 * kf - ho_max
         y_b1 = y_o - 2.5 * kf                   # haut du corps
         ro, ho = R_c - 0.5, H - 3.0 * kf - y_o
+        haut_ = y_b1 > 34.0
         with b.group("Corps"):
             b.cyl((0, (0.9 + y_b1) / 2, 0), R_c, y_b1 - 0.9, s["corps"], name="Corps")
             b.cyl((0, (0.92 + 2.0) / 2, 0), R_c + 0.5, 1.08, s["bandes"], studs="top", name="Plinthe")
             for th in (-150, -110, 110, 150, 180):
                 _bloc_mur(b, R_c, th, (2.6 + y_b1) / 2, 0.6 * kf, y_b1 - 3.2, 0.25, shade(s["corps"], 0.82),
                           collide=False, name="Rainure")
+            y_h = y_b1 - 7.0 if haut_ else 0.62 * y_b1 + 1.0
             for th in (-22, 22, -68, 68):
-                _hublot_mur(b, R_c, th, 0.62 * y_b1 + 1.0, 1.9 * kf, s["cadres"])
+                _hublot_mur(b, R_c, th, y_h, 1.9 * kf, s["cadres"])
+            if haut_:                           # corps long : 2 rangs de 2 hublots plus bas et une bague
+                for k in (1, 2):
+                    yk = y_h - k * (y_h - 12.0) / 3
+                    for th in (-45, 45):
+                        _hublot_mur(b, R_c, th, yk, 1.6 * kf, s["cadres"])
+                b.cyl((0, (y_h + y_h - (y_h - 12.0) / 3) / 2, 0), R_c + 0.2, 1.2 * kf, s["bandes"],
+                      collide=False, name="Bande")
             _porte(b, R_c, 2.0, PORTE, s["cadres"], largeur=4.0, haut=5.5)
             b.cyl((0, y_b1 + 1.25 * kf, 0), R_c + 0.2, 2.5 * kf, s["bandes"], studs="top", name="Bande")
             b.cyl((0, y_b1 + 1.25 * kf, 0), R_c + 0.35, 0.6 * kf, s["cadres"], name="Filet")
@@ -896,6 +913,11 @@ def tour_fusee(b, variant=0, hauteur=55, diametre=20, type="blanche", **_):
                 r_max = R_e if yb - hb / 2 <= y_e <= yb + hb / 2 else max(r_corps(yb - hb / 2), r_corps(yb + hb / 2))
                 b.cyl((0, yb, 0), r_max + 0.15, hb, s["bandes"], name="Bande")
             _hublot_ellipsoide(b, (0, y_e, 0), R_e, h_e, 0, (0.4 * H - y_e) / h_e, 2.2 * kf, s["cadres"])
+            if H > 70:                          # fusée haute : un hublot et une bague de plus (pas d'aplat géant)
+                _hublot_ellipsoide(b, (0, y_e, 0), R_e, h_e, 0, (0.53 * H - y_e) / h_e, 1.8 * kf, s["cadres"])
+                yb3, hb3 = 0.78 * H, 0.03 * H
+                b.cyl((0, yb3, 0), max(r_corps(yb3 - hb3 / 2), r_corps(yb3 + hb3 / 2)) + 0.15, hb3, s["bandes"],
+                      name="Bande")
             _porte(b, R_j, 1.0, PORTE, s["corps"], largeur=4.0, haut=5.5)     # cadre clair sur la jupe vive
         with b.group("Pointe"):
             y_s = y_e + h_e - 0.35
@@ -917,7 +939,9 @@ def tour_fusee(b, variant=0, hauteur=55, diametre=20, type="blanche", **_):
 def tour_hublots(b, variant=0, hauteur=42, diametre=30, **_):
     """Tambour (T16) : socle à studs, tambour à porte en arche, 3 bandes vitrées opaques à meneaux (variantes 0
     et 2) ou 3 rangs de 5 hublots à cadres épais (variantes 1 et 3, rang du haut allumé), bague, toit à studs
-    débordant, petit dôme et épi. ≤ 60 pièces, ≤ 6 Neon."""
+    débordant, petit dôme et épi. Tambour haut (hauteur > ≈ 48, front de rue relevé à 70-100) : rangs ajoutés au
+    pas d'environ 10,5 (7 au plus ; bandes à 5 meneaux, ou hublots en quinconce 3 / 2) et une bague au milieu,
+    au lieu d'étirer 3 rangs. ≤ 60 pièces, ≤ 6 Neon."""
     i0 = len(b.parts)
     s = schema("tour_hublots", variant)
     H, D = float(hauteur), float(diametre)
@@ -933,23 +957,34 @@ def tour_hublots(b, variant=0, hauteur=42, diametre=30, **_):
         b.cyl((0, (0.8 + y_toit0 + 0.3) / 2, 0), R_t, y_toit0 + 0.3 - 0.8, s["corps"], name="Tambour")
         _porte(b, R_t, 0.8, PORTE, s["dome"])
         y_lo, y_hi = 12.6, y_toit0 - 3.6
-        rangs = [y_lo + (y_hi - y_lo) * k / 2 for k in range(3)]
+        # tambour haut (front de rue relevé) : on ajoute des rangs au pas d'environ 10,5 au lieu d'étirer les
+        # 3 rangs (7 au plus, ≤ 60 pièces) ; une bague coupe le fût entre les deux rangs du milieu
+        nr = 3 if y_hi - y_lo <= 26.0 else min(7, max(3, int(round((y_hi - y_lo) / 10.5)) + 1))
+        rangs = [y_lo + (y_hi - y_lo) * k / (nr - 1) for k in range(nr)]
+        haut_ = nr > 3
+        if haut_:
+            y_bg = (rangs[nr // 2 - 1] + rangs[nr // 2]) / 2
+            b.cyl((0, y_bg, 0), R_t + 0.3, 1.0, s["dome"], collide=False, name="Bague")
         if variant % 2 == 0:            # bandes vitrées à meneaux
             hb = min(4.6, 0.36 * (rangs[1] - rangs[0]) + 1.0)
+            angs = [-60 + 30 * j for j in range(5)] if haut_ else [-67.5 + 22.5 * j for j in range(7)]
             for y in rangs:
                 b.cyl((0, y, 0), R_t + 0.2, hb, s["vitres"], name="BandeVitree")
-                for j in range(7):
-                    _bloc_mur(b, R_t + 0.2, -67.5 + 22.5 * j, y, 0.8 * kf, hb - 0.1, 0.25, s["corps"],
+                for a in angs:
+                    _bloc_mur(b, R_t + 0.2, a, y, 0.8 * kf, hb - 0.1, 0.25, s["corps"],
                               collide=False, name="Meneau")
         else:                           # rangs de hublots à cadres épais, rang du haut allumé
             f = min(2.3, 0.3 * (rangs[1] - rangs[0]))
             # pas angulaire : au moins 1 stud entre deux cadres (un tambour étroit n'en reçoit que 3 par rang)
             pas_h = max(30.0, math.degrees(2 * math.asin(min(1.0, (f + 0.5) / R_t))))
             ths = (-60, -30, 0, 30, 60) if pas_h <= 30.0 else (-pas_h, 0.0, pas_h)
+            st = max(40.0, pas_h)       # tambour haut : rangs en quinconce de 3 et 2 hublots
             for k, y in enumerate(rangs):
+                if haut_:
+                    ths = (-st, 0.0, st) if (nr - 1 - k) % 2 == 0 else (-st / 2, st / 2)
                 for th in ths:
-                    _hublot_mur(b, R_t, th, y, f, s["vitres"], c("neon_blanc") if k == 2 else HUBLOT,
-                                allume=(k == 2), bord=0.42 * f)
+                    _hublot_mur(b, R_t, th, y, f, s["vitres"], c("neon_blanc") if k == nr - 1 else HUBLOT,
+                                allume=(k == nr - 1), bord=0.42 * f)
     with b.group("Toit"):
         b.cyl((0, y_toit0 - 0.6, 0), R_t + 0.25, 1.2, s["dome"], name="Bague")
         b.disque((0, (y_toit0 + y_toit1) / 2, 0), D / 2, e_toit, s["toit"], studs="top", name="Toit")

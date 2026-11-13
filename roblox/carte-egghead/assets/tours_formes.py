@@ -159,7 +159,8 @@ def _porte(b, origine, u, R, y0, panneau, cadre, *, largeur=5.0, haut=6.0, chevr
             for sx in (-1, 1):
                 for sy in (-1, 1):
                     ang = -35 * sx * sy
-                    ctr = o + u * (R + 0.5) + tg * (sx * 0.2 * largeur) + up * (yc + sy * 0.28 * lg)
+                    ctr = (o + u * (R + 0.5 + (0.02 if sy > 0 else 0.0)) + tg * (sx * 0.2 * largeur)
+                           + up * (yc + sy * 0.28 * lg))
                     Rm = M @ rot_z(ang)
                     b.part("block", (lg, 0.35, 0.2), ctr, Rm, chevrons, collide=False, name="Chevron")
 
@@ -183,8 +184,9 @@ def _boite_z(b, centre, lx, ly, lz, r, couleur, studs_dessus=False, **kw):
            b.boxc((cx, cy, cz), (lx - 2 * r, ly, lz - 0.1), couleur, studs="top" if studs_dessus else (), **kw)]
     for sx in (-1, 1):
         for sy in (-1, 1):
-            out.append(b.cyl((cx + sx * (lx / 2 - r), cy + sy * (ly / 2 - r), cz), r, lz - 0.2, couleur,
-                             axis="z", **kw))
+            # haut et bas d'un même côté se recouvrent quand r > ly / 4 : disques décalés de 0,02
+            out.append(b.cyl((cx + sx * (lx / 2 - r), cy + sy * (ly / 2 - r), cz), r, lz - (0.24 if sy > 0 else 0.2),
+                             couleur, axis="z", **kw))
     return out
 
 
@@ -238,8 +240,10 @@ def _picto(b, kind, centre, taille, couleur, ep=0.3, **kw):
     elif kind == "coeur":
         r = 0.28 * s
         for sx in (-1, 1):
-            b.cyl((cx + sx * 0.72 * r, cy + 0.3 * r, cz), r, ep, couleur, axis="z", name="Lobe", **kw)
-        b.part("block", (1.95 * r, 1.95 * r, ep - 0.04), (cx, cy - 0.5 * r, cz), rot_z(45), couleur,
+            b.cyl((cx + sx * 0.72 * r, cy + 0.3 * r, cz - (0.02 if sx > 0 else 0.0)), r, ep, couleur, axis="z",
+                  name="Lobe", **kw)
+        # lobes décalés de 0,02, pointe 0,06 plus mince : aucune face de deux pièces dans le même plan
+        b.part("block", (1.95 * r, 1.95 * r, ep - 0.06), (cx, cy - 0.5 * r, cz), rot_z(45), couleur,
                name="Pointe", **kw)
     elif kind == "piece":
         b.cyl((cx, cy, cz), 0.5 * s, ep, c("or_fonce"), axis="z", name="Piece", **kw)
@@ -833,7 +837,7 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
     with b.group("Cadre"):
         xm = W / 2 - rr - 1.1
         for sx in (-1, 1):
-            b.box((sx * xm - 1.0, -0.05, zfa - 1.0), (sx * xm + 1.0, H - 3.4, zfa + 0.1), cad, name="Montant")
+            b.box((sx * xm - 1.0, -0.05, zfa - 1.0), (sx * xm + 1.0, H - 3.5, zfa + 0.1), cad, name="Montant")
         b.box((-W / 2 + rr + 0.05, H - 3.5, zfa - 1.0), (W / 2 - rr - 0.05, H, zfa + 0.15), cad, studs="top",
               name="Linteau")
         b.box((-W / 2, Hb, zfa + 0.6), (-W / 2 + 0.8, H, P / 2), cad, studs="top", name="Acrotere")
@@ -851,7 +855,8 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
         b.box((-0.15, 0.3, zfa - 1.14), (0.15, ya + ra - 2.0, zfa - 1.0), NUIT, collide=False, name="Joint")
         yc = 5.6
         for sy in (-1, 1):
-            b.part("block", (2.4, 0.55, 0.14), (0.3 * ra, yc + sy * 0.72, zfa - 1.11), rot_z(-38 * sy), c("rouge"),
+            b.part("block", (2.4, 0.55, 0.14), (0.3 * ra, yc + sy * 0.72, zfa - 1.11 - (0.02 if sy > 0 else 0.0)),
+                   rot_z(-38 * sy), c("rouge"),
                    collide=False, name="Chevron")
         for k in range(7):
             ang = math.radians(-90 + 180 * k / 6)
@@ -863,17 +868,29 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
         yg = (yl + 0.6 + H - 3.5) / 2
         hg = min(4.6, (H - 3.5) - (yl + 0.6) - 1.4)
         lg = min(15.0, 2 * xm - 4.0)
-        _gelule(b, (0, yg, zfa - 1.1), lg, hg, 0.5, gel, collide=False)
-        _gelule(b, (0, yg, zfa - 0.9), lg + 0.5, hg + 0.4, 0.5, s["neon"], material="Neon", collide=False,
+        # gélule plaquée sur la façade : le dos du liseré Neon entre de 0,1 dans le mur (rien ne flotte)
+        _gelule(b, (0, yg, zfa - 0.35), lg, hg, 0.5, gel, collide=False)
+        _gelule(b, (0, yg, zfa - 0.15), lg + 0.5, hg + 0.4, 0.5, s["neon"], material="Neon", collide=False,
                 shadow=False)
         kind = picto or PICTOS_BOUTIQUE[variant % 4]
         pc = BLANC if gel in (c("rose_bonbon"), c("violet"), c("turquoise")) else c("jaune_citron")
-        _picto(b, kind, (0, yg, zfa - 1.35 - 0.125), (1.25 if kind == "nuage" else 0.95) * hg, pc, ep=0.25)
+        _picto(b, kind, (0, yg, zfa - 0.6 - 0.125), (1.25 if kind == "nuage" else 0.95) * hg, pc, ep=0.25)
         ysl = H - 3.5 - 2.6
+        # fentes d'aération de part et d'autre de l'enseigne : celles que la gélule couvrirait sont omises
+        # (la gélule touche maintenant la façade, elles la traverseraient)
+        demi_l, rg_ = (lg + 0.5) / 2, (hg + 0.4) / 2
+
+        def sous_gelule(x0, y0, y1):
+            dy = 0.0 if y0 <= yg <= y1 else min(abs(y0 - yg), abs(y1 - yg))
+            if dy >= rg_:
+                return False
+            return x0 < demi_l - rg_ + math.sqrt(rg_ * rg_ - dy * dy) + 0.15
         for sx in (-1, 1):
             for k in (-1, 0, 1):
-                b.boxc((sx * (xm - 3.2) + k * 1.3, ysl, zfa - 0.1), (0.6, 3.0, 0.3), shade(cad, 0.55),
-                       collide=False, name="Fente")
+                xk = sx * (xm - 3.2) + k * 1.3
+                if sous_gelule(abs(xk) - 0.3, ysl - 1.5, ysl + 1.5):
+                    continue
+                b.boxc((xk, ysl, zfa - 0.1), (0.6, 3.0, 0.3), shade(cad, 0.55), collide=False, name="Fente")
     with b.group("Equipement"):
         xp0, xp1 = -xm + 1.6, -xm + 3.5
         zp = zfa - 0.45
@@ -905,15 +922,15 @@ def _kiosque_dome(b, s, W, P, H):
         b.cyl((0, 2.0, 0), Rt + 0.5, 2.0, s["bord"], studs="top", name="Plinthe")
         b.cyl((0, (3.0 + yb) / 2, 0), Rt, yb - 3.0, s["tambour"], name="Tambour")
         _porte(b, (0, 0, 0), _u(0), Rt, 3.0, NUIT, s["bord"], largeur=4.6, haut=4.6)
-        hf = min(4.6, yb - 3.0 - 3.2)
-        for a in (-62, -31, 31, 62):
-            u = _u(a)
-            M = _repere_mur(a)
-            yw = 3.0 + (yb - 3.0) * 0.52
-            b.part("ellipsoid", (3.8, hf + 0.8, 0.8), u * (Rt - 0.15) + np.array([0, yw, 0]), M, s["bord"],
-                   collide=False, name="Cadre")
-            b.part("ellipsoid", (3.0, hf, 0.8), u * (Rt - 0.05) + np.array([0, yw, 0]), M, HUBLOT,
-                   collide=False, name="Fenetre")
+        # rang de 6 petits hublots de part et d'autre de la porte (deux grands ovales voisins sous le dôme à
+        # points et antenne faisaient une tête de petit robot)
+        yw = 3.0 + (yb - 3.0) * 0.52
+        fh = min(1.2, 0.2 * (yb - 3.0))
+        a0 = math.degrees(math.asin(min(1.0, 3.1 / Rt))) + math.degrees(math.asin(min(1.0, (fh + 0.3) / Rt)))
+        pas_a = max(17.0, math.degrees(2 * math.asin(min(1.0, (fh + 0.45) / Rt))))
+        for sg in (-1, 1):
+            for k in range(3):
+                _hublot_mur(b, Rt, sg * (a0 + 1.0 + k * pas_a), yw, fh, s["bord"])
         b.ellipsoid((0, yb, 0), (2 * Rb, 3.0, 2 * Rb), s["bord"], collide=False, name="Bord")
         res = b.dome((0, yb, 0), Rt, hd, s["dome"], collide=False)
         rd = res.info["rayon_dome"]
@@ -990,7 +1007,7 @@ def _kiosque_arcade(b, s, W, P, H):
               collide=False, name="PanneauBas")
         xcr = xc - Wb / 2 + 5.0
         b.boxc((xcr, 3.5, zfa - 0.55), (3.2, 1.0, 0.3), BLANC, collide=False, name="Croix")
-        b.boxc((xcr, 3.5, zfa - 0.6), (1.0, 3.2, 0.4), BLANC, collide=False, name="Croix")
+        b.boxc((xcr, 3.5, zfa - 0.58), (1.0, 3.2, 0.4), BLANC, collide=False, name="Croix")
         for k in range(3):
             b.boxc((xcr + 4.0 + 2.2 * k, 3.5, zfa - 0.5), (1.4, 0.6, 0.2), lis, collide=False, name="Tiret")
     if W > 24:
@@ -1116,7 +1133,8 @@ def connecteur(b, variant=0, largeur=8, profondeur=12, hauteur=16, couleur="lava
         with b.group("Arcade"):
             for k in range(n):
                 x = -W / 2 + (k + 0.5) * W / n
-                _niche(b, x, zw, min(4.6, W / n - 2.6), 0.42 * H, acc)
+                if W / n - 2.6 >= 0.8:                       # connecteur très étroit : pas de niche
+                    _niche(b, x, zw, min(4.6, W / n - 2.6), 0.42 * H, acc)
             xs = [-W / 2 + (k + 0.5) * W / (2 * n) for k in range(2 * n)]
             _haies(b, xs, H, zf + 2.6, taille=min(3.4, W / (2 * n) + 0.2))
     elif galerie:
@@ -1147,9 +1165,10 @@ def connecteur(b, variant=0, largeur=8, profondeur=12, hauteur=16, couleur="lava
             yh = 0.51 * H
             for k in range(n):
                 x = -W / 2 + (k + 0.5) * W / n
-                f = min(2.2, 0.17 * H)
-                b.cyl((x, yh, zw - 0.0), f, 0.5, acc, axis="z", collide=False, name="Cadre")
-                b.cyl((x, yh, zw - 0.1), f - 0.6, 0.4, HUBLOT, axis="z", collide=False, name="Hublot")
+                f = min(2.2, 0.17 * H, W / n / 2 - 0.4)      # connecteur étroit : le hublot reste dans sa largeur
+                if f >= 1.0:
+                    b.cyl((x, yh, zw - 0.0), f, 0.5, acc, axis="z", collide=False, name="Cadre")
+                    b.cyl((x, yh, zw - 0.1), f - 0.6, 0.4, HUBLOT, axis="z", collide=False, name="Hublot")
             b.box((-W / 2 + 0.6, H, zf + 1.2), (W / 2 - 0.6, H + 1.0, zf + 3.6), acc, studs="top",
                   name="Jardiniere")
             xs = [-W / 2 + (k + 0.5) * W / (2 * n) for k in range(2 * n)]
@@ -1171,18 +1190,23 @@ def connecteur(b, variant=0, largeur=8, profondeur=12, hauteur=16, couleur="lava
             b.cyl((0, ya, zf + 0.1), 1.4, W - 0.2, acc, axis="x", collide=False, name="Auvent")
             yp = (ya + 1.4 + H - hr) / 2
             kind = ("piece", "coeur", "nuage", "eclair")[int(abs(W * 7 + H * 3)) % 4]
-            _picto(b, kind, (0, yp, zw - 0.25), min(3.6, H - hr - ya - 2.2), acc if acc != col else BLANC)
+            # dos du pictogramme 0,05 dans le mur (il dépasse encore de 0,25) : il ne flotte plus devant
+            tp = min(3.6, H - hr - ya - 2.2, W - 1.0)
+            if tp >= 1.2:
+                _picto(b, kind, (0, yp, zw - 0.1), tp, acc if acc != col else BLANC)
     else:
         with b.group("Portique"):
             hp = H - hr - 1.8
-            for sx in (-1, 1):
+            for sx in ((-1, 1) if W >= 4.4 else (0,)):     # trop étroit pour deux piliers : un seul, au milieu
                 x = sx * (W / 2 - 0.95)
                 b.box((x - 0.9, -0.05, zf + 0.9), (x + 0.9, hp, zf + 2.4), col, name="Pilier")
-                b.cyl((x, hp / 2 - 0.05, zf + 0.9), 0.9, hp + 0.1, col, name="Pilier")
+                # haut du cylindre 0,05 sous celui du bloc (sinon dessus confondus : taches noires dans Cycles)
+                b.cyl((x, (hp - 0.15) / 2, zf + 0.9), 0.9, hp + 0.05, col, name="Pilier")
             b.box((-W / 2 + 0.03, hp, zf + 0.05), (W / 2 - 0.03, H - hr + 0.3, zf + 2.4), col, name="Linteau")
             nc = c(accent) if accent in ("cyan", "neon_orange", "neon_blanc", "neon_violet") else c("cyan")
             b.box((-W / 2 + 1.8, 0.36 * H, zw - 0.15), (W / 2 - 1.8, 0.36 * H + 0.35, zw + 0.1), nc,
                   material="Neon", collide=False, shadow=False, name="Lisere")
             rdm = min(W / 2 - 1.2, 3.2)
-            b.dome((0, H, zf + P / 2), rdm, 0.8 * rdm, acc, collide=False)
+            if rdm >= 0.8:
+                b.dome((0, H, zf + P / 2), rdm, 0.8 * rdm, acc, collide=False)
     return _bilan(b, i0, (W, P), H)

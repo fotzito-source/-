@@ -155,6 +155,7 @@ def main() -> None:
         w, h, samples = w // 2, h // 2, 12
     if not args.sans_rendu:
         import bpy
+        import plan as _plan
         out.mkdir(parents=True, exist_ok=True)
         for name in noms:
             t0 = time.time()
@@ -164,7 +165,11 @@ def main() -> None:
             else:
                 pos, tgt, fov = vues[name]
                 cam = bs.add_camera(name, pos, tgt, fov=fov)
-                bs.render(cam, chemin, res=(w, h), samples=samples)
+                # résolution propre à la vue (plan.RESOLUTIONS : captures au format des captures de l'utilisateur),
+                # moitié en --rapide, sauf si --res est donné
+                rv = getattr(_plan, "RESOLUTIONS", {}).get(name) if args.res == "1920x1080" else None
+                wv, hv = (rv[0] // 2, rv[1] // 2) if (rv and args.rapide) else (rv if rv else (w, h))
+                bs.render(cam, chemin, res=(wv, hv), samples=samples)
             bpy.data.objects.remove(cam, do_unlink=True)
             print(f"vue {name} : {time.time() - t0:.0f} s → {chemin}")
 

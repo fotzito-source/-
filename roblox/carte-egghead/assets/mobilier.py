@@ -296,10 +296,13 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
     Placement : la fonction lit `plan.PARCELLES` et `plan.ZONES_PRATICABLES` dans le repère de la carte ; si une
     couronne entre dans une parcelle ou un escalier, ou traverse une façade alors que la jardinière est dans une
     zone praticable, les palmiers sont refaits penchés loin du conflit (secteur de lames réduit). Le résumé
-    renvoie `replis` (essais refaits) et `conflits` (pièces encore fautives, 0 attendu)."""
+    renvoie `replis` (essais refaits) et `conflits` (pièces encore fautives, 0 attendu). Facultatif : `portee`
+    (échelle de la longueur des lames, 1 par défaut ; 0,65 donne une petite couronne d'environ 5 de rayon pour un
+    palmier de 16, comme les arbres de la bande arrière des parcelles)."""
     n0 = len(b.parts)
     n = max(1, int(n))
     D = max(float(diametre), 5.0)
+    k_lames = float(params.get("portee") or 1.0)
     v = int(variant) % 4
     rng = b.rng
     H = float(hauteur) if hauteur else {1: 22.0, 2: 26.0}.get(n, 28.0)
@@ -353,7 +356,7 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
                 a = b0 + i * 360.0 / n
                 pos = (ar * math.cos(math.radians(a)), y_terre - 0.05, -ar * math.sin(math.radians(a)))
                 courb = (0.7 if i == 0 else 1.9) * (1.0 if n > 1 else 1.4)      # les petits s'écartent (V)
-                kw = dict(pointe=a if n > 1 else None, portee=1.0 if i == 0 else 0.88)
+                kw = dict(pointe=a if n > 1 else None, portee=(1.0 if i == 0 else 0.88) * k_lames)
             else:
                 az, portee, ouv, courb0 = repli
                 u = (math.cos(math.radians(az)), -math.sin(math.radians(az)))          # loin du conflit
@@ -363,7 +366,7 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
                 courb = courb0 * (0.75 if i == 0 else 1.0)
                 ecart = (i - (n - 1) / 2) * (70.0 / max(n - 1, 1))                   # éventail de ±35°
                 # un azimut croissant tourne vers -w : le palmier du côté +w penche donc avec az - écart (V ouvert)
-                kw = dict(pointe=az - ecart, axe_secteur=az, portee=portee * (1.0 if i == 0 else 0.9),
+                kw = dict(pointe=az - ecart, axe_secteur=az, portee=portee * (1.0 if i == 0 else 0.9) * k_lames,
                           ouverture=ouv)
             with b.at(pos, group="Palmier"):
                 _palmier(b, var, h, courb, palmes=lames, **kw)
@@ -500,7 +503,8 @@ def lampadaire(b, variant: int = 0, hauteur: float = 9, **params) -> dict:
             avant = R @ np.array([0.0, 0.0, -1.0])
             b.part("block", (2.45, 1.65, 0.15), np.array([0, ye, ze]) + avant * (0.16 + 0.06 - 0.075), R,
                    c("cyan"), material="Neon", name="Ecran", **FIN)
-            b.part("block", (0.75, 1.7, 0.18), (1.75, ye + 0.05, ze + 0.25), R @ rot_y(30), volet, name="Volet",
+            # volet ouvert de 30° vers l'avant, charnière engagée de 0,1 dans le bord droit du cadre (il flottait)
+            b.part("block", (0.75, 1.7, 0.18), (1.7, ye + 0.05, ze), R @ rot_y(30), volet, name="Volet",
                    **FIN)
             b.ball((0, H - 0.4, 0), 0.4, c("jaune_citron"), name="Bouton", **FIN)
         else:

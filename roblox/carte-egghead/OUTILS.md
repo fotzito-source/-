@@ -16,7 +16,7 @@ carte.py + assets/*.py ──► kit.Builder ──► build/parts.json ──�
 | Fichier | Rôle |
 |---|---|
 | `kit.py` | Le kit : `Builder`, primitives (bloc, coin, cylindre, boule, **ellipsoïde**), assemblages arrondis, repères, découpage, contrôles, export Lune |
-| `carte.py` | Plan de la carte. **Pour l'instant une ébauche de l'atelier outils** (sol 200 × 200, vitrine, repère Spawn) que la conception remplacera en gardant son interface |
+| `carte.py` | La carte complète : sol, routes, couronne, barrière invisible des façades, tapis, centre, ciel, mobilier, repères ; `--stats` (pièces, budgets, contrôles) et `--export DOSSIER` (Lune) |
 | `assets/exemple.py` | Asset de référence : kiosque rond (conventions, budget, panneau) |
 | `assets/test_primitives.py` | Vitrine de toutes les formes du kit (contrôle visuel et d'export) |
 | `blender_scene.py` | Scène Blender : maillages des pièces, matériau stud, ciel tropical, brume, caméras, rendu Cycles, exports |
@@ -25,8 +25,9 @@ carte.py + assets/*.py ──► kit.Builder ──► build/parts.json ──�
 | `roblox_export.luau` | Conversion en fichiers Roblox avec Lune : modèle, place de démo, relecture et contrôles |
 | `textures.py` | Texture stud (calque) et images des panneaux de texte ; polices téléchargées depuis google/fonts |
 
-Dossiers produits (ignorés par git sauf mention) : `build/` (parts.json), `apercus/`, `rendus/`, `export/`
-(`.rbxm`, `-demo.rbxl` et `.blend` gardés ; `.rbxmx` et `.glb` ignorés), `.cache/` (polices), `textures/panneaux/`.
+Dossiers produits : `build/` (parts.json), `apercus/`, `.cache/` (polices), `textures/panneaux/` : ignorés par git ;
+`rendus/` (images finales) : suivi ; les comparaisons avec les captures de l'utilisateur restent hors du dépôt (public) ; `export/` : `.rbxm` et `-demo.rbxl` suivis,
+`.blend`, `.rbxmx` et `.glb` ignorés (le `.blend` reste dans le dossier, il se régénère).
 
 ## Repère et conventions
 
@@ -259,8 +260,8 @@ recherche remplit les deux listes : 4 à 8 s pour 20 000 pièces.
 - `verifications(b) -> dict` : contrôles imprimés par `rendu.py` et `python carte.py` (y garder `"problemes"`) ;
 - facultatif `VUES = {nom: ((x, y, z) caméra, (x, y, z) cible, champ vertical)}` : vues ajoutées ou remplacées.
 
-L'ébauche actuelle : sol de 200 × 200 en 16 dalles de 50 (y de -2 à 0, `studs="top"`), vitrine au centre, repère
-`Spawn` en (0, 0, 62) tourné vers -Z, budget indicatif de 20 000 pièces.
+La carte actuelle : pelouse 410 × 637, routes, couronne de tours, esplanade nord, repère `Spawn` en (0, 0, 205)
+tourné vers le nord (-Z) ; budgets dans `plan.BUDGET_CARTE` (24 000 pièces, 1 500 Neon, 400 transparentes).
 
 ## Studs
 
@@ -299,9 +300,11 @@ $PY rendu.py --sans-rendu                             # export : .blend, .glb, p
   moins) ; `--sol "#RRGGBB"`, `--fov`, `--dossier`, `--out`, `--no-ground`, `--params '{"rayon": 8}'`. Il imprime
   pièces, boîte, triangles et `controles`. Regarder les images avec l'outil Read.
 - `rendu.py` : vues `aerienne` (3/4 plongeante cadrée sur l'emprise), `plan` (dessus orthographique cadré sur
-  l'emprise, -Z en haut), `joueur` (**provisoire** : 12 studs derrière et 7 au-dessus du repère Spawn) et les
-  `carte.VUES` ; options `--vues`, `--rapide`, `--sans-rendu`, `--sans-export`, `--dossier`, `--export`, `--res`,
-  `--echantillons`, `--ambiance jour|crepuscule`, `--suffixe`.
+  l'emprise, -Z en haut), `joueur` (12 studs derrière et 7 au-dessus du repère Spawn) et les
+  `carte.VUES` (= `plan.VUES`, qui remplacent `aerienne` et `joueur`). Sans `--res`, les vues de
+  `plan.RESOLUTIONS` prennent leur propre taille (captures 2000 × 1077 et 2000 × 1050, `plan_carte` 1200 × 1500) ;
+  options `--vues`, `--rapide`, `--sans-rendu`, `--sans-export`, `--dossier`, `--export`, `--res`, `--echantillons`,
+  `--ambiance jour|crepuscule`, `--suffixe`.
 - Processeur partagé : aperçus en 1200 × 675 au plus, 12 à 16 échantillons, **un seul rendu Blender à la fois**.
 - Rendu Blender fidèle à Roblox : pièces sans biseau, cylindres, boules et ellipsoïdes lissés (sphère UV avec un
   anneau de sommets sur l'équateur et aux quatre extrémités : étendue exacte = `Size`), pièces à studs rendues en
@@ -351,8 +354,8 @@ emprise.
 | `boule_flottante` | 6 (+16 ceinture) |
 | Sol 200 × 200 en dalles de 50 | 16 |
 
-Repères pour toute la carte : **≤ 20 000 pièces** (la zone Black Clover, la plus riche, en compte 13 275), dont
-**≤ 1 000 Neon** et **≤ 300 pièces transparentes** (verre, faisceaux : coûteuses en tri et en surimpression ;
+Repères pour toute la carte : **≤ 24 000 pièces** (cible 20 000-22 000 ; la zone Black Clover, la plus riche, en
+compte 13 275), dont **≤ 1 500 Neon** et **≤ 400 pièces transparentes** (verre, faisceaux : coûteuses en tri et en surimpression ;
 éviter d'empiler plusieurs verres l'un derrière l'autre). Conseils :
 - un grand aplat = un seul bloc ; des dalles de sol de 50 à 64 studs, découpées en blocs de 64 ;
 - `collide=False` pour tout décor hors de portée ou très fin (anneaux Neon, halos, faisceaux, antennes, colliers),
@@ -378,4 +381,22 @@ Repères pour toute la carte : **≤ 20 000 pièces** (la zone Black Clover, la 
   cylindres et boules à facettes dans Blender (le jeu, lui, n'est pas concerné).
 - **Verre** : rendu par transparence simple dans Blender comme dans Roblox ; sur un ellipsoïde, Roblox peut
   l'afficher comme un plastique transparent un peu plus terne que sur un bloc.
-- **Vue `joueur`** : provisoire, à remplacer par des vues choisies dans `carte.VUES` une fois le plan connu.
+- **Vue `joueur`** : celle de `plan.VUES` (caméra Roblox par défaut derrière l'apparition) remplace la vue calculée.
+
+## Dans Studio : pose de la carte (finition)
+
+- **Baseplate** : le dessus du sol de la carte est à y 0, exactement comme le dessus de la Baseplate par défaut
+  (y -16 → 0) : tout scintillerait. Dans une place créée depuis le modèle Baseplate, **supprimer la Baseplate**, ou
+  poser la carte plus haut : `workspace.CarteEgghead:PivotTo(CFrame.new(0, 2, 0))` (les dalles, de y -2 à 0,
+  reposent alors sur la Baseplate) et monter d'autant le `SpawnLocation` du jeu.
+- **Streaming** : le modèle `Ciel` est en `ModelStreamingMode = Persistent` (l'œuf, à 1 100-1 200 studs du sud de la
+  carte, reste visible) ; la place de démo règle `StreamingTargetRadius` à 1 200. Le dossier `Reperes` est un
+  Folder ordinaire : avec StreamingEnabled, un LocalScript ne reçoit que les repères proches ; lire les repères
+  depuis un script serveur (ou `WaitForChild`).
+- **Nom du modèle** : le Model racine s'appelle `CarteEgghead` (nom de travail, comme les fichiers). Avant de publier
+  le jeu, le renommer en un nom neutre (par exemple `IleDuFutur`) : c'est le seul mot de la licence dans le .rbxm.
+- **Fichier .blend** : `export/CarteEgghead.blend` (≈ 66 Mo) n'est pas suivi par git (`.gitignore`) ; il se
+  régénère avec `python rendu.py --sans-rendu` (écrit aussi .glb, .rbxm, .rbxmx et la place de démo dans export/).
+- **Barrière des façades** : `Tours/Limites` (8 blocs invisibles à collision, y 0,4 → 40) ferme la couronne au niveau
+  de la rue ; la caméra Roblox (Popper) ignore les pièces transparentes.
+
