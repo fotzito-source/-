@@ -9,9 +9,12 @@ Repère (celui de Roblox et du kit) : origine = centre de la carte au niveau du 
 yaw en degrés autour de Y. L'avant d'un asset regarde -Z local ; posé avec `b.at(pos, yaw)`, son avant regarde
 (-sin yaw, 0, -cos yaw) et son axe X local devient (cos yaw, 0, -sin yaw).
 
-Source des formes et des tailles : la reconstruction métrique de l'analyste A (deux caméras calibrées, échelle
-vérifiée de trois façons ; moitié sud ±0,5 à 3 studs, moitié nord en miroir ±10 à 25), arrondie au stud entier
-quand la mesure le permet (±0,5). Le thème change l'aspect, jamais la géométrie.
+Source des formes et des tailles : le plan final du juge (/tmp/claude-0/-home-user--/599f147d-b38d-564f-a2c6-ca8116a1da4e/scratchpad/eh/plan/LAYOUT.md
+et layout.json, 13/11), qui fusionne les reconstructions des analystes A, B et C (deux caméras calibrées ; moitié
+sud ±0,5 à 3 studs, rangées nord et têtes du tapis ±3 à 8, bord nord de la pelouse et esplanade ±8 à 25), arrondies
+au stud entier pour les dalles (studs alignés). Origine = centre de jeu : milieu du tapis et du bloc des 8
+parcelles (repère de A) ; la pelouse et la couronne ne sont PAS centrées dessus : elles vont 35 studs plus loin au
+nord qu'au sud, comme dans la référence. Le thème change l'aspect, jamais la géométrie.
 
     python plan.py          # imprime un résumé (bandes, tapis, couronne, comptes)
 """
@@ -21,28 +24,57 @@ from __future__ import annotations
 import math
 
 # =====================================================================================================
-# 1. Bandes du sol (rectangles concentriques centrés sur l'origine ; demi-largeur en X, demi-longueur en Z)
+# 1. Bandes du sol (rectangles concentriques ; demi-largeur en X, et en Z une valeur au sud, une au nord)
 # =====================================================================================================
+# Le juge mesure 12,5 / 36 / 17,5 (bords à 217,5 et 253,5) : les dalles gardent des bords entiers (studs
+# alignés), 217 et 253, à 0,5 près ; le nord prolonge le même anneau 35 plus loin (pelouse jusqu'à -336).
 
-PELOUSE_X = 205            # pelouse : |x| ≤ 205 (mesuré 204,5 ± 0,7)
-PELOUSE_Z = 301            # pelouse : |z| ≤ 301 (mesuré 300,9 au sud ; nord en miroir)
-TROTTOIR_INT_X = 217       # trottoir intérieur : 205 → 217 (12) à l'est et à l'ouest
-TROTTOIR_INT_Z = 313       # trottoir intérieur : 301 → 313 (12) au nord et au sud
+PELOUSE_X = 205            # pelouse : |x| ≤ 205
+PELOUSE_Z_SUD = 301        # pelouse : z ≤ 301 au sud
+PELOUSE_Z_NORD = 336       # pelouse : z ≥ -336 au nord (mesuré -329 / -332 / -340 : 35 de plus qu'au sud)
+DECALAGE_NORD = PELOUSE_Z_NORD - PELOUSE_Z_SUD   # 35 : tout l'anneau nord recule d'autant
+TROTTOIR_INT_X = 217       # trottoir intérieur : 205 → 217 (12, juge 12,5) à l'est et à l'ouest
+TROTTOIR_INT_Z_SUD = 313   # 301 → 313 au sud
+TROTTOIR_INT_Z_NORD = 348  # -336 → -348 au nord
 ROUTE_X = 253              # route : 217 → 253 (36)
-ROUTE_Z = 349              # route : 313 → 349 (36)
-TROTTOIR_EXT_X = 271       # trottoir extérieur : 253 → 271 (18)
-TROTTOIR_EXT_Z = 367       # trottoir extérieur : 349 → 367 (18)
-ALIGNEMENT_X = TROTTOIR_EXT_X   # ligne des façades de la couronne (est / ouest)
-ALIGNEMENT_Z = TROTTOIR_EXT_Z   # ligne des façades de la couronne (nord / sud)
+ROUTE_Z_SUD = 349          # 313 → 349
+ROUTE_Z_NORD = 384         # -348 → -384
+TROTTOIR_EXT_X = 271       # trottoir extérieur : 253 → 271 (18, juge 17,5)
+TROTTOIR_EXT_Z_SUD = 367   # 349 → 367
+TROTTOIR_EXT_Z_NORD = 402  # -384 → -402
+ALIGNEMENT_X = TROTTOIR_EXT_X        # ligne des façades de la couronne (est / ouest)
+ALIGNEMENT_Z_SUD = TROTTOIR_EXT_Z_SUD    # 367
+ALIGNEMENT_Z_NORD = TROTTOIR_EXT_Z_NORD  # 402
 COURONNE_PROFONDEUR = 80        # profondeur de la couronne de bâtiments derrière la ligne des façades
-COURONNE_X = ALIGNEMENT_X + COURONNE_PROFONDEUR   # 351 : bord extérieur de la couronne
-COURONNE_Z = ALIGNEMENT_Z + COURONNE_PROFONDEUR   # 447
+COURONNE_X = ALIGNEMENT_X + COURONNE_PROFONDEUR             # 351 : bord extérieur de la couronne
+COURONNE_Z_SUD = ALIGNEMENT_Z_SUD + COURONNE_PROFONDEUR     # 447
+COURONNE_Z_NORD = ALIGNEMENT_Z_NORD + COURONNE_PROFONDEUR   # 482
 MUR_FOND_EPAISSEUR = 2          # mur de fond continu au bord extérieur de la couronne (filet de sécurité)
 MUR_FOND_HAUTEUR = 36           # ferme toute vue à hauteur d'œil, même par une ruelle
+
+# Esplanade nord (renfoncement de la couronne, juge § 7) : pour |x| < 140, la couronne nord s'ouvre sur une
+# esplanade de z -402 à -490 (sol sombre à rangées de tirets blancs : aire des navettes) ; ses deux flancs (x = ±140)
+# et son fond (z = -490) portent un front de rue tourné vers elle ; derrière le fond, la couronne du fond (80 de
+# profondeur, jusqu'à z -572) porte les deux tours qui cadrent l'œuf et le plateau du laboratoire.
+ESPLANADE_X = 140               # |x| < 140 (±15)
+ESPLANADE_Z = 490               # fond de l'esplanade : z = -490 (±25) = ligne des façades du fond
+FLANC_PROFONDEUR = 17           # bâtiments des flancs : de x = ±140 à ±157
+FOND_X = ESPLANADE_X + FLANC_PROFONDEUR + 3    # 160 : demi-largeur de la couronne du fond (mur compris)
+FOND_Z = ESPLANADE_Z + COURONNE_PROFONDEUR + 2   # 572 : bord extérieur de la couronne du fond (tours Ø 58 à d 50)
+
+# Les dalles de la couronne commencent 1 stud derrière la ligne des façades (le trottoir, ou l'esplanade, passe sous
+# le pied des bâtiments) : la face avant d'un socle posé sur la ligne ne se confond jamais avec un bord de dalle.
+JOINT_COURONNE = 1
 
 TROTTOIR_LARGEUR_INT = TROTTOIR_INT_X - PELOUSE_X      # 12
 ROUTE_LARGEUR = ROUTE_X - TROTTOIR_INT_X                # 36
 TROTTOIR_LARGEUR_EXT = TROTTOIR_EXT_X - ROUTE_X         # 18
+
+# Zones praticables (pelouse, trottoirs, route et esplanade) : rectangles (x0, x1, z0, z1)
+ZONES_PRATICABLES = [
+    (-ALIGNEMENT_X, ALIGNEMENT_X, -ALIGNEMENT_Z_NORD, ALIGNEMENT_Z_SUD),
+    (-ESPLANADE_X, ESPLANADE_X, -ESPLANADE_Z, -ALIGNEMENT_Z_NORD),
+]
 
 # Niveaux (dessus des surfaces). Le sol de référence (y = 0) est la pelouse ; route et couronne sont aussi à 0
 # sauf la couronne, posée au niveau des trottoirs pour que les parvis d'angle prolongent le trottoir.
@@ -61,15 +93,16 @@ GRILLE_HAUT_LIGNES_X = 0.20   # lignes le long de X (z fixe) : dessus à 0,20 (e
 DALLE_SOL = 64                # dalles de 64 × 64 alignées sur les multiples de 64 (bandes de bord pour compléter)
 
 # Route : deux voies de 18, ligne médiane en tirets, lignes de rive, flèches, passages piétons
-ROUTE_AXE_X = (TROTTOIR_INT_X + ROUTE_X) / 2     # 235 : axe des routes est / ouest
-ROUTE_AXE_Z = (TROTTOIR_INT_Z + ROUTE_Z) / 2     # 331 : axe des routes nord / sud
+ROUTE_AXE_X = (TROTTOIR_INT_X + ROUTE_X) / 2     # 235 : axe des routes est / ouest (tirets sur [235, 236])
+ROUTE_AXE_Z_SUD = (TROTTOIR_INT_Z_SUD + ROUTE_Z_SUD) / 2      # 331 : route sud (tirets sur [331, 332])
+ROUTE_AXE_Z_NORD = (TROTTOIR_INT_Z_NORD + ROUTE_Z_NORD) / 2   # 366 : route nord (tirets sur [-367, -366])
 VOIE_LARGEUR = ROUTE_LARGEUR / 2                  # 18
 TIRET_LARGEUR = 1                                 # tirets sur [235, 236] (coins entiers)
 TIRET_LONGUEUR = 6
 TIRET_PAS = 16                                    # 6 de trait, 10 de vide
 TIRET_ARRET_COIN = 4                              # les tirets s'arrêtent à 4 studs des carrés d'angle
 LIGNE_RIVE_LARGEUR = 1
-LIGNE_RIVE_RETRAIT = 2                            # ligne de rive sur [217 + 2, 217 + 3] et [253 - 3, 253 - 2]
+LIGNE_RIVE_RETRAIT = 2                            # ligne de rive à 2 du bord : [219, 220] et [250, 251] (de même en Z)
 FLECHE_PAS = 96                                   # une flèche par voie tous les 96, décalée de 48 d'une voie à l'autre
 FLECHE_LONGUEUR = 9                               # hampe 1,4 × 6 + tête en chevron de 3
 BORDURE_LARGEUR = 1                               # bordure rayée rouge et blanc côté route des deux trottoirs
@@ -80,118 +113,141 @@ BORDURE_RAYURE = 4                                # 4 rouges, 4 blancs (bloc rou
 # vers -Z, nord : vers -X, ouest : vers +Z), voie extérieure en sens inverse (mesuré sur la route sud).
 SENS_VOIE_INTERIEURE = "antihoraire"
 
-# Passages piétons (zébras de 2 × 10, 9 bandes) : sur la route est en z ≈ 134 (mesuré), répétés en miroir
+# Passages piétons (zébras de 2 × 10, 9 bandes) : sur la route est en z ≈ 137 (mesuré, juge), en miroir sur la
+# route ouest, et deux autres au nord (z -137) pour l'équilibre des rues
 PASSAGE_LARGEUR = 10
 PASSAGE_BANDE = 2
 PASSAGE_ECART = 2
 PASSAGES_PIETONS = [
-    {"id": "Passage_E_Sud", "cote": "est", "s": 134.0},
-    {"id": "Passage_E_Nord", "cote": "est", "s": -134.0},
-    {"id": "Passage_O_Sud", "cote": "ouest", "s": 134.0},
-    {"id": "Passage_O_Nord", "cote": "ouest", "s": -134.0},
+    {"id": "Passage_E_Sud", "cote": "est", "s": 137.0},
+    {"id": "Passage_E_Nord", "cote": "est", "s": -137.0},
+    {"id": "Passage_O_Sud", "cote": "ouest", "s": 137.0},
+    {"id": "Passage_O_Nord", "cote": "ouest", "s": -137.0},
 ]
 
 # =====================================================================================================
 # 2. Tapis roulant (U ouvert, refermé au sud ; sens antihoraire vu du dessus)
 # =====================================================================================================
 
-TAPIS_LARGEUR = 16.1        # bande = bordure 3,1 + tapis 9,9 + bordure 3,1
-TAPIS_BANDE = 9.9
-TAPIS_BORDURE = 3.1
-TAPIS_AXE_X = 48.38          # axes des deux voies droites : x = ±48,38
-TAPIS_BORD_INT_X = 40.33     # bords intérieurs ±40,33
-TAPIS_BORD_EXT_X = 56.43     # bords extérieurs ±56,43
+TAPIS_LARGEUR = 16.0        # bande = bordure 3 + tapis 10 + bordure 3 (juge ; A : 3,1 + 9,9 + 3,1)
+TAPIS_BANDE = 10.0
+TAPIS_BORDURE = 3.0
+TAPIS_AXE_X = 48.5           # axes des deux voies droites : x = ±48,5
+TAPIS_BORD_INT_X = 40.5      # bords intérieurs ±40,5 (îlot de pelouse de 81 entre les voies)
+TAPIS_BORD_EXT_X = 56.5      # bords extérieurs ±56,5
 TAPIS_DESSUS = 0.6           # dessus de la bande sombre
 TAPIS_DESSUS_BORDURE = 1.0   # dessus des bordures (la bande est en creux de 0,4 entre elles)
-TAPIS_Z_TETE = -281.0        # tête des voies (mesurée) : là où la bande entre dans les portails
-TAPIS_Z_FOND = -293.0        # bout physique de la bande, sous le portail, contre son fond
-TAPIS_Z_APPARITION = -287.0  # point où les objets apparaissent (ouest) et disparaissent (est)
-TAPIS_Z_VIRAGE = 258.46      # début du demi-octogone au sud
+TAPIS_Z_TETE = -294.0        # têtes nord des deux voies : embout carré, filet blanc en travers, RIEN de haut dessus
+TAPIS_Z_FOND = TAPIS_Z_TETE  # bout physique de la bande (= la tête : pas de portail)
+TAPIS_Z_APPARITION = -290.0  # milieu de la zone de tête (16 × 8) où les objets apparaissent (ouest) / disparaissent (est)
+TAPIS_Z_VIRAGE = 258.5       # début du demi-octogone au sud
 
 # Axe du tapis dans le sens du flux : tête ouest → vers le sud → demi-tour d'ouest en est → tête est
 TAPIS_AXE = [
-    (-48.38, TAPIS_Z_APPARITION),
-    (-48.38, 258.46),
-    (-40.43, 276.22),
-    (-28.69, 286.28),
-    (28.69, 286.28),
-    (40.43, 276.22),
-    (48.38, 258.46),
-    (48.38, TAPIS_Z_APPARITION),
+    (-48.5, TAPIS_Z_TETE),
+    (-48.5, 258.5),
+    (-40.5, 276.3),
+    (-28.75, 286.3),
+    (28.75, 286.3),
+    (40.5, 276.3),
+    (48.5, 258.5),
+    (48.5, TAPIS_Z_TETE),
 ]
-# Polygones du demi-tour (mesurés, ajustés au 1/10 de stud) : bord intérieur et bord extérieur de la bande
-TAPIS_VIRAGE_INT = [(-40.33, 256.72), (-33.91, 271.25), (-25.77, 278.22),
-                    (25.77, 278.22), (33.91, 271.25), (40.33, 256.72)]
-TAPIS_VIRAGE_EXT = [(-56.43, 260.15), (-47.05, 281.16), (-31.67, 294.34),
-                    (31.67, 294.34), (47.05, 281.16), (56.43, 260.15)]
+# Polygones du demi-tour (juge) : bord intérieur et bord extérieur de la bande ; plan.tapis_bandes() les retrouve à
+# 0,1 près par décalage de l'axe (onglets aux joints)
+TAPIS_VIRAGE_INT = [(-40.5, 256.7), (-33.9, 271.3), (-25.8, 278.3),
+                    (25.8, 278.3), (33.9, 271.3), (40.5, 256.7)]
+TAPIS_VIRAGE_EXT = [(-56.5, 260.2), (-47.1, 281.2), (-31.7, 294.3),
+                    (31.7, 294.3), (47.1, 281.2), (56.5, 260.2)]
 # Tronçons droits de la bande (axe), dans le sens du flux ; la voie ouest descend vers +Z, la voie est remonte
 TAPIS_TRONCONS = [
-    {"id": "Voie_Ouest", "de": (-48.38, TAPIS_Z_FOND), "a": (-48.38, 258.46)},
-    {"id": "Virage_O1", "de": (-48.38, 258.46), "a": (-40.43, 276.22)},
-    {"id": "Virage_O2", "de": (-40.43, 276.22), "a": (-28.69, 286.28)},
-    {"id": "Virage_Sud", "de": (-28.69, 286.28), "a": (28.69, 286.28)},
-    {"id": "Virage_E2", "de": (28.69, 286.28), "a": (40.43, 276.22)},
-    {"id": "Virage_E1", "de": (40.43, 276.22), "a": (48.38, 258.46)},
-    {"id": "Voie_Est", "de": (48.38, 258.46), "a": (48.38, TAPIS_Z_FOND)},
+    {"id": "Voie_Ouest", "de": TAPIS_AXE[0], "a": TAPIS_AXE[1]},
+    {"id": "Virage_O1", "de": TAPIS_AXE[1], "a": TAPIS_AXE[2]},
+    {"id": "Virage_O2", "de": TAPIS_AXE[2], "a": TAPIS_AXE[3]},
+    {"id": "Virage_Sud", "de": TAPIS_AXE[3], "a": TAPIS_AXE[4]},
+    {"id": "Virage_E2", "de": TAPIS_AXE[4], "a": TAPIS_AXE[5]},
+    {"id": "Virage_E1", "de": TAPIS_AXE[5], "a": TAPIS_AXE[6]},
+    {"id": "Voie_Est", "de": TAPIS_AXE[6], "a": TAPIS_AXE[7]},
 ]
-CHEVRON_PAS = 8.5            # un chevron blanc tous les 8,5 le long de l'axe (mesuré ≈ 8,5)
-CHEVRON_LARGEUR = 9.0        # envergure du « V » à travers la bande (≤ 9,9)
+CHEVRON_PAS = 8.0            # un chevron blanc tous les 8,0 le long de l'axe (juge : 17 chevrons par voie, 8,0 à 8,2)
+CHEVRON_LARGEUR = 9.0        # envergure du « V » à travers la bande (≤ 10)
 CHEVRON_PROFONDEUR = 3.5     # flèche du « V » dans le sens du flux
 CHEVRON_TRAIT = 1.2          # largeur d'un bras
 
-# Portails des têtes de voies (nord) : arche au-dessus de la bande, ouverture vers le sud (le tapis)
-PORTAIL_LARGEUR = 30         # emprise en X (centrée sur l'axe de la voie)
-PORTAIL_PROFONDEUR = 16      # emprise en Z : de -297 à -281
+# Portails des têtes de voies : SUPPRIMÉS (juge : rien de haut sur les têtes ; les deux « portails » que A voyait
+# sont les deux kiosques à dôme du U, voir CENTRE). Les cotes restent pour tapis.portail (non posé).
+PORTAIL_LARGEUR = 30
+PORTAIL_PROFONDEUR = 16
 PORTAIL_HAUTEUR = 36
-PORTAIL_OUVERTURE = 18.5     # passage libre entre les piliers (la bande fait 16,1)
-PORTAILS = [
-    {"id": "Portail_Ouest", "role": "entree", "x": -48.38, "z": -289.0, "yaw": 180, "variante": 0},
-    {"id": "Portail_Est", "role": "sortie", "x": 48.38, "z": -289.0, "yaw": 180, "variante": 1},
-]
+PORTAIL_OUVERTURE = 18.5
+PORTAILS: list[dict] = []
 
 # =====================================================================================================
 # 3. Pièces du centre (dans le U) et apparition
 # =====================================================================================================
-# Chaque pièce : centre (x, z), emprise (x, z), hauteur, yaw (avant = côté où l'on joue), fonction de SPECS.md
+# Chaque pièce : centre (x, z), emprise (x, z), hauteur, yaw (avant = côté où l'on joue), fonction de SPECS.md,
+# paramètres facultatifs (« params ») passés à la fonction. Cotes du juge (LAYOUT.md § 5).
 CENTRE = {
-    "Vente": {"x": -17.0, "z": 242.0, "emprise": (28, 28), "hauteur": 18, "yaw": 0,
+    "Vente": {"x": -16.5, "z": 244.5, "emprise": (28, 24), "hauteur": 18, "yaw": 0,
               "fonction": "centre.stand_vente", "variante": 0,
-              "note": "stand ; l'avant regarde le nord ; zone de vente = demi-disque r 14 au nord (pointillés)"},
-    "Machine": {"x": 25.0, "z": 240.0, "emprise": (12, 10), "hauteur": 15, "yaw": 0,
+              "note": "stand 28 × 24 (x -30,5 → -2,5 ; z 232,5 → 256,5) ; l'avant regarde le nord ; zone de vente en "
+                      "demi-disque pointillé devant le bord nord (ZONE_VENTE)"},
+    "Machine": {"x": 25.0, "z": 240.0, "emprise": (12, 10), "hauteur": 17, "yaw": 0,
                 "fonction": "centre.machine", "variante": 0},
-    "Monument": {"x": 0.0, "z": 127.0, "emprise": (34, 34), "hauteur": 32, "yaw": 180,
+    "Monument": {"x": 0.0, "z": 126.0, "emprise": (34, 36), "hauteur": 32, "yaw": 180,
                  "fonction": "centre.monument", "variante": 0,
-                 "note": "à la place du sanctuaire ; l'avant regarde le sud (l'apparition)"},
-    "Vitrine": {"x": 0.0, "z": 34.5, "emprise": (36, 36), "hauteur": 2.5, "yaw": 180,
-                "fonction": "centre.vitrine", "variante": 0,
-                "note": "podium octogonal Ø 36 ; disque central de Ø 20 LIBRE (statue du jeu) ; z 34,5 (mesuré 34 ± 5) : "
-                        "ses faces nord et sud (16,5 et 52,5) ne tombent pas sur une ligne de la grille [8k, 8k + 1]"},
+                 "note": "à la place du sanctuaire des quêtes (x -17 → 17, z 108 → 144) ; l'avant regarde le sud"},
+    "Vitrine": {"x": 0.0, "z": 35.5, "emprise": (38, 38), "hauteur": 2.5, "yaw": 180,
+                "fonction": "centre.vitrine", "variante": 0, "params": {"diametre": 38},
+                "note": "podium octogonal Ø 38 (juge) ; disque central de Ø 20 LIBRE (statue du jeu) ; z 35,5 (mesuré "
+                        "35 ± 5) : ses faces nord et sud (16,5 et 54,5) ne tombent pas sur une ligne de la grille"},
     "Quetes": {"x": 0.0, "z": 151.0, "emprise": (12, 4), "hauteur": 16, "yaw": 180,
                "fonction": "centre.panneau_quetes", "variante": 0,
-               "note": "panneau holographique sans texte devant le monument (le PNJ des quêtes y était)"},
-    "Apparition": {"x": -3.0, "z": 206.5, "emprise": (14, 14), "hauteur": 1.5, "yaw": 0,
+               "note": "panneau holographique sans texte devant le monument (le PNJ des quêtes est au sanctuaire)"},
+    "Apparition": {"x": 0.0, "z": 205.0, "emprise": (14, 14), "hauteur": 1.5, "yaw": 0,
                    "fonction": "centre.apparition", "variante": 0,
-                   "note": "plaque dorée sous le repère Spawn"},
+                   "note": "point d'apparition neutre (juge : sur l'axe ; le joueur de refEH1 est en (-3 ; 207))"},
+    # deux kiosques à dôme contre le bord intérieur des voies, au nord du U (les « portails » de A), tournés vers l'axe ;
+    # centres au demi-stud (juge : (±29 ; -170) ±12) : les faces de leurs socles ne tombent pas sur la grille
+    "Kiosque_Ouest": {"x": -29.5, "z": -170.5, "emprise": (20, 20), "hauteur": 27, "yaw": 270,
+                      "fonction": "tours_formes.kiosque", "variante": 0,
+                      "params": {"type": "dome", "largeur": 20, "profondeur": 20, "hauteur": 26},
+                      "note": "kiosque à dôme (±12) ; avant vers +X"},
+    "Kiosque_Est": {"x": 29.5, "z": -170.5, "emprise": (20, 20), "hauteur": 27, "yaw": 90,
+                    "fonction": "tours_formes.kiosque", "variante": 3,
+                    "params": {"type": "dome", "largeur": 20, "profondeur": 20, "hauteur": 26},
+                    "note": "même modèle, autre schéma (dôme violet) ; avant vers -X"},
+    # portail violet lumineux (cadre de 10 × 3, 14 de haut, rôle inconnu : téléporteur ?) : portique à fond bleu nuit
+    # et liseré Neon violet, face au sud
+    "Portail": {"x": 0.0, "z": -105.0, "emprise": (10, 4), "hauteur": 14, "yaw": 180,
+                "fonction": "tours_formes.connecteur", "variante": 3,
+                "params": {"largeur": 10, "profondeur": 4, "hauteur": 14, "couleur": "violet",
+                           "accent": "neon_violet"},
+                "note": "portail violet (±20)"},
 }
-ZONE_VENTE = {"x": -17.0, "z": 228.0, "rayon": 14.0}   # demi-disque au nord du stand (bord nord du socle en z 228)
+# Zone de vente : demi-disque de rayon 14 en pointillés, centré au milieu du bord nord du stand (le juge mesure un
+# demi-disque r 20 centré sur le stand, ouvert vers le nord : z 225 → 245 ; centre.stand_vente le trace devant
+# le bord nord, à rayon_zone près)
+ZONE_VENTE = {"x": -16.5, "z": 232.5, "rayon": 14.0}
 VITRINE_RAYON_LIBRE = 10.0                              # centre du podium : rien au-dessus du dessus du podium
-SPAWN = {"x": -3.0, "z": 206.5, "yaw": 0}               # le joueur de refEH1 ; regard vers le nord (-Z)
+SPAWN = {"x": 0.0, "z": 205.0, "yaw": 0}                # point d'apparition neutre ; regard vers le nord (-Z)
 
 # =====================================================================================================
-# 4. Parcelles (8, NON construites : emprises et escaliers laissés vides, marqués par des repères)
+# 4. Parcelles (8, NON construites : emprises et bandes d'entrée laissées vides, marquées par des repères)
 # =====================================================================================================
-PARCELLE_LARGEUR = 111       # en X : bord intérieur |x| = 80, bord extérieur |x| = 191
-PARCELLE_PROFONDEUR = 105    # en Z
-PARCELLE_X_INT = 80.0
+PARCELLE_LARGEUR = 110       # plateforme réservée en X : bord intérieur |x| = 81, bord extérieur |x| = 191
+PARCELLE_PROFONDEUR = 102    # en Z
+PARCELLE_X_INT = 81.0
 PARCELLE_X_EXT = 191.0
-PARCELLE_X_CENTRE = 135.5
-RANGEES_Z = {1: 215.5, 2: 71.75, 3: -72.0, 4: -215.75}   # rangée 1 = sud ; pas 143,75 ; écart 38,75
-ESCALIER_X_EXT = 65.0        # escalier / rampe côté tapis : de |x| = 80 à |x| = 65
-ESCALIER_LONGUEUR = 55.0     # le long de Z, centré sur la rangée
-ETIQUETTE_Y = 38.7           # hauteur des étiquettes « Plot » du jeu (référence) au-dessus de |x| = 76,5
-ETIQUETTE_X = 76.5
-PLATEAU_BAS = 1.5            # hauteurs des plateaux des bases de référence (information)
+PARCELLE_X_CENTRE = 136.0
+RANGEES_Z = {1: 216.0, 2: 72.0, 3: -72.0, 4: -216.0}   # rangée 1 = sud ; pas 144 ; écart de 42 entre rangées
+ESCALIER_X_EXT = 65.0        # bande d'entrée réservée côté tapis (rampe, borne, pastille) : de |x| = 81 à |x| = 65
+ESCALIER_LONGUEUR = PARCELLE_PROFONDEUR   # sur toute la profondeur de la parcelle (juge)
+ETIQUETTE_Y = 38.7           # hauteur des étiquettes « Plot » du jeu (référence) au-dessus de |x| = 76
+ETIQUETTE_X = 76.0
+PLATEAU_BAS = 1.75           # hauteurs des plateaux des bases de référence (information)
 PLATEAU_HAUT = 5.0
+APPARITION_PARCELLE_X = 62.0  # point d'apparition de chaque joueur, sur la pelouse devant son entrée (±62 ; rangée)
 
 
 def _parcelles() -> list[dict]:
@@ -216,38 +272,50 @@ ECARTS_RANGEES_Z = [(RANGEES_Z[1] - PARCELLE_PROFONDEUR / 2 + RANGEES_Z[2] + PAR
                     (RANGEES_Z[2] - PARCELLE_PROFONDEUR / 2 + RANGEES_Z[3] + PARCELLE_PROFONDEUR / 2) / 2,
                     (RANGEES_Z[3] - PARCELLE_PROFONDEUR / 2 + RANGEES_Z[4] + PARCELLE_PROFONDEUR / 2) / 2]
 
-# Allées de marche à garder libres (rien de solide) : entre le tapis et les parcelles, sur toute la longueur des
-# rangées et 7 studs au-delà. Les escaliers des parcelles y sont compris.
+# Allées de marche à garder libres (rien de solide) : entre le tapis et les plateformes des parcelles, sur toute la
+# longueur des rangées et 7 studs au-delà. Les bandes d'entrée des parcelles (|x| 65 → 81) y sont comprises.
 COULOIRS_MARCHE = [
-    {"id": "Allee_Ouest", "x0": -80.0, "x1": -56.5, "z0": -275.0, "z1": 275.0},
-    {"id": "Allee_Est", "x0": 56.5, "x1": 80.0, "z0": -275.0, "z1": 275.0},
+    {"id": "Allee_Ouest", "x0": -PARCELLE_X_INT, "x1": -TAPIS_BORD_EXT_X, "z0": -274.0, "z1": 274.0},
+    {"id": "Allee_Est", "x0": TAPIS_BORD_EXT_X, "x1": PARCELLE_X_INT, "z0": -274.0, "z1": 274.0},
 ]
-# Zones où le décor est permis sur la pelouse (hors couloirs, parcelles, escaliers)
+# Zones où le décor est permis sur la pelouse (hors couloirs, parcelles, bandes d'entrée)
 DECOR_PELOUSE = {
     "marge_exterieure": "bande |x| 191 → 205 (14 de large) le long des parcelles",
-    "ecarts": "écarts de 38,75 entre rangées, |x| 80 → 191, sans barrer le passage (îlots ≤ 8 × 16 au centre)",
-    "u_interieur": "dans le U (|x| < 40,33) autour des pièces du centre, sans gêner leurs abords",
-    "marges_nord_sud": "pelouse au nord des rangées 4 et au sud des rangées 1, hors tapis et portails",
+    "ecarts": "écarts de 42 entre rangées, |x| 81 → 191, sans barrer le passage (un palmier en bac vers |x| 170)",
+    "u_interieur": "dans le U (|x| < 40,5) autour des pièces du centre, sans gêner leurs abords",
+    "marges_nord_sud": "pelouse au nord des rangées 4 (jusqu'à -336) et au sud des rangées 1, hors tapis",
 }
+# Points d'apparition des joueurs, un par parcelle (juge : sur la pelouse devant l'entrée), regard vers leur parcelle
+APPARITIONS_PARCELLES = [
+    {"id": p["id"], "x": (1 if p["cote"] == "E" else -1) * APPARITION_PARCELLE_X, "z": p["z"],
+     "yaw": 270 if p["cote"] == "E" else 90} for p in PARCELLES]
 HAUTEUR_LIBRE = 40.0     # rien de large (aire > 64 studs²) suspendu entre 5 et 40 au-dessus d'une zone praticable
 
 # =====================================================================================================
 # 5. La couronne de bâtiments (CEINTURE)
 # =====================================================================================================
 # Coordonnées de côté : s le long de la ligne des façades, d la profondeur vers l'extérieur (d = 0 sur la ligne).
-#   est   : s = z de -367 (nord) à +367 (sud) ; (x, z) = (271 + d, s) ; yaw 90  (l'avant regarde -X)
-#   ouest : s = z de -367 à +367             ; (x, z) = (-271 - d, s) ; yaw 270 (l'avant regarde +X)
-#   nord  : s = x de -271 (ouest) à +271     ; (x, z) = (s, -367 - d) ; yaw 180 (l'avant regarde +Z)
-#   sud   : s = x de -271 à +271             ; (x, z) = (s, 367 + d)  ; yaw 0   (l'avant regarde -Z)
+#   est        : s = z de -402 (nord) à +367 (sud) ; (x, z) = (271 + d, s)  ; yaw 90  (l'avant regarde -X)
+#   ouest      : s = z de -402 à +367              ; (x, z) = (-271 - d, s) ; yaw 270 (l'avant regarde +X)
+#   nord       : s = x de -271 (ouest) à +271      ; (x, z) = (s, -402 - d) ; yaw 180 (l'avant regarde +Z) ;
+#                l'intervalle |x| < 157 est réservé au renfoncement (esplanade et ses flancs)
+#   sud        : s = x de -271 à +271              ; (x, z) = (s, 367 + d)  ; yaw 0   (l'avant regarde -Z)
+#   fond       : fond de l'esplanade, s = x de -140 à +140 ; (x, z) = (s, -490 - d) ; yaw 180
+#   flanc_ouest: flanc ouest de l'esplanade, s = z de -490 à -402 ; (x, z) = (-140 - d, s) ; yaw 270
+#   flanc_est  : flanc est de l'esplanade,   s = z de -490 à -402 ; (x, z) = (140 + d, s)  ; yaw 90
 # Dans le repère de l'asset, la largeur suit X local (le long de la façade), la profondeur suit Z local (avant en -Z).
 COTES = {
-    "est": {"s0": -ALIGNEMENT_Z, "s1": ALIGNEMENT_Z, "yaw": 90},
-    "ouest": {"s0": -ALIGNEMENT_Z, "s1": ALIGNEMENT_Z, "yaw": 270},
+    "est": {"s0": -ALIGNEMENT_Z_NORD, "s1": ALIGNEMENT_Z_SUD, "yaw": 90},
+    "ouest": {"s0": -ALIGNEMENT_Z_NORD, "s1": ALIGNEMENT_Z_SUD, "yaw": 270},
     "nord": {"s0": -ALIGNEMENT_X, "s1": ALIGNEMENT_X, "yaw": 180},
     "sud": {"s0": -ALIGNEMENT_X, "s1": ALIGNEMENT_X, "yaw": 0},
+    "fond": {"s0": -ESPLANADE_X, "s1": ESPLANADE_X, "yaw": 180},
+    "flanc_ouest": {"s0": -ESPLANADE_Z, "s1": -ALIGNEMENT_Z_NORD, "yaw": 270},
+    "flanc_est": {"s0": -ESPLANADE_Z, "s1": -ALIGNEMENT_Z_NORD, "yaw": 90},
 }
-COINS_CENTRES = {"ne": (311.0, -407.0, 135), "no": (-311.0, -407.0, 225),
-                 "se": (311.0, 407.0, 45), "so": (-311.0, 407.0, 315)}
+_CX = ALIGNEMENT_X + COURONNE_PROFONDEUR / 2                 # 311 : centre des carrés d'angle de 80 × 80
+COINS_CENTRES = {"ne": (_CX, -(ALIGNEMENT_Z_NORD + 40.0), 135), "no": (-_CX, -(ALIGNEMENT_Z_NORD + 40.0), 225),
+                 "se": (_CX, ALIGNEMENT_Z_SUD + 40.0, 45), "so": (-_CX, ALIGNEMENT_Z_SUD + 40.0, 315)}
 D_RANG2 = 50.0          # profondeur de l'axe des tours du rang 2
 RAYON_RANG2_MAX = 29.0  # Ø ≤ 58 au sol : leur avant reste à d ≥ 21, derrière le rang 1 (d ≤ 17)
 PROF_RANG1_MAX = 17.0   # profondeur des éléments du rang 1 posés devant une tour
@@ -260,9 +328,15 @@ def cote_vers_monde(cote: str, s: float, d: float) -> tuple[float, float, float]
     if cote == "ouest":
         return (-ALIGNEMENT_X - d, s, 270.0)
     if cote == "nord":
-        return (s, -ALIGNEMENT_Z - d, 180.0)
+        return (s, -ALIGNEMENT_Z_NORD - d, 180.0)
     if cote == "sud":
-        return (s, ALIGNEMENT_Z + d, 0.0)
+        return (s, ALIGNEMENT_Z_SUD + d, 0.0)
+    if cote == "fond":
+        return (s, -ESPLANADE_Z - d, 180.0)
+    if cote == "flanc_ouest":
+        return (-ESPLANADE_X - d, s, 270.0)
+    if cote == "flanc_est":
+        return (ESPLANADE_X + d, s, 90.0)
     raise ValueError(cote)
 
 
@@ -280,7 +354,9 @@ def _cx(v, h, coul, acc):
 
 RANG1 = {
     "est": [   # côté soleil : orange, jaune d'or, rouge, citron ; accents bleu roi, turquoise
-        (24, RR + ".tour_fusee", 0, {"hauteur": 52, "diametre": 20, "type": "blanche"}),          # bout nord
+        (8,) + _cx(1, 16, "orange", "bleu_roi"),                                                # bout nord
+        (27, RF + ".kiosque", 3, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -376
+        (24, RR + ".tour_fusee", 0, {"hauteur": 52, "diametre": 20, "type": "blanche"}),          # baie -355
         (8,) + _cx(0, 16, "jaune_or", "bleu_roi"),
         (30, RF + ".boutique_arche", 2, {"hauteur": 28, "profondeur": 16}),                      # devant -320
         (8,) + _cx(1, 14, "orange", "turquoise"),
@@ -319,7 +395,9 @@ RANG1 = {
         (24, RR + ".tour_fusee", 3, {"hauteur": 50, "diametre": 20, "type": "blanche"}),         # bout sud
     ],
     "ouest": [   # côté lagon : turquoise, bleu roi, blanc labo, vert lime ; accents orange, jaune
-        (24, RR + ".tour_fusee", 1, {"hauteur": 48, "diametre": 20, "type": "capsule"}),        # bout nord
+        (8,) + _cx(1, 16, "turquoise", "jaune_or"),                                             # bout nord
+        (27, RF + ".kiosque", 1, {"type": "arcade", "hauteur": 22, "profondeur": 14}),          # devant -376
+        (24, RR + ".tour_fusee", 1, {"hauteur": 48, "diametre": 20, "type": "capsule"}),        # baie -355
         (8,) + _cx(0, 16, "turquoise", "orange"),
         (30, RF + ".kiosque", 3, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -320
         (8,) + _cx(1, 14, "bleu_roi", "jaune_citron"),
@@ -360,31 +438,47 @@ RANG1 = {
     "nord": [   # côté du labo (sous l'œuf) : violet, lavande, rose, magenta ; accents turquoise, citron
         (16,) + _cx(0, 16, "lavande", "turquoise"),                                             # bout ouest
         (30, RF + ".kiosque", 3, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant -240
+        (20, RR + ".tour_hublots", 3, {"hauteur": 36, "diametre": 18}),                          # baie -215
         (8,) + _cx(1, 14, "violet", "jaune_citron"),
-        (24, RR + ".tour_fusee", 1, {"hauteur": 46, "diametre": 18, "type": "capsule"}),        # baie -205
-        (8,) + _cx(2, 16, "rose_bonbon", "turquoise"),
-        (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant -170
-        (8,) + _cx(3, 18, "lavande", "turquoise"),
-        (24, RR + ".tour_hublots", 3, {"hauteur": 36, "diametre": 22}),                          # baie -135
-        (8,) + _cx(0, 16, "magenta", "jaune_citron"),
-        (30, RF + ".kiosque", 0, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -100
+        (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant -182
+        (10,) + _cx(2, 16, "rose_bonbon", "turquoise"),                                         # angle du renfoncement
+        (314, None, 0, {}),                                                                     # renfoncement (esplanade)
+        (10,) + _cx(2, 16, "rose_bonbon", "turquoise"),                                         # angle du renfoncement
+        (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant 182
         (8,) + _cx(1, 14, "violet", "turquoise"),
+        (20, RR + ".tour_fusee", 2, {"hauteur": 50, "diametre": 18, "type": "blanche"}),         # baie 215
+        (30, RF + ".kiosque", 2, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 240
+        (16,) + _cx(0, 16, "lavande", "turquoise"),                                             # bout est
+    ],
+    # fond de l'esplanade (z = -490, avant vers le sud) : le front bas du laboratoire, galerie de l'axe au centre ;
+    # rien au-dessus de 80 dans |x| < 70 (fenêtre de l'œuf)
+    "fond": [
+        (25,) + _cx(1, 14, "violet", "jaune_citron"),
+        (30, RF + ".kiosque", 0, {"type": "hublots", "hauteur": 16, "profondeur": 14}),         # devant -100
+        (8,) + _cx(3, 18, "lavande", "turquoise"),
         (30, RF + ".kiosque", 3, {"type": "dome", "hauteur": 22, "profondeur": 28}),             # fenêtre -62
         (8,) + _cx(2, 14, "lavande", "jaune_citron"),
         (78, C, 0, {"hauteur": 20, "profondeur": 14, "couleur": "blanc_labo", "accent": "violet"}),  # galerie de l'axe
         (8,) + _cx(2, 14, "lavande", "jaune_citron"),
         (30, RF + ".kiosque", 1, {"type": "boutons", "hauteur": 18, "profondeur": 28}),          # fenêtre 62
-        (8,) + _cx(1, 14, "violet", "turquoise"),
-        (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant 100
-        (8,) + _cx(0, 16, "magenta", "jaune_citron"),
-        (24, RR + ".tour_fusee", 2, {"hauteur": 50, "diametre": 18, "type": "blanche"}),         # baie 135
         (8,) + _cx(3, 18, "lavande", "turquoise"),
-        (30, RF + ".kiosque", 2, {"type": "arcade", "hauteur": 22, "profondeur": 14}),           # devant 170
-        (8,) + _cx(2, 16, "rose_bonbon", "turquoise"),
-        (24, RR + ".tour_hublots", 1, {"hauteur": 38, "diametre": 22}),                          # baie 205
-        (8,) + _cx(1, 14, "violet", "jaune_citron"),
-        (30, RF + ".boutique_arche", 0, {"hauteur": 28, "profondeur": 16}),                      # devant 240
-        (16,) + _cx(0, 16, "lavande", "turquoise"),                                             # bout est
+        (30, RF + ".boutique_arche", 3, {"hauteur": 26, "profondeur": 16}),                      # devant 100
+        (25,) + _cx(1, 14, "magenta", "jaune_citron"),
+    ],
+    # flancs de l'esplanade (88 de long, de z -490 à -402 ; profondeur ≤ 17 : x de ±140 à ±157)
+    "flanc_ouest": [
+        (8,) + _cx(0, 16, "magenta", "jaune_citron"),
+        (30, RF + ".boutique_arche", 1, {"hauteur": 26, "profondeur": 16}),
+        (8,) + _cx(2, 16, "lavande", "turquoise"),
+        (26, RF + ".kiosque", 0, {"type": "arcade", "hauteur": 22, "profondeur": 14}),
+        (16,) + _cx(1, 16, "violet", "turquoise"),                                              # angle sur la rue
+    ],
+    "flanc_est": [
+        (8,) + _cx(0, 16, "magenta", "turquoise"),
+        (30, RF + ".kiosque", 2, {"type": "hublots", "hauteur": 16, "profondeur": 14}),
+        (8,) + _cx(2, 16, "lavande", "jaune_citron"),
+        (26, RF + ".boutique_arche", 2, {"hauteur": 28, "profondeur": 16}),
+        (16,) + _cx(1, 16, "violet", "jaune_citron"),                                           # angle sur la rue
     ],
     "sud": [   # côté bonbon : rose, magenta, rouge et blanc, crème ; accents turquoise, vert lime
         (16,) + _cx(0, 16, "rose_bonbon", "turquoise"),                                         # bout ouest
@@ -420,6 +514,7 @@ RANG1 = {
 # --- Rang 2 : tours (s, d, fonction, variante, hauteur, diametre, extra) ; d = 50 sauf repères de milieu de côté
 RANG2 = {
     "est": [
+        (-376, 50, RR + ".tour_bulbe", 2, 120, 46, {}),             # ajoutée : le côté s'allonge de 35 au nord
         (-320, 50, RR + ".tour_galettes", 0, 200, 54, {}),
         (-240, 50, RF + ".tour_bourrelets", 3, 150, 44, {}),
         (-160, 50, RF + ".cone_etoile", 0, 130, 40, {}),
@@ -431,6 +526,7 @@ RANG2 = {
         (320, 50, RR + ".tour_galettes", 3, 190, 54, {}),
     ],
     "ouest": [
+        (-376, 50, RF + ".tour_anneau", 2, 120, 40, {}),            # ajoutée : le côté s'allonge de 35 au nord
         (-320, 50, RR + ".tour_soucoupe", 0, 170, 56, {}),
         (-240, 50, RR + ".tour_bulbe", 3, 115, 46, {}),
         (-160, 50, RR + ".tour_galettes", 1, 210, 54, {}),
@@ -443,12 +539,17 @@ RANG2 = {
     ],
     "nord": [
         (-240, 50, RR + ".tour_bulbe", 0, 130, 46, {}),
-        (-170, 50, RR + ".tour_champignon", 3, 165, 54, {}),
-        (-100, 50, RR + ".tour_galettes", 2, 245, 58, {"repere": "fenetre_ouest"}),
-        (0, 50, RF + ".plateau_disques", 0, 75, 56, {"repere": "fenetre_oeuf"}),
-        (100, 50, RF + ".tour_bourrelets", 0, 240, 52, {"repere": "fenetre_est"}),
-        (170, 50, RF + ".tour_damier", 2, 165, 44, {}),
+        (-182, 50, RR + ".tour_champignon", 3, 165, 54, {}),
+        # damier ramené à 130 : le tube du coin NE (y 150) passe au-dessus de sa tête
+        (182, 50, RF + ".tour_damier", 2, 130, 44, {}),
         (240, 50, RR + ".tour_soucoupe", 3, 150, 48, {}),
+    ],
+    # derrière le fond de l'esplanade : les deux tours qui cadrent l'œuf et le plateau du laboratoire au centre
+    "fond": [
+        # à ±102 : leurs galettes et coiffes (plus larges que le fût au-dessus de 40) restent hors de |x| < 70
+        (-102, 50, RR + ".tour_galettes", 2, 245, 58, {"repere": "fenetre_ouest"}),
+        (0, 50, RF + ".plateau_disques", 0, 75, 56, {"repere": "fenetre_oeuf"}),
+        (102, 50, RF + ".tour_bourrelets", 0, 240, 52, {"repere": "fenetre_est"}),
     ],
     "sud": [
         (-240, 50, RR + ".tour_tete_boule", 1, 150, 42, {}),
@@ -469,9 +570,10 @@ COINS = [
     {"id": "Coin_SO", "coin": "so", "fonction": RR + ".tour_soucoupe", "variante": 2, "hauteur": 230, "diametre": 70},
 ]
 
-# Fenêtre de l'œuf : sur le côté nord, |x| < 70, rien au-dessus de 80 (rang 1 ≤ 30, plateau à disques 75) :
-# depuis l'apparition, le dessous du nuage (y ≈ 202, à 1 100 studs) reste visible au-dessus du plateau.
-FENETRE_OEUF = {"x0": -70.0, "x1": 70.0, "hauteur_max": 80.0}
+# Fenêtre de l'œuf : au fond de l'esplanade nord, |x| < 70, aucun bâtiment au-dessus de 80 (front du fond ≤ 24,
+# plateau du laboratoire 75) : depuis l'apparition, le dessous du nuage (y ≈ 202, à 1 100 studs) reste visible
+# au-dessus du plateau ; les tours de 245 et 240 (x = ±100, z -540) cadrent l'œuf.
+FENETRE_OEUF = {"x0": -70.0, "x1": 70.0, "z0": -FOND_Z, "z1": -ALIGNEMENT_Z_NORD, "hauteur_max": 80.0}
 
 # --- Tubes de verre entre tours (≥ 60 de haut) : extrémités dans l'âme des tours (cachées), colliers visibles --
 # type « fin » : C04, rayon 2,5, anneaux d'or hexagonaux tous les 24 (sinusoïde si « onde » > 0) ;
@@ -481,14 +583,14 @@ TUBES = [
     {"id": "Tube_Est_Nord", "de": "E-T-320", "vers": "E-T-240", "y": 100.0, "type": "geant", "onde": 0},
     {"id": "Tube_Ouest_Nord", "de": "O-T-160", "vers": "O-T-80", "y": 75.0, "type": "geant", "onde": 0},
     {"id": "Tube_Ouest_Sud", "de": "O-T80", "vers": "O-T160", "y": 75.0, "type": "fin", "onde": 0},
-    {"id": "Tube_Nord_Ouest", "de": "N-T-170", "vers": "N-T-100", "y": 70.0, "type": "fin", "onde": 0},
-    {"id": "Tube_Coin_NE", "de": "N-T100", "vers": "E-T-320", "y": 150.0, "type": "fin", "onde": 0},
+    {"id": "Tube_Nord_Ouest", "de": "N-T-182", "vers": "F-T-102", "y": 70.0, "type": "fin", "onde": 0},
+    {"id": "Tube_Coin_NE", "de": "F-T102", "vers": "E-T-320", "y": 150.0, "type": "fin", "onde": 0},
     {"id": "Tube_Coin_SE", "de": "S-T80", "vers": "E-T320", "y": 80.0, "type": "fin", "onde": 6},
 ]
 TUBE_RAYON = {"fin": 2.5, "geant": 6.0}
 TUBE_PAS_ANNEAUX = {"fin": 24.0, "geant": 36.0}
 
-_PREFIXES = {"est": "E", "ouest": "O", "nord": "N", "sud": "S"}
+_PREFIXES = {"est": "E", "ouest": "O", "nord": "N", "sud": "S", "fond": "F", "flanc_ouest": "FO", "flanc_est": "FE"}
 
 
 def _fmt(v: float) -> str:
@@ -590,7 +692,7 @@ OEUF = {
     "fonction": "ciel.oeuf_labo", "variante": 0,
 }
 # Bas du nuage ≈ y 202, dessus ≈ y 354, coquille visible de 354 à 610, extension z ≈ -1140 → -660, |x| ≤ 305
-CABLE = {"de": (-80.0, 216.0, -760.0), "a": (-80.0, 0.0, -560.0), "fonction": "ciel.cable", "variante": 0,
+CABLE = {"de": (-80.0, 216.0, -760.0), "a": (-80.0, 0.0, -600.0), "fonction": "ciel.cable", "variante": 0,
          "note": "du dessous du nuage à une station d'ancrage posée sur son propre socle derrière la couronne nord"}
 
 NACELLES = [
@@ -683,42 +785,45 @@ def _mobilier() -> list[dict]:
     # Lampadaires à écran : trottoir intérieur (écran vers la pelouse), tous les 64, côté route
     k = 0
     for cote, signe in (("est", 1), ("ouest", -1)):
-        for i in range(10):
-            s = -288 + 64 * i
+        for s in range(-320, 300, 64):
             if _proche_passage(cote, s):
                 continue
             k += 1
             pose(f"Lampe_Int_{k:02d}", "mobilier.lampadaire", signe * (TROTTOIR_INT_X - 4), s,
                  90 if signe > 0 else 270, variante=0, y=yt)
-    for cote, signe in (("sud", 1), ("nord", -1)):
+    for zt, yaw in ((TROTTOIR_INT_Z_SUD - 4, 0), (-(TROTTOIR_INT_Z_NORD - 4), 180)):
         for i in range(7):
-            s = -192 + 64 * i
             k += 1
-            pose(f"Lampe_Int_{k:02d}", "mobilier.lampadaire", s, signe * (TROTTOIR_INT_Z - 4),
-                 0 if signe > 0 else 180, variante=0, y=yt)
-    # Trottoir extérieur : lampadaires-soucoupes côté route, tous les 64 décalés de 32
+            pose(f"Lampe_Int_{k:02d}", "mobilier.lampadaire", -192 + 64 * i, zt, yaw, variante=0, y=yt)
+    # Trottoir extérieur : lampadaires-soucoupes côté route, tous les 64
     k = 0
     for cote, signe in (("est", 1), ("ouest", -1)):
-        for i in range(11):
-            s = -320 + 64 * i
+        for s in range(-384, 360, 64):
             if _proche_passage(cote, s):
                 continue
             k += 1
             pose(f"Lampe_Ext_{k:02d}", "mobilier.lampadaire", signe * (ROUTE_X + 2.5), s,
                  270 if signe > 0 else 90, variante=1, y=yt)
-    for cote, signe in (("sud", 1), ("nord", -1)):
+    for zt, yaw in ((ROUTE_Z_SUD + 2.5, 180), (-(ROUTE_Z_NORD + 2.5), 0)):
         for i in range(8):
-            s = -224 + 64 * i
             k += 1
-            pose(f"Lampe_Ext_{k:02d}", "mobilier.lampadaire", s, signe * (ROUTE_Z + 2.5),
-                 180 if signe > 0 else 0, variante=1, y=yt)
-    # Marge extérieure de la pelouse (|x| 191 → 205) : jardinières rondes à deux palmiers
+            pose(f"Lampe_Ext_{k:02d}", "mobilier.lampadaire", -224 + 64 * i, zt, yaw, variante=1, y=yt)
+    # Palmiers de la pelouse aux places des arbres de la référence (juge) : coins de pelouse et marge arrière, en
+    # jardinières rondes à deux palmiers ; un palmier en bac dans chaque écart entre rangées (|x| ≈ 170). Les arbres
+    # de la marge arrière (juge : (±198 ; ±88)) passent au droit des écarts : leurs palmes (rayon ≈ 13) ne doivent
+    # pas couvrir les parcelles (|x| ≤ 191).
     k = 0
     for signe in (1, -1):
-        for z in [round(v, 2) for v in ECARTS_RANGEES_Z] + [284.5, -284.5]:
+        for z in tuple(ECARTS_RANGEES_Z) + (PELOUSE_Z_SUD - 5.0, -(PELOUSE_Z_NORD - 6.0)):
             k += 1
-            pose(f"Palmiers_Marge_{k:02d}", "mobilier.groupe_palmiers", signe * 198, z,
-                 _yaw_vers(signe * 198, z, 0, 0), variante=k % 4, n=2, diametre=8)
+            pose(f"Palmiers_Marge_{k:02d}", "mobilier.groupe_palmiers", signe * 199, z,
+                 _yaw_vers(signe * 199, z, 0, 0), variante=k % 4, n=2, diametre=8)
+    k = 0
+    for signe in (1, -1):
+        for z, x in zip(ECARTS_RANGEES_Z, (168.0, 172.0, 168.0)):
+            k += 1
+            pose(f"Palmier_Ecart_{k:02d}", "mobilier.groupe_palmiers", signe * x, z,
+                 _yaw_vers(signe * x, z, 0, z), variante=k % 4, n=1, diametre=6)
     # Écarts entre rangées : un lampadaire de chaque côté au bout extérieur (|x| = 186), rien au milieu
     k = 0
     for signe in (1, -1):
@@ -728,13 +833,14 @@ def _mobilier() -> list[dict]:
                  _yaw_vers(signe * 186, z + 15, signe * 186, z), variante=0)
     # Angles du trottoir intérieur : grandes jardinières rondes à trois palmiers
     for i, (sx, sz) in enumerate(((1, 1), (-1, 1), (1, -1), (-1, -1))):
-        x, z = sx * (PELOUSE_X + 6), sz * (PELOUSE_Z + 6)
+        x, z = sx * (PELOUSE_X + 6), (PELOUSE_Z_SUD + 6 if sz > 0 else -(PELOUSE_Z_NORD + 6))
         pose(f"Palmiers_Angle_{i + 1}", "mobilier.groupe_palmiers", x, z, _yaw_vers(x, z, 0, 0),
              variante=i, y=yt, n=3, diametre=10)
     # Dans le U : quatre palmiers en pot autour du monument, deux coupoles près du podium, bancs
-    for i, (x, z) in enumerate(((-27, 113), (27, 113), (-27, 141), (27, 141))):
-        pose(f"Palmier_U_{i + 1}", "mobilier.groupe_palmiers", x, z, _yaw_vers(x, z, 0, 127), variante=i,
-             n=1, diametre=6)
+    zm = CENTRE["Monument"]["z"]
+    for i, (x, dz) in enumerate(((-27, -14), (27, -14), (-27, 14), (27, 14))):
+        pose(f"Palmier_U_{i + 1}", "mobilier.groupe_palmiers", x, zm + dz, _yaw_vers(x, zm + dz, 0, zm),
+             variante=i, n=1, diametre=6)
     for i, x in enumerate((-30, 30)):
         pose(f"Coupole_U_{i + 1}", "mobilier.coupole_miniature", x, 62, 180, variante=i)
     for i, (x, z, yaw) in enumerate(((-30, 180, 90), (30, 180, 270), (-30, 80, 90), (30, 80, 270))):
@@ -746,7 +852,7 @@ def _mobilier() -> list[dict]:
             k += 1
             pose(f"Banc_Int_{k:02d}", "mobilier.banc", signe * (PELOUSE_X + 3), z,
                  90 if signe > 0 else 270, variante=k % 4, y=yt)
-    # Trottoir extérieur : jardinières à haie et palmier devant certains connecteurs (contre la façade)
+    # Trottoir extérieur et esplanade : jardinières à haie et palmier devant certains connecteurs (contre la façade)
     k = 0
     for e in CEINTURE:
         if e["fonction"] != "connecteur" or e["largeur"] != 8:
@@ -785,22 +891,28 @@ def _mobilier() -> list[dict]:
     # Parvis des coins de la couronne : palmiers devant chaque repère d'angle, coupole et panneau au trottoir
     for i, (cle, (cx, cz, yaw)) in enumerate(COINS_CENTRES.items()):
         sx, sz = (1 if cx > 0 else -1), (1 if cz > 0 else -1)
-        x, z = sx * (ALIGNEMENT_X + 10), sz * (ALIGNEMENT_Z + 10)
+        az = ALIGNEMENT_Z_SUD if sz > 0 else ALIGNEMENT_Z_NORD
+        x, z = sx * (ALIGNEMENT_X + 10), sz * (az + 10)
         pose(f"Palmiers_Coin_{cle.upper()}", "mobilier.groupe_palmiers", x, z, yaw, variante=i, y=NIVEAU_COURONNE,
              n=2, diametre=8)
-        x, z = sx * (TROTTOIR_EXT_X - 9), sz * (TROTTOIR_EXT_Z - 9)
+        x, z = sx * (TROTTOIR_EXT_X - 9), sz * (az - 9)
         pose(f"Coupole_Coin_{cle.upper()}", "mobilier.coupole_miniature", x, z, yaw, variante=(i + 2) % 4, y=yt)
+    # Esplanade nord : deux palmiers au pied du laboratoire (comme les deux arbres au pied de l'écran de la référence)
+    for i, sx in enumerate((-1, 1)):
+        x, z = sx * 46.0, -(ESPLANADE_Z - 9.0)
+        pose(f"Palmiers_Esplanade_{i + 1}", "mobilier.groupe_palmiers", x, z, 180, variante=i + 1,
+             y=NIVEAU_COURONNE, n=2, diametre=8)
     # Panneaux-pictogrammes : angles de la pelouse (sur le trottoir intérieur) et abords du centre
-    for i, (x, z, picto) in enumerate(((211, 270, "etoile"), (-211, 270, "piece"), (211, -270, "eclair"),
-                                       (-211, -270, "planete"))):
+    for i, (x, z, picto) in enumerate(((211, 270, "etoile"), (-211, 270, "piece"), (211, -300, "eclair"),
+                                       (-211, -300, "planete"))):
         pose(f"Panneau_{i + 1}", "mobilier.panneau", x, z, 90 if x > 0 else 270, variante=i % 4, y=yt,
              picto=picto)
-    for i, (x, z, yaw, picto) in enumerate(((-30, 264, 0, "piece"), (33, 222, 0, "eclair"),
-                                            (-33, -268, 180, "cornet"), (33, -268, 180, "etoile"))):
+    for i, (x, z, yaw, picto) in enumerate(((-30, 266, 0, "piece"), (33, 222, 0, "eclair"),
+                                            (-33, -282, 180, "cornet"), (33, -282, 180, "etoile"))):
         pose(f"Panneau_Centre_{i + 1}", "mobilier.panneau", x, z, yaw, variante=(i + 1) % 4, picto=picto)
     # Champignons lumineux en bordure intérieure du U (petits, sans collision)
     k = 0
-    for z in (-250, -190, -130, -70, 200):
+    for z in (-250, -205, -130, -70, 200):
         for signe in (1, -1):
             k += 1
             pose(f"Champignon_{k:02d}", "mobilier.champignon_lumineux", signe * 37, z, 0, variante=k % 2)
@@ -809,9 +921,11 @@ def _mobilier() -> list[dict]:
     k = 0
     for sx, sz in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
         k += 1
-        pose(f"Rambarde_{k}a", "mobilier.rambarde", sx * (TROTTOIR_INT_X - 1.8), sz * (PELOUSE_Z - 9), 90,
+        pz = PELOUSE_Z_SUD if sz > 0 else PELOUSE_Z_NORD
+        tz = TROTTOIR_INT_Z_SUD if sz > 0 else TROTTOIR_INT_Z_NORD
+        pose(f"Rambarde_{k}a", "mobilier.rambarde", sx * (TROTTOIR_INT_X - 1.8), sz * (pz - 9), 90,
              variante=0, y=yt, longueur=16)
-        pose(f"Rambarde_{k}b", "mobilier.rambarde", sx * (PELOUSE_X - 9), sz * (TROTTOIR_INT_Z - 1.8), 0,
+        pose(f"Rambarde_{k}b", "mobilier.rambarde", sx * (PELOUSE_X - 9), sz * (tz - 1.8), 0,
              variante=0, y=yt, longueur=16)
     return m
 
@@ -832,10 +946,13 @@ def _reperes() -> list[dict]:
         e = p["escalier"]
         r.append({"nom": f"Entree_{p['id']}", "centre": ((e["x0"] + e["x1"]) / 2, 0.0, p["z"]),
                   "taille": (e["x1"] - e["x0"], 1, ESCALIER_LONGUEUR), "yaw": 90 if p["cote"] == "W" else 270})
-    r.append({"nom": "Tapis_Debut", "centre": (TAPIS_AXE[0][0], TAPIS_DESSUS, TAPIS_AXE[0][1]),
-              "taille": (TAPIS_BANDE, 1, 4), "yaw": 180})
-    r.append({"nom": "Tapis_Fin", "centre": (TAPIS_AXE[-1][0], TAPIS_DESSUS, TAPIS_AXE[-1][1]),
-              "taille": (TAPIS_BANDE, 1, 4), "yaw": 0})
+    # zones de tête (16 × 8 du juge, réduites à la bande) : apparition à l'ouest (regard vers le sud, sens du flux),
+    # disparition à l'est (les objets y arrivent en remontant vers le nord)
+    ht = 2 * abs(TAPIS_Z_APPARITION - TAPIS_Z_TETE)
+    r.append({"nom": "Tapis_Debut", "centre": (TAPIS_AXE[0][0], TAPIS_DESSUS, TAPIS_Z_APPARITION),
+              "taille": (TAPIS_BANDE, 1, ht), "yaw": 180})
+    r.append({"nom": "Tapis_Fin", "centre": (TAPIS_AXE[-1][0], TAPIS_DESSUS, TAPIS_Z_APPARITION),
+              "taille": (TAPIS_BANDE, 1, ht), "yaw": 0})
     for i, (x, z) in enumerate(TAPIS_AXE):
         r.append({"nom": f"Tapis_{i + 1:02d}", "centre": (x, TAPIS_DESSUS, z), "taille": (2, 1, 2), "yaw": 0})
     for nom in ("Vente", "Machine", "Monument", "Vitrine", "Quetes"):
@@ -844,6 +961,10 @@ def _reperes() -> list[dict]:
                   "yaw": c["yaw"]})
     r.append({"nom": "ZoneVente", "centre": (ZONE_VENTE["x"], 0.0, ZONE_VENTE["z"] - ZONE_VENTE["rayon"] / 2),
               "taille": (2 * ZONE_VENTE["rayon"], 1, ZONE_VENTE["rayon"]), "yaw": 0})
+    # un point d'apparition par parcelle (juge), regard vers la parcelle
+    for a in APPARITIONS_PARCELLES:
+        r.append({"nom": f"Apparition_{a['id']}", "centre": (a["x"], 0.0, a["z"]), "taille": (6, 1, 6),
+                  "yaw": a["yaw"]})
     return r
 
 
@@ -857,14 +978,17 @@ VUES = {
     "capture1": ((2.03, 66.1, 319.0), (-2.06, 18.23, 231.29), 70.6),
     "capture2": ((156.2, 52.7, 361.3), (112.97, 16.7, 278.62), 69.3),
     # le joueur à l'apparition, caméra Roblox par défaut (12,5 derrière, regard vers le nord)
-    "joueur": ((-3.0, 8.0, 219.0), (-3.0, 5.5, 206.5), 70.0),
+    "joueur": ((0.0, 8.0, 217.5), (0.0, 5.5, 205.0), 70.0),
     # l'œuf au-dessus de la fenêtre nord, vu de la pelouse
-    "ciel": ((-3.0, 8.0, 219.0), (0.0, 300.0, -900.0), 62.0),
+    "ciel": ((0.0, 8.0, 217.5), (0.0, 300.0, -900.0), 62.0),
     "oeuf": ((0.0, 30.0, -250.0), (0.0, 440.0, -900.0), 46.0),
     # rues et couronne
     "rue": ((262.0, 7.0, 150.0), (264.0, 30.0, -60.0), 66.0),
-    "coin": ((140.0, 18.0, -190.0), (311.0, 120.0, -407.0), 66.0),
-    "nord": ((0.0, 66.1, -319.0), (0.0, 18.23, -231.3), 70.6),
+    "coin": ((140.0, 18.0, -225.0), (311.0, 120.0, -442.0), 66.0),
+    # pendant de capture1 vers le sud, symétrique par rapport au milieu de la pelouse (z -17,5)
+    "nord": ((0.0, 66.1, -354.0), (0.0, 18.23, -266.3), 70.6),
+    # l'esplanade nord, son laboratoire et l'œuf au-dessus, depuis la marge nord de la pelouse
+    "esplanade": ((-40.0, 9.0, -318.0), (0.0, 60.0, -560.0), 68.0),
     "centre": ((32.0, 34.0, 292.0), (-4.0, 6.0, 170.0), 60.0),
     "aerienne_sud": ((420.0, 520.0, 980.0), (0.0, 40.0, -60.0), 48.0),
     # vue d'ensemble depuis le côté du soleil (-X / +Z) : toute la carte et l'œuf au fond (la vue « aerienne »
@@ -881,12 +1005,12 @@ RESOLUTIONS = {"capture1": (2000, 1077), "capture2": (2000, 1050)}
 BUDGET_CARTE = {"pieces": 24000, "neon": 1500, "transparentes": 400, "cible": 21000}
 BUDGETS = {
     # module: (pièces, Neon, transparentes) — totaux de tout ce que le module pose sur la carte
-    "carte": (2600, 40, 60),           # sol, routes, trottoirs, bordures, marquages, mur de fond, repères, tubes
+    "carte": (2400, 40, 60),           # sol, routes, trottoirs, bordures, marquages, mur de fond, repères, tubes
     "tours_rondes": (4400, 400, 40),
     "tours_formes": (5200, 450, 30),
     "ciel": (1300, 220, 60),
     "tapis+centre": (1400, 160, 12),
-    "mobilier": (4600, 220, 30),       # poses de carte.py (MOBILIER)
+    "mobilier": (4800, 220, 30),       # poses de carte.py (MOBILIER) ; +200 (plan final : palmiers des écarts, esplanade)
 }
 # Plafond par appel (pièces, Neon, transparentes). « L » = largeur du connecteur.
 BUDGET_FONCTION = {
@@ -1016,18 +1140,28 @@ def dans_couloir(x, z, marge=0.0):
     return None
 
 
+def _dans_bande(x, z, bx, bz_sud, bz_nord) -> bool:
+    return abs(x) <= bx and -bz_nord <= z <= bz_sud
+
+
 def zone_praticable(x, z) -> str | None:
-    """Nature du sol praticable sous (x, z) : pelouse, trottoir, route, ou None (couronne, hors carte)."""
-    ax, az = abs(x), abs(z)
-    if ax <= PELOUSE_X and az <= PELOUSE_Z:
+    """Nature du sol praticable sous (x, z) : pelouse, trottoir, route, esplanade, ou None (couronne, hors carte)."""
+    if _dans_bande(x, z, PELOUSE_X, PELOUSE_Z_SUD, PELOUSE_Z_NORD):
         return "pelouse"
-    if ax <= TROTTOIR_INT_X and az <= TROTTOIR_INT_Z:
+    if _dans_bande(x, z, TROTTOIR_INT_X, TROTTOIR_INT_Z_SUD, TROTTOIR_INT_Z_NORD):
         return "trottoir_int"
-    if ax <= ROUTE_X and az <= ROUTE_Z:
+    if _dans_bande(x, z, ROUTE_X, ROUTE_Z_SUD, ROUTE_Z_NORD):
         return "route"
-    if ax <= TROTTOIR_EXT_X and az <= TROTTOIR_EXT_Z:
+    if _dans_bande(x, z, TROTTOIR_EXT_X, TROTTOIR_EXT_Z_SUD, TROTTOIR_EXT_Z_NORD):
         return "trottoir_ext"
+    if abs(x) <= ESPLANADE_X and -ESPLANADE_Z <= z <= -ALIGNEMENT_Z_NORD:
+        return "esplanade"
     return None
+
+
+def profondeur_praticable(x, z) -> float:
+    """Distance signée au bord des zones praticables (> 0 dedans, < 0 dans la couronne ou au-delà)."""
+    return max(min(x - x0, x1 - x, z - z0, z1 - z) for (x0, x1, z0, z1) in ZONES_PRATICABLES)
 
 
 def emprise_slot(e: dict):
@@ -1101,9 +1235,9 @@ def resume() -> dict:
     from collections import Counter
     par_fonction = Counter(f"{e['module']}.{e['fonction']}" for e in CEINTURE)
     return {
-        "pelouse": (2 * PELOUSE_X, 2 * PELOUSE_Z),
-        "facades": (2 * ALIGNEMENT_X, 2 * ALIGNEMENT_Z),
-        "emprise_totale": (2 * COURONNE_X, 2 * COURONNE_Z),
+        "pelouse": (2 * PELOUSE_X, PELOUSE_Z_SUD + PELOUSE_Z_NORD),
+        "facades": (2 * ALIGNEMENT_X, ALIGNEMENT_Z_SUD + ALIGNEMENT_Z_NORD),
+        "emprise_totale": (2 * COURONNE_X, COURONNE_Z_SUD + FOND_Z),
         "tapis_longueur_axe": round(longueur_polyligne(TAPIS_AXE), 2),
         "ceinture": len(CEINTURE),
         "ceinture_par_fonction": dict(sorted(par_fonction.items())),

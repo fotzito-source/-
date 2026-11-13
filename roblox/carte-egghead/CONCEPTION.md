@@ -186,3 +186,40 @@ rayés, les nacelles et les tubes sont des formes génériques recomposées dans
   `plan.FENETRE_OEUF`.
 - Si `plan/LAYOUT.md` (analyse finale) arrive, ses cotes remplacent celles de l'analyste A dans `plan.py` (bandes,
   tapis, parcelles, pièces du centre) ; la couronne suit (elle se calcule depuis la ligne des façades).
+
+## 9. Plan final (13/11, plan du juge : `plan/LAYOUT.md`)
+
+Le plan final du juge (fusion des analystes A, B et C, arbitrée sur les captures) remplace les cotes de l'analyste A
+dans `plan.py` ; l'origine ne change pas (milieu du tapis et des 8 parcelles). Ce qui change :
+
+1. **Pelouse plus longue au nord** : z de -336 à +301 (410 × 637). Tout l'anneau nord recule de 35 : trottoir
+   -336 → -348, route -348 → -384, trottoir extérieur → -402, façades nord à z = -402. Sud, est et ouest inchangés ;
+   la carte n'est plus symétrique en Z. Les dalles gardent des bords entiers (trottoirs 12 et 18, route 36 ; le juge
+   mesure 12,5 / 36 / 17,5).
+2. **Esplanade nord en renfoncement** (|x| < 140, z -402 → -490) : sol `voie` à trois rangées de tirets blancs (aire
+   des navettes, comme la place sombre de la référence), deux flancs et un fond à front de rue bas tourné vers elle
+   (galerie de l'axe au centre du fond), deux palmiers au pied du laboratoire. Derrière le fond (z -540) : les deux
+   tours qui cadrent l'œuf (x = ±102 ; 245 et 240) et le plateau à disques (75). L'esplanade devient la fenêtre de
+   l'œuf : aucun bâtiment au-dessus de 80 dans |x| < 70 (vérifié). Le bâtiment à écran géant de la référence
+   (≈ 220 de haut) n'est pas copié en hauteur : l'œuf, au-dessus, tient ce rôle.
+3. **Couronne régénérée** (173 emplacements au lieu de 161) : côtés est et ouest allongés de 35 au nord (un kiosque,
+   un connecteur et une tour de plus : bulbe orange à l'est, tour à anneau à l'ouest) ; côté nord en deux tronçons de
+   114 (rang 2 : bulbe -240, champignon -182, damier 182 ramené à 130 pour laisser passer le tube du coin NE à 150,
+   soucoupe 240) ; nouveaux côtés `fond`, `flanc_ouest`, `flanc_est` (ids `F-…`, `FO-…`, `FE-…`) ; repères d'angle
+   nord en z -442 ; mur de fond qui suit le décrochement (couronne du fond jusqu'à z -572 pour |x| ≤ 160).
+4. **Tapis** : axes à ±48,5, bords ±40,5 / ±56,5, bande de 16 (3 + 10 + 3), chevrons tous les 8 ; demi-tour sud
+   inchangé à 0,1 près. Têtes nord à z -294, embout carré, **sans portail** (rien de haut sur les têtes dans la
+   référence) : `plan.PORTAILS` est vide ; zones d'apparition et de disparition en tête de voie (repères
+   `Tapis_Debut` / `Tapis_Fin` à z -290).
+5. **Dans le U** : les « portails » de A sont **deux kiosques à dôme** en (±29,5 ; -170,5) (`tours_formes.kiosque`,
+   dôme, 20 × 20), tournés vers l'axe ; **portail violet** (portique à liseré Neon violet, 10 × 4 × 14) en
+   (0 ; -105), face au sud. Stand de vente 28 × 24 en (-16,5 ; 244,5), machine (25 ; 240), monument (0 ; 126),
+   podium Ø 38 en (0 ; 35,5), apparition neutre et repère `Spawn` en (0 ; 205).
+6. **Parcelles** : centres x ±136, z ±72 et ±216 (pas de 144), plateformes 110 × 102 (|x| 81 → 191), bande d'entrée
+   réservée |x| 65 → 81 sur toute la profondeur (repères `Entree_*` de 16 × 102) ; allées libres |x| 56,5 → 81 ; un
+   point d'apparition par parcelle en (±62 ; rangée), repères `Apparition_W1…E4` tournés vers leur parcelle.
+7. **Décor** : passages piétons à z ±137 ; palmiers aux places des arbres de la référence (un palmier en bac dans
+   chaque écart entre rangées vers |x| 170 ; jardinières aux coins de la pelouse et dans la marge arrière, au droit
+   des écarts : les palmes ne couvrent pas les parcelles) ; câble de l'œuf ancré en (-80 ; -600), derrière la
+   couronne du fond ; tubes `Tube_Nord_Ouest` (N-T-182 → F-T-102) et `Tube_Coin_NE` (F-T102 → E-T-320).
+8. **Non construits** : les piliers orange (effets de parcelle), comme prévu.

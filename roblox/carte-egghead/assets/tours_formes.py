@@ -158,7 +158,7 @@ def _porte(b, origine, u, R, y0, panneau, cadre, *, largeur=5.0, haut=6.0, chevr
             lg = 0.32 * largeur
             for sx in (-1, 1):
                 for sy in (-1, 1):
-                    ang = 35 * sx * sy
+                    ang = -35 * sx * sy
                     ctr = o + u * (R + 0.5) + tg * (sx * 0.2 * largeur) + up * (yc + sy * 0.28 * lg)
                     Rm = M @ rot_z(ang)
                     b.part("block", (lg, 0.35, 0.2), ctr, Rm, chevrons, collide=False, name="Chevron")
@@ -254,10 +254,9 @@ def _picto(b, kind, centre, taille, couleur, ep=0.3, **kw):
             ang = math.degrees(math.atan2(d[1], d[0]))
             b.part("block", (L + 0.12 * s, 0.15 * s, ep), (a + q) / 2, rot_z(ang), couleur, name="Eclair", **kw)
     elif kind == "nuage":
-        for (dx, dy, rr) in ((-0.27, -0.03, 0.19), (0.02, 0.08, 0.26), (0.29, -0.04, 0.17)):
-            b.cyl((cx + dx * s, cy + dy * s, cz + 0.02 * (dx > 0)), rr * s, ep, couleur, axis="z", name="Nuage",
-                  **kw)
-        b.boxc((cx, cy - 0.12 * s, cz - 0.03), (0.6 * s, 0.22 * s, ep), couleur, name="Nuage", **kw)
+        for i, (dx, dy, rr) in enumerate(((-0.27, -0.06, 0.17), (0.02, 0.06, 0.25), (0.28, -0.07, 0.16))):
+            b.cyl((cx + dx * s, cy + dy * s, cz - 0.03 * i), rr * s, ep, couleur, axis="z", name="Nuage", **kw)
+        b.boxc((cx + 0.01 * s, cy - 0.15 * s, cz + 0.04), (0.56 * s, 0.16 * s, ep), couleur, name="Nuage", **kw)
     else:
         raise ValueError(kind)
 
@@ -373,31 +372,31 @@ def tour_manette(b, variant=0, hauteur=195, diametre=48, largeur_manette=72, **_
             _bloc_mur(b, R, a, (yc1 + yt1) / 2, 0.9, yt1 - yc1 - 0.2, 0.15, cad, collide=False, name="Filet")
         for k in range(3):
             yk = yc1 + (k + 0.5) * dy
-            b.cyl((0, yk, 0), R + 0.15, 1.0, cad, collide=False, name="Bande")
+            b.cyl((0, yk, 0), R + 0.15, 2.0, cad, collide=False, name="Bande")
             for a in azs:
                 _hublot_mur(b, R + 0.15, a, yk, f, cad)
         for k in (1, 2):
-            b.cyl((0, yc1 + k * dy, 0), R + 0.3, 0.9, col, collide=False, name="Liseré")
+            b.cyl((0, yc1 + k * dy, 0), R + 0.4, 1.6, col, collide=False, name="Lisere")
         b.cyl((0, yt1 + 1.1, 0), D / 2 + 0.8, 2.2, cad, studs="top", name="Rebord")
     yr = yt1 + 2.2
     xf = 0.22 * Lm
     with b.group("Pieds"):
         for sx in (-1, 1):
-            b.cyl((sx * xf, yr + 0.5, 0), 3.4, 1.0, col, studs="top", name="Semelle")
-            b.cyl((sx * xf, (yr + 1.0 + ybm + 0.4) / 2, 0), 2.2, ybm + 0.4 - yr - 1.0, col, name="Pied")
-            b.cyl((sx * xf, ybm - 0.8, 0), 3.0, 1.6, cad, name="Cheville")
+            b.cyl((sx * xf, yr + 0.6, 0), 4.0, 1.2, cad, studs="top", name="Semelle")
+            b.cyl((sx * xf, (yr + 1.2 + ybm + 0.4) / 2, 0), 2.7, ybm + 0.4 - yr - 1.2, col, name="Pied")
+            b.cyl((sx * xf, ybm - 1.0, 0), 3.4, 2.0, cad, name="Cheville")
     with b.group("Manette"):
         rr = 0.27 * hm
         _boite_z(b, (0, ycm, 0), Lm, hm, lzm, rr, man, studs_dessus=True)
         _boite_z(b, (0, ycm, zf - 0.2), Lm - 4, hm - 4, 0.4, rr - 2, fac, collide=False)
         zp = zf - 0.4                     # face avant de la façade claire
         sock = shade(man, 0.78)
-        xd, yd = -0.27 * Lm, ycm - 0.02 * hm
+        xd, yd = 0.27 * Lm, ycm - 0.02 * hm
         b.cyl((xd, yd, zp - 0.15), 0.118 * Lm, 0.3, sock, axis="z", collide=False, name="Socle_croix")
         bw, bl = 0.068 * Lm, 0.2 * Lm
         b.boxc((xd, yd, zp - 0.3 - 0.3), (bw, bl, 0.6), bou, collide=False, name="Croix")
         b.boxc((xd, yd, zp - 0.3 - 0.325), (bl, bw, 0.75), bou, collide=False, name="Croix")
-        xb = 0.27 * Lm
+        xb = -0.27 * Lm
         b.cyl((xb, yd, zp - 0.15), 0.118 * Lm, 0.3, sock, axis="z", collide=False, name="Socle_boutons")
         e = 0.072 * Lm
         for (dx, dy_) in ((e, 0), (-e, 0), (0, e), (0, -e)):
@@ -413,10 +412,10 @@ def tour_manette(b, variant=0, hauteur=195, diametre=48, largeur_manette=72, **_
             b.boxc(((k - 2.5) * 0.028 * Lm, yv, zp - 0.1), (0.012 * Lm, 0.1 * hm, 0.2), shade(man, 0.6),
                    collide=False, name="Event")
     with b.group("Antenne"):
-        xa = 0.3 * Lm
-        b.cyl((xa, (ytm - 0.3 + H - 2.4) / 2, 0), 0.6, H - 2.4 - ytm + 0.3, col, collide=False, name="Mat")
-        b.cyl((xa, H - 4.6, 0), 2.2, 0.4, cad, collide=False, name="Disque")
-        b.ball((xa, H - 1.3, 0), 1.3, cad, collide=False, name="Boule")
+        xa = -0.3 * Lm
+        b.cyl((xa, (ytm - 0.3 + H - 2.6) / 2, 0), 0.8, H - 2.6 - ytm + 0.3, col, collide=False, name="Mat")
+        b.cyl((xa, H - 5.0, 0), 3.0, 0.5, cad, collide=False, name="Disque")
+        b.ball((xa, H - 1.6, 0), 1.6, c("rouge"), collide=False, name="Boule")
     return _bilan(b, i0, (D, D), H, R, largeur_manette=Lm)
 
 
@@ -624,19 +623,28 @@ def tour_bureaux(b, variant=0, hauteur=180, largeur=34, quai=None, **_):
     with b.group("CorpsHaut"):
         _boite_y(b, -L2 / 2, L2 / 2, y1 - 0.3, y2, -L2 / 2, L2 / 2, rc2, corps)
 
-    def bandes_corps(demi, rc, ya, yb):
+    def bandes_corps(demi, rc, ya, yb, cotes=True):
         lg = 2 * (demi - rc) - 0.6
         y = ya
         while y + 1.5 <= yb:
             if _libre(y, 1.5, quais):
                 b.boxc((0, y, -demi), (lg, 3.0, 0.4), bandes, collide=False, name="Bande")
-                for sx in (-1, 1):
-                    b.boxc((sx * demi, y, 0), (0.4, 3.0, lg), bandes, collide=False, name="Bande")
+                if cotes:
+                    for sx in (-1, 1):
+                        b.boxc((sx * demi, y, 0), (0.4, 3.0, lg), bandes, collide=False, name="Bande")
             y += 9.0
 
     with b.group("Bandes"):
         bandes_corps(Lb / 2, rc1, 13.5, y1 - 3.0)
-        bandes_corps(L2 / 2, rc2, y1 + 6.0, y2 - 3.0)
+        bandes_corps(L2 / 2, rc2, y1 + 6.0, y2 - 3.0, cotes=False)
+        # flancs du corps haut : bande verticale à petites fenêtres (T12)
+        ya_, yb_ = y1 + 3.0, y2 - 3.0
+        nf = max(3, int((yb_ - ya_) // 8))
+        for sx in (-1, 1):
+            b.boxc((sx * L2 / 2, (ya_ + yb_) / 2, 0), (0.4, yb_ - ya_, 5.0), corn, collide=False, name="BandeLaterale")
+            for k in range(nf):
+                yk = ya_ + (k + 0.5) * (yb_ - ya_) / nf
+                b.boxc((sx * (L2 / 2 + 0.25), yk, 0), (0.3, 2.4, 2.6), bandes, collide=False, name="Fenetre")
     Rd = L2 / 2
     hd = 0.85 * Rd
     y4 = H - hd
@@ -706,19 +714,22 @@ def plateau_disques(b, variant=0, hauteur=75, diametre=56, **_):
     s = schema("plateau_disques", variant)
     H, D = float(hauteur), float(diametre)
     i0 = len(b.parts)
-    t = 2.4
+    t = 3.2
     radii = [D / 2 - 0.6] + [f * D for f in (0.41, 0.31, 0.22)]
     Rbou = 0.07 * D
     y1 = 0.32 * H
     y4 = H - Rbou - t / 2
     ys = [y1 + (y4 - y1) * f for f in (0.0, 0.37, 0.70, 1.0)]
-    Rm = 0.06 * D
+    Rm = 0.075 * D
     mat, disq, dess, pts = s["mat"], s["disques"], s["dessous"], s["points"]
+    hp = min(9.0, 0.6 * (y1 - t / 2))
     with b.group("Socle"):
-        b.cyl((0, 0.6, 0), 0.19 * D, 1.2, mat, studs="top", name="Socle")
-        b.cyl((0, 1.2 + 2.0, 0), Rm + 1.6, 4.0, disq, studs="top", name="Pied")
+        b.cyl((0, 0.6, 0), 0.2 * D, 1.2, mat, studs="top", name="Socle")
+        b.cyl((0, 1.2 + hp / 2 - 0.1, 0), Rm + 3.0, hp + 0.2, disq, name="Pied")
+        b.cyl((0, 1.2 + hp + 0.5, 0), Rm + 3.5, 1.0, mat, studs="top", name="Pied")
+        _porte(b, (0, 0, 0), _u(0), Rm + 3.0, 1.0, NUIT, mat, largeur=3.6, haut=4.2)
     with b.group("Mat"):
-        b.cyl((0, (5.2 + ys[3]) / 2, 0), Rm, ys[3] - 5.2, mat, name="Mat")
+        b.cyl((0, (1.2 + hp + 1.0 + ys[3]) / 2, 0), Rm, ys[3] - 1.2 - hp - 1.0, mat, name="Mat")
     with b.group("Disques"):
         for i, (r, y) in enumerate(zip(radii, ys)):
             b.cyl((0, y, 0), r, t, disq, studs="top", name="Disque")
@@ -728,6 +739,8 @@ def plateau_disques(b, variant=0, hauteur=75, diametre=56, **_):
                 for a in (-75, -45, -15, 15, 45, 75):
                     b.ball(tuple(_u(a) * (r - 0.1) + np.array([0.0, y, 0.0])), 0.6, pts, material="Neon",
                            collide=False, shadow=False, name="Point")
+            else:
+                b.cyl((0, y + 0.2, 0), r + 0.25, 0.8, mat, collide=False, name="Lisere")
         b.ball((0, ys[3] + t / 2, 0), Rbou, mat, name="Boule")
     with b.group("Nacelles"):
         haut1 = (ys[1] - t / 2 - 0.85) - (ys[0] + t / 2)
@@ -753,8 +766,8 @@ def tour_anneau(b, variant=0, hauteur=125, diametre=40, quai=None, **_):
     i0 = len(b.parts)
     quais = _quais(quai, "tour_anneau", variant, H, D)
     kx = D / 32.0
-    Rf = 11 * kx
-    ea = 6 * kx
+    Rf = max(12.2, 10 * kx)
+    ea = 8.5 * kx
     ya = max([0.66 * H] + [q + d + ea / 2 + 0.5 for (q, d, _e) in quais])
     fut, ann, dome = s["fut"], s["anneau"], s["dome"]
     f1, f2 = s["fleche"]
@@ -827,24 +840,25 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
         b.box((W / 2 - 0.8, Hb, zfa + 0.6), (W / 2, H, P / 2), cad, studs="top", name="Acrotere")
         b.box((-W / 2 + 0.8, Hb, P / 2 - 0.8), (W / 2 - 0.8, H - 0.05, P / 2), cad, studs="top", name="Acrotere")
     ya = 9.0                                # naissance de l'arche
+    ra = min(7.0, xm - 4.5)                 # demi-largeur du cadre de l'arche (place pour tuyau et panneau)
     with b.group("Arche"):
         # trois couches en relief (cadre doré, joint sombre, porte blanche) : faces jamais confondues
-        for i, (rw, dz, col_, nom) in enumerate(((7.0, 0.8, arc_, "Arche"), (6.2, 0.95, NUIT, "Joint"),
-                                                 (5.4, 1.08, BLANC, "Porte"))):
+        for i, (rw, dz, col_, nom) in enumerate(((ra, 0.8, arc_, "Arche"), (ra - 0.8, 0.95, NUIT, "Joint"),
+                                                 (ra - 1.6, 1.08, BLANC, "Porte"))):
             b.box((-rw, -0.05 * (i + 1), zfa - dz), (rw, ya - 0.02 * i, zfa + 0.1 + 0.05 * i), col_, name=nom)
             z0, z1 = zfa - dz + 0.02, zfa + 0.08 + 0.05 * i
             b.cyl((0, ya, (z0 + z1) / 2), rw, z1 - z0, col_, axis="z", name=nom)
-        b.box((-0.15, 0.3, zfa - 1.14), (0.15, ya + 5.0, zfa - 1.0), NUIT, collide=False, name="Joint")
+        b.box((-0.15, 0.3, zfa - 1.14), (0.15, ya + ra - 2.0, zfa - 1.0), NUIT, collide=False, name="Joint")
         yc = 5.6
         for sy in (-1, 1):
-            b.part("block", (2.4, 0.55, 0.14), (2.0, yc + sy * 0.72, zfa - 1.11), rot_z(-38 * sy), c("rouge"),
+            b.part("block", (2.4, 0.55, 0.14), (0.3 * ra, yc + sy * 0.72, zfa - 1.11), rot_z(-38 * sy), c("rouge"),
                    collide=False, name="Chevron")
         for k in range(7):
             ang = math.radians(-90 + 180 * k / 6)
-            px, py = 6.6 * math.sin(ang), ya + 6.6 * math.cos(ang)
+            px, py = (ra - 0.4) * math.sin(ang), ya + (ra - 0.4) * math.cos(ang)
             b.cyl((px, py, zfa - 0.85), 0.32, 0.2, NUIT, axis="z", collide=False, name="Rivet")
     with b.group("Enseigne"):
-        yl = ya + 7.0 + 0.6
+        yl = ya + ra + 0.6
         b.box((-xm + 1.0, yl, zfa - 1.2), (xm - 1.0, yl + 0.6, zfa + 0.1), arc_, collide=False, name="Listel")
         yg = (yl + 0.6 + H - 3.5) / 2
         hg = min(4.6, (H - 3.5) - (yl + 0.6) - 1.4)
@@ -854,14 +868,14 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
                 shadow=False)
         kind = picto or PICTOS_BOUTIQUE[variant % 4]
         pc = BLANC if gel in (c("rose_bonbon"), c("violet"), c("turquoise")) else c("jaune_citron")
-        _picto(b, kind, (0, yg, zfa - 1.5 - 0.15), 0.8 * hg, pc)
+        _picto(b, kind, (0, yg, zfa - 1.5 - 0.15), (1.25 if kind == "nuage" else 0.95) * hg, pc)
         ysl = H - 3.5 - 2.6
         for sx in (-1, 1):
             for k in (-1, 0, 1):
                 b.boxc((sx * (xm - 3.2) + k * 1.3, ysl, zfa - 0.1), (0.6, 3.0, 0.3), shade(cad, 0.55),
                        collide=False, name="Fente")
     with b.group("Equipement"):
-        xp0, xp1 = -xm + 1.7, -xm + 3.9
+        xp0, xp1 = -xm + 1.6, -xm + 3.5
         zp = zfa - 0.45
         for x in (xp0, xp1):
             b.cyl((x, 2.9, zp), 0.7, 6.2, TUYAU, name="Tuyau")
@@ -985,12 +999,12 @@ def _kiosque_arcade(b, s, W, P, H):
         with b.group("Presentoir"):
             b.box((xa, 0, zf + 0.2), (xb_, 1.4, P / 2), BLANC, studs="top", name="Socle")
             b.box((xa, 1.4, P / 2 - 2.0), (xb_, 10.0, P / 2), shade(corps, 0.85), studs="top", name="Fond")
-            cubes = ((6.0, 1.4, 1.0, 8, c("orange")), (5.0, 7.4, 1.6, -6, c("jaune_or")),
-                     (4.0, 12.4, 1.2, 12, shade(c("orange"), 0.85)))
+            cubes = ((5.6, 1.4, 1.6, 12, c("orange")), (4.6, 7.0, 2.2, -10, lis),
+                     (3.6, 11.6, 1.8, 18, c("jaune_or")))
             for (sz, y0, dz, yaw, col_) in cubes:
-                b.boxc((xm, y0 + sz / 2, zf + 0.2 + 1.0 + dz + sz / 2 - 1.0), (sz, sz, sz), col_, yaw=yaw,
+                b.boxc((xm + 0.2 * (yaw > 0), y0 + sz / 2, zf + 0.2 + dz + sz / 2), (sz, sz, sz), col_, yaw=yaw,
                        studs="top", name="Cube")
-            yt = 12.4 + 4.0
+            yt = 11.6 + 3.6
             zc = zf + 0.2 + 1.2 + 2.0
             b.cyl((xm, yt + 1.0, zc), 0.35, 2.0, BLANC, collide=False, name="Pied")
             b.ellipsoid((xm, yt + 2.6, zc), (5.0, 1.2, 5.0), BLANC, rot=rot_x(40), collide=False,
@@ -1002,12 +1016,12 @@ def _kiosque_arcade(b, s, W, P, H):
 def _kiosque_hublots(b, s, W, P, H):
     tam, cad, vit = s["tambour"], s["cadre"], s["vitre"]
     zf = -P / 2
-    Rt = min(6.4, (P - 1.3) / 2)
+    Rt = min(6.4, (P - 1.3) / 2, (W / 2 - 2.45) / 2)
     zc = zf + 1.1 + Rt
     with b.group("Socle"):
         b.box((-W / 2, 0, zf), (W / 2, 1.0, P / 2), BLANC, studs="top", name="Socle")
         b.box((-W / 2, 1.0, P / 2 - 2.0), (W / 2, H - 4.0, P / 2), shade(tam, 0.8), studs="top", name="Fond")
-    xs = (-W / 2 + 1.0 + Rt + 0.4, W / 2 - 1.0 - Rt - 0.4)
+    xs = (-(1.55 + Rt), 1.55 + Rt)
     yt1 = H - 1.6
     for i, x in enumerate(xs):
         with b.group("Tambour"):
@@ -1023,19 +1037,19 @@ def _kiosque_hublots(b, s, W, P, H):
         with b.group("Tuyau"):
             sx = -1 if i == 0 else 1
             xo = x + sx * (Rt - 0.3)
-            xe = x + sx * (Rt + 0.55)
+            xe = x + sx * (Rt + 0.35)
             yj = yt1 - 2.5
             zj = zc + 1.5
-            b.cyl(((xo + xe) / 2, yj, zj), 0.6, abs(xe - xo), TUYAU, axis="x", collide=False, name="Tuyau")
-            b.ball((xe, yj, zj), 0.62, TUYAU, collide=False, name="Coude")
-            b.cyl((xe, (1.0 + yj) / 2, zj), 0.6, yj - 1.0, TUYAU, collide=False, name="Tuyau")
+            b.cyl(((xo + xe) / 2, yj, zj), 0.5, abs(xe - xo), TUYAU, axis="x", collide=False, name="Tuyau")
+            b.ball((xe, yj, zj), 0.52, TUYAU, collide=False, name="Coude")
+            b.cyl((xe, (1.0 + yj) / 2, zj), 0.5, yj - 1.0, TUYAU, collide=False, name="Tuyau")
     with b.group("Commande"):
-        b.box((-1.8, 0.9, zf + 1.2), (1.8, 7.5, zf + 4.0), cad, studs="top", name="Boitier")
-        b.box((-1.3, 5.0, zf + 0.95), (1.3, 6.8, zf + 1.2), NUIT, collide=False, name="Ecran")
-        b.boxc((0, 5.9, zf + 0.85), (1.6, 0.6, 0.2), c("cyan"), material="Neon", collide=False, shadow=False,
+        b.box((-1.5, 0.9, zf + 1.2), (1.5, 7.5, zf + 4.0), cad, studs="top", name="Boitier")
+        b.box((-1.1, 5.0, zf + 0.95), (1.1, 6.8, zf + 1.2), NUIT, collide=False, name="Ecran")
+        b.boxc((0, 5.9, zf + 0.85), (1.4, 0.6, 0.2), c("cyan"), material="Neon", collide=False, shadow=False,
                name="Voyant")
         for k, col_ in enumerate((c("rouge"), c("jaune_citron"))):
-            b.cyl((-0.7 + 1.4 * k, 3.4, zf + 1.05), 0.45, 0.3, col_, axis="z", collide=False, name="Bouton")
+            b.cyl((-0.6 + 1.2 * k, 3.4, zf + 1.05), 0.42, 0.3, col_, axis="z", collide=False, name="Bouton")
 
 
 def kiosque(b, variant=0, type="dome", largeur=26, profondeur=26, hauteur=24, **_):
@@ -1109,6 +1123,10 @@ def connecteur(b, variant=0, largeur=8, profondeur=12, hauteur=16, couleur="lava
         with b.group("Galerie"):
             ys = H - 10.5
             _niche(b, 0, zw, 14.0, ys, acc)
+            # liseré lumineux du grand arc (seul son bord dépasse entre le fond sombre et le cadre)
+            nc = c(accent) if accent in ("cyan", "neon_orange", "neon_blanc", "neon_violet") else c("neon_violet")
+            b.cyl((0, ys, zw - 0.1), 7.0 + 0.3, 0.1, nc, axis="z", material="Neon", collide=False, shadow=False,
+                  name="Lisere")
             xc = 7.75 + 1.9
             for sx in (-1, 1):
                 _colonne_rayee(b, sx * xc, zw + 0.05, 1.6, -0.05, H - hr + 0.3, (acc, BLANC), n=5)

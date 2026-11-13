@@ -9,9 +9,10 @@ Interface attendue par rendu.py :
 
 Ordre de construction (SPECS.md, fiche carte.py) :
 1. sol : pelouse à studs (dalles de 64) et sa grille de lignes en relief, trottoirs, bordures rayées rouge et blanc,
-   routes et marquages (tirets, lignes de rive, flèches, passages piétons), sol de la couronne, mur de fond, traces
-   des parcelles (facultatives), repères du jeu (dossier Reperes) ;
-2. tapis roulant et portails (assets/tapis.py), pièces du centre (assets/centre.py) ;
+   routes et marquages (tirets, lignes de rive, flèches, passages piétons), sol de la couronne et esplanade nord,
+   mur de fond, traces des parcelles (facultatives), repères du jeu (dossier Reperes) ;
+2. tapis roulant (assets/tapis.py ; portails de tête seulement si plan.PORTAILS en contient : le plan final n'en a
+   pas), pièces du U (assets/centre.py, kiosques et portail violet de assets/tours_formes.py) ;
 3. couronne : chaque emplacement de plan.CEINTURE (assets/tours_rondes.py, assets/tours_formes.py) ;
 4. tubes de verre entre les tours (posés ici), ciel (assets/ciel.py), mobilier (assets/mobilier.py) ;
 5. découpage du groupe Sol en blocs de 64 × 64.
@@ -191,100 +192,115 @@ def dalles(b: Builder, x0, x1, z0, z1, y1, couleur, nom: str, decalage: float = 
     return n
 
 
+def _bornes_bande(bx: float, bz_sud: float, bz_nord: float) -> tuple[float, float, float, float]:
+    """Rectangle (x0, x1, z0, z1) d'une bande : |x| ≤ bx, de z = -bz_nord (nord) à z = bz_sud (sud)."""
+    return (-bx, bx, -bz_nord, bz_sud)
+
+
+def cadre(b: Builder, dedans, dehors, y1, couleur, nom: str) -> None:
+    """Anneau de sol entre deux rectangles (x0, x1, z0, z1) emboîtés : bandes est et ouest sur toute la hauteur,
+    bandes nord et sud entre elles ; dalles coupées aux multiples de 64, studs dessus."""
+    ix0, ix1, iz0, iz1 = dedans
+    ex0, ex1, ez0, ez1 = dehors
+    dalles(b, ex0, ix0, ez0, ez1, y1, couleur, nom)        # ouest (angles compris)
+    dalles(b, ix1, ex1, ez0, ez1, y1, couleur, nom)        # est (angles compris)
+    dalles(b, ix0, ix1, ez0, iz0, y1, couleur, nom)        # nord
+    dalles(b, ix0, ix1, iz1, ez1, y1, couleur, nom)        # sud
+
+
 def pelouse(b: Builder) -> None:
-    """Pelouse sol_vert (dessus à 0) et grille : lignes d'1 stud au pas de 8 sur [8k, 8k + 1], en relief (0,15 le long
-    de Z, 0,20 le long de X). Les lignes descendent sous le dessus de la pelouse (dessous à -0,47 et -0,43 : jamais
-    dans le plan y = 0 où se posent les objets, ni de -0,1 à -0,25 où descend le tapis) et s'arrêtent à 0,05 des bords ; les
-    joints des dalles tombent entre deux lignes."""
-    PX, PZ = plan.PELOUSE_X, plan.PELOUSE_Z
+    """Pelouse sol_vert (dessus à 0 ; |x| ≤ 205, z de -336 à 301) et grille : lignes d'1 stud au pas de 8 sur
+    [8k, 8k + 1], en relief (0,15 le long de Z, 0,20 le long de X). Les lignes descendent sous le dessus de la pelouse
+    (dessous à -0,47 et -0,43 : jamais dans le plan y = 0 où se posent les objets) et s'arrêtent à 0,05 des bords ;
+    aucune ligne sur le bord même de la pelouse ; les joints des dalles (64k + 4) tombent entre deux lignes."""
+    PX, PZS, PZN = plan.PELOUSE_X, plan.PELOUSE_Z_SUD, plan.PELOUSE_Z_NORD
     pas, larg = plan.GRILLE_PAS, plan.GRILLE_LARGEUR
     with b.group("Sol"):
         with b.group("Pelouse"):
-            dalles(b, -PX, PX, -PZ, PZ, plan.NIVEAU_PELOUSE, SOL_VERT, "Pelouse", decalage=DECALAGE_PELOUSE)
+            dalles(b, -PX, PX, -PZN, PZS, plan.NIVEAU_PELOUSE, SOL_VERT, "Pelouse", decalage=DECALAGE_PELOUSE)
         with b.group("Grille"):
-            for k in range(math.ceil(-PX / pas), math.floor((PX - larg) / pas) + 1):
+            for k in range(math.ceil((-PX + 1) / pas), math.floor((PX - larg - 1) / pas) + 1):
                 x = k * pas
-                b.box((x, -0.47, -PZ + 0.05), (x + larg, plan.GRILLE_HAUT_LIGNES_Z, PZ - 0.05), LIGNE_GRILLE,
+                b.box((x, -0.47, -PZN + 0.05), (x + larg, plan.GRILLE_HAUT_LIGNES_Z, PZS - 0.05), LIGNE_GRILLE,
                       studs="top", name="LigneZ")
-            for k in range(math.ceil(-PZ / pas), math.floor((PZ - larg) / pas) + 1):
+            for k in range(math.ceil((-PZN + 1) / pas), math.floor((PZS - larg - 1) / pas) + 1):
                 z = k * pas
                 b.box((-PX + 0.05, -0.43, z), (PX - 0.05, plan.GRILLE_HAUT_LIGNES_X, z + larg), LIGNE_GRILLE,
                       studs="top", name="LigneX")
 
 
-def _phase_rayures(h_in: float) -> float:
-    """Phase a ∈ {2, -2} des rayures rouges [8k + a, 8k + a + 4] (symétriques autour de 0) qui laisse le plus court
-    bout blanc avant le carré d'angle (|s| ≤ h_in)."""
+def _phase_rayures(a0: float, a1: float) -> float:
+    """Phase a (rayures rouges sur [8k + a, 8k + a + 4], a ∈ {2, 6}) qui équilibre les deux bouts blancs du segment
+    [a0, a1] (jamais un segment rouge coupé aux angles, qui restent blancs). a = 2 ou 6 : les faces des blocs rouges
+    (8k ± 2) ne tombent jamais sur un joint de dalle de la route (multiples de 64) qu'elles débordent de 0,1."""
+    R = plan.BORDURE_RAYURE
     best = None
-    for a in (2.0, -2.0):
-        k = math.floor((h_in - a - plan.BORDURE_RAYURE) / (2 * plan.BORDURE_RAYURE))
-        fin = 8 * k + a + plan.BORDURE_RAYURE
-        reste = h_in - fin
-        if best is None or reste < best[1]:
-            best = (a, reste)
-    return best[0]
+    for a in (2.0, 6.0):
+        k0 = math.ceil((a0 - a) / (2 * R))
+        k1 = math.floor((a1 - a - R) / (2 * R))
+        if k1 < k0:
+            continue
+        reste0 = (2 * R * k0 + a) - a0
+        reste1 = a1 - (2 * R * k1 + a + R)
+        score = abs(reste0 - reste1)
+        if best is None or score < best[1]:
+            best = (a, score)
+    return best[0] if best else 0.0
 
 
-def bordure(b: Builder, hx_in: float, hz_in: float, route_dehors: bool) -> None:
-    """Bordure rayée d'1 stud en anneau rectangulaire entre |x| hx_in → hx_in + 1 et |z| hz_in → hz_in + 1.
+def bordure(b: Builder, dedans, route_dehors: bool) -> None:
+    """Bordure rayée d'1 stud en anneau rectangulaire autour du rectangle `dedans` (x0, x1, z0, z1).
     Base blanc_labo continue (y -2 → 0,6) ; blocs rouges de 4 tous les 8, en saillie de 0,1 sur le dessus (0,7) et
-    sur la face côté route, côté trottoir en retrait de 0,05 ; carré blanc aux angles."""
+    sur la face côté route, côté trottoir en retrait de 0,05 ; carrés blancs aux angles."""
     B = plan.BORDURE_LARGEUR
-    hx_out, hz_out = hx_in + B, hz_in + B
+    x0, x1, z0, z1 = dedans
     yb = plan.BORDURE_DESSUS
     yr0, yr1 = -0.5, yb + 0.1
     R = plan.BORDURE_RAYURE
     with b.group("Base"):
-        for s in (1, -1):
-            b.box((s * hx_in, -EP, -hz_out), (s * hx_out, yb, hz_out), BLANC, studs="top", name="Bordure")
-            b.box((-hx_in, -EP, s * hz_in), (hx_in, yb, s * hz_out), BLANC, studs="top", name="Bordure")
+        b.box((x0 - B, -EP, z0 - B), (x0, yb, z1 + B), BLANC, studs="top", name="Bordure")      # ouest
+        b.box((x1, -EP, z0 - B), (x1 + B, yb, z1 + B), BLANC, studs="top", name="Bordure")      # est
+        b.box((x0, -EP, z0 - B), (x1, yb, z0), BLANC, studs="top", name="Bordure")              # nord
+        b.box((x0, -EP, z1), (x1, yb, z1 + B), BLANC, studs="top", name="Bordure")              # sud
+    # bloc rouge : saillie de 0,1 côté route, retrait de 0,05 côté trottoir ; e_in / e_out = décalage de sa face
+    # intérieure / extérieure (vers le dehors de l'anneau) par rapport à la base
+    e_in, e_out = (0.05, 0.1) if route_dehors else (-0.1, -0.05)
     with b.group("Rayures"):
-        # côtés est / ouest (le long de Z)
-        a = _phase_rayures(hz_in)
-        for s in (1, -1):
-            if route_dehors:      # trottoir intérieur : la route est du côté |x| croissant
-                x0, x1 = hx_in + 0.05, hx_out + 0.1
-            else:                 # trottoir extérieur : la route est du côté |x| décroissant
-                x0, x1 = hx_in - 0.1, hx_out - 0.05
-            k = math.ceil((-hz_in - a) / (2 * R))
-            while 2 * R * k + a + R <= hz_in + 1e-9:
-                z0 = 2 * R * k + a
-                b.box((s * x0, yr0, z0), (s * x1, yr1, z0 + R), ROUGE, studs="top", name="Rayure")
+        a = _phase_rayures(z0, z1)
+        for (xa, xb) in ((x0 - B - e_out, x0 - e_in), (x1 + e_in, x1 + B + e_out)):   # ouest, est
+            k = math.ceil((z0 - a) / (2 * R))
+            while 2 * R * k + a + R <= z1 + 1e-9:
+                zz = 2 * R * k + a
+                b.box((xa, yr0, zz), (xb, yr1, zz + R), ROUGE, studs="top", name="Rayure")
                 k += 1
-        # côtés nord / sud (le long de X)
-        a = _phase_rayures(hx_in)
-        for s in (1, -1):
-            if route_dehors:
-                z0_, z1_ = hz_in + 0.05, hz_out + 0.1
-            else:
-                z0_, z1_ = hz_in - 0.1, hz_out - 0.05
-            k = math.ceil((-hx_in - a) / (2 * R))
-            while 2 * R * k + a + R <= hx_in + 1e-9:
-                x0 = 2 * R * k + a
-                b.box((x0, yr0, s * z0_), (x0 + R, yr1, s * z1_), ROUGE, studs="top", name="Rayure")
+        a = _phase_rayures(x0, x1)
+        for (za, zb) in ((z0 - B - e_out, z0 - e_in), (z1 + e_in, z1 + B + e_out)):   # nord, sud
+            k = math.ceil((x0 - a) / (2 * R))
+            while 2 * R * k + a + R <= x1 + 1e-9:
+                xx = 2 * R * k + a
+                b.box((xx, yr0, za), (xx + R, yr1, zb), ROUGE, studs="top", name="Rayure")
                 k += 1
 
 
 def trottoirs(b: Builder) -> None:
-    PX, PZ = plan.PELOUSE_X, plan.PELOUSE_Z
-    TX, TZ = plan.TROTTOIR_INT_X, plan.TROTTOIR_INT_Z
-    RX, RZ = plan.ROUTE_X, plan.ROUTE_Z
-    EX, EZ = plan.TROTTOIR_EXT_X, plan.TROTTOIR_EXT_Z
     B = plan.BORDURE_LARGEUR
     yt = plan.NIVEAU_TROTTOIR
+    pel = _bornes_bande(plan.PELOUSE_X, plan.PELOUSE_Z_SUD, plan.PELOUSE_Z_NORD)
+    tin = _bornes_bande(plan.TROTTOIR_INT_X, plan.TROTTOIR_INT_Z_SUD, plan.TROTTOIR_INT_Z_NORD)
+    rte = _bornes_bande(plan.ROUTE_X, plan.ROUTE_Z_SUD, plan.ROUTE_Z_NORD)
+    j = plan.JOINT_COURONNE      # le trottoir extérieur passe d'1 stud sous le pied des façades
+    tex = _bornes_bande(plan.TROTTOIR_EXT_X + j, plan.TROTTOIR_EXT_Z_SUD + j, plan.TROTTOIR_EXT_Z_NORD + j)
+    tin_sans_bordure = (tin[0] + B, tin[1] - B, tin[2] + B, tin[3] - B)      # le dernier stud est la bordure
+    rte_bordure = (rte[0] - B, rte[1] + B, rte[2] - B, rte[3] + B)
     with b.group("Trottoirs"):
         with b.group("Interieur"):
-            for s in (1, -1):
-                dalles(b, s * PX, s * (TX - B), -(TZ - B), TZ - B, yt, DALLE, "Trottoir")     # est / ouest
-                dalles(b, -PX, PX, s * PZ, s * (TZ - B), yt, DALLE, "Trottoir")               # nord / sud
+            cadre(b, pel, tin_sans_bordure, yt, DALLE, "Trottoir")
             with b.group("Bordure"):
-                bordure(b, TX - B, TZ - B, route_dehors=True)
+                bordure(b, tin_sans_bordure, route_dehors=True)
         with b.group("Exterieur"):
-            for s in (1, -1):
-                dalles(b, s * (RX + B), s * EX, -EZ, EZ, yt, DALLE, "Trottoir")                # est / ouest
-                dalles(b, -(RX + B), RX + B, s * (RZ + B), s * EZ, yt, DALLE, "Trottoir")       # nord / sud
+            cadre(b, rte_bordure, tex, yt, DALLE, "Trottoir")
             with b.group("Bordure"):
-                bordure(b, RX, RZ, route_dehors=False)
+                bordure(b, rte, route_dehors=False)
 
 
 def _fleche(b: Builder, x: float, z: float, d: tuple[float, float]) -> None:
@@ -304,75 +320,69 @@ def _fleche(b: Builder, x: float, z: float, d: tuple[float, float]) -> None:
 
 
 def routes(b: Builder) -> None:
-    TX, TZ = plan.TROTTOIR_INT_X, plan.TROTTOIR_INT_Z
-    RX, RZ = plan.ROUTE_X, plan.ROUTE_Z
+    """Route à 2 voies de 18 (anneau entre les trottoirs), marquages blancs : tirets de l'axe 1 × 6 tous les 16,
+    lignes de rive à 2 des bords, flèches (voie intérieure antihoraire), passages piétons zébrés."""
+    TX, RX = plan.TROTTOIR_INT_X, plan.ROUTE_X
+    TZS, TZN = plan.TROTTOIR_INT_Z_SUD, plan.TROTTOIR_INT_Z_NORD
+    RZS, RZN = plan.ROUTE_Z_SUD, plan.ROUTE_Z_NORD
     hm = plan.NIVEAU_MARQUAGE
     rr = plan.LIGNE_RIVE_RETRAIT
     passages = defaultdict(list)          # côté → centres s
     for p in plan.PASSAGES_PIETONS:
         passages[p["cote"]].append(p["s"])
     demi_p = plan.PASSAGE_LARGEUR / 2
+    tin = _bornes_bande(TX, TZS, TZN)
+    rte = _bornes_bande(RX, RZS, RZN)
     with b.group("Routes"):
         with b.group("Voies"):
-            for s in (1, -1):
-                dalles(b, s * TX, s * RX, -RZ, RZ, plan.NIVEAU_ROUTE, VOIE, "Voie")          # est / ouest + angles
-                dalles(b, -TX, TX, s * TZ, s * RZ, plan.NIVEAU_ROUTE, VOIE, "Voie")          # nord / sud
+            cadre(b, tin, rte, plan.NIVEAU_ROUTE, VOIE, "Voie")
         with b.group("Marquages"):
-            # --- tirets de l'axe : 1 × 6 tous les 16, centrés sur 16k, arrêtés à 4 des carrés d'angle ----------
-            ax, az = int(plan.ROUTE_AXE_X), int(plan.ROUTE_AXE_Z)
             T, P_ = plan.TIRET_LONGUEUR, plan.TIRET_PAS
-            lim_z = TZ - plan.TIRET_ARRET_COIN
-            lim_x = TX - plan.TIRET_ARRET_COIN
+            arret = plan.TIRET_ARRET_COIN
+            # --- tirets de l'axe : 1 × 6 tous les 16, centrés sur 16k, arrêtés à 4 des carrés d'angle ----------
+            ax = int(plan.ROUTE_AXE_X)
             for s, cote in ((1, "est"), (-1, "ouest")):
-                for k in range(-int(lim_z // P_), int(lim_z // P_) + 1):
+                x0 = ax if s > 0 else -ax - 1
+                for k in range(math.ceil((-TZN + arret + T / 2) / P_), math.floor((TZS - arret - T / 2) / P_) + 1):
                     c = k * P_
-                    if abs(c) + T / 2 > lim_z:
-                        continue
                     if any(abs(c - sp) < demi_p + T / 2 + 1 for sp in passages[cote]):
                         continue
-                    x0 = ax if s > 0 else -ax - 1
                     b.box((x0, 0, c - T / 2), (x0 + 1, hm, c + T / 2), BLANC, studs="top", name="Tiret")
-            for s in (1, -1):
-                for k in range(-int(lim_x // P_), int(lim_x // P_) + 1):
+            for z0 in (int(plan.ROUTE_AXE_Z_SUD), -int(plan.ROUTE_AXE_Z_NORD) - 1):
+                for k in range(math.ceil((-TX + arret + T / 2) / P_), math.floor((TX - arret - T / 2) / P_) + 1):
                     c = k * P_
-                    if abs(c) + T / 2 > lim_x:
-                        continue
-                    z0 = az if s > 0 else -az - 1
                     b.box((c - T / 2, 0, z0), (c + T / 2, hm, z0 + 1), BLANC, studs="top", name="Tiret")
             # --- lignes de rive : anneau intérieur et anneau extérieur, raccordés aux angles sans recouvrement --
-            xi, zi = TX + rr, TZ + rr                  # bord intérieur : [219, 220] et [315, 316]
-            xo, zo = RX - rr - 1, RZ - rr - 1          # bord extérieur : [250, 251] et [346, 347]
-            for (lx, lz) in ((xi, zi), (xo, zo)):
+            anneaux = ((TX + rr, TZS + rr, TZN + rr), (RX - rr - 1, RZS - rr - 1, RZN - rr - 1))
+            for (lx, lzs, lzn) in anneaux:        # ligne sur [lx, lx + 1] (et symétriques), [lzs, lzs + 1], …
                 for s, cote in ((1, "est"), (-1, "ouest")):
                     # le long de Z, entre les lignes nord et sud (qui couvrent les angles), coupée aux passages
-                    bornes_z = [-lz]
+                    bornes_z = [-lzn]
                     for sp in sorted(passages[cote]):
                         bornes_z += [sp - demi_p, sp + demi_p]
-                    bornes_z.append(lz)
+                    bornes_z.append(lzs)
                     x0 = lx if s > 0 else -lx - 1
                     for i in range(0, len(bornes_z), 2):
                         b.box((x0, 0, bornes_z[i]), (x0 + 1, hm, bornes_z[i + 1]), BLANC, studs="top",
                               name="LigneRive")
-                for s in (1, -1):
-                    z0 = lz if s > 0 else -lz - 1
-                    b.box((-lx - 1, 0, z0), (lx + 1, hm, z0 + 1), BLANC, studs="top", name="LigneRive")
+                b.box((-lx - 1, 0, lzs), (lx + 1, hm, lzs + 1), BLANC, studs="top", name="LigneRive")
+                b.box((-lx - 1, 0, -lzn - 1), (lx + 1, hm, -lzn), BLANC, studs="top", name="LigneRive")
             # --- flèches : voie intérieure antihoraire vue du dessus, voie extérieure en sens inverse ----------
             c_int = TX + (RX - TX) / 4                # milieu de la voie intérieure (226)
             c_ext = RX - (RX - TX) / 4                 # milieu de la voie extérieure (244)
-            ci_z = TZ + (RZ - TZ) / 4
-            ce_z = RZ - (RZ - TZ) / 4
+            ci_s, ce_s = TZS + (RZS - TZS) / 4, RZS - (RZS - TZS) / 4
+            ci_n, ce_n = TZN + (RZN - TZN) / 4, RZN - (RZN - TZN) / 4
             Lf = plan.FLECHE_LONGUEUR
-            # (côté, coordonnée fixe de la voie intérieure, de la voie extérieure, direction intérieure, borne)
-            sens = (("est", c_int, c_ext, (0, -1), TZ), ("ouest", -c_int, -c_ext, (0, 1), TZ),
-                    ("sud", ci_z, ce_z, (1, 0), TX), ("nord", -ci_z, -ce_z, (-1, 0), TX))
-            for cote, fi, fe, d, borne in sens:
+            # (côté, coordonnée fixe des voies intérieure / extérieure, direction intérieure, bornes de s)
+            sens = (("est", c_int, c_ext, (0, -1), (-TZN, TZS)), ("ouest", -c_int, -c_ext, (0, 1), (-TZN, TZS)),
+                    ("sud", ci_s, ce_s, (1, 0), (-TX, TX)), ("nord", -ci_n, -ce_n, (-1, 0), (-TX, TX)))
+            for cote, fi, fe, d, (s0, s1) in sens:
                 for voie, fixe, dirv, decal in (("int", fi, d, 0.0), ("ext", fe, (-d[0], -d[1]), plan.FLECHE_PAS / 2)):
-                    k0 = math.ceil((-borne - decal) / plan.FLECHE_PAS)
-                    k = k0
-                    while k * plan.FLECHE_PAS + decal <= borne:
+                    k = math.ceil((s0 - decal) / plan.FLECHE_PAS)
+                    while k * plan.FLECHE_PAS + decal <= s1:
                         sc = k * plan.FLECHE_PAS + decal
                         k += 1
-                        if abs(sc) + Lf / 2 > borne - plan.TIRET_ARRET_COIN - 4:
+                        if sc - Lf / 2 < s0 + arret + 4 or sc + Lf / 2 > s1 - arret - 4:
                             continue
                         if any(abs(sc - sp) < demi_p + Lf / 2 + 12 for sp in passages.get(cote, [])):
                             continue
@@ -393,40 +403,76 @@ def routes(b: Builder) -> None:
 
 
 def sol_couronne(b: Builder) -> None:
-    """Sol de la couronne (sol_vert_clair, dessus à 0,4) : de la ligne des façades au bord extérieur."""
-    AX, AZ = plan.ALIGNEMENT_X, plan.ALIGNEMENT_Z
-    CX, CZ = plan.COURONNE_X, plan.COURONNE_Z
+    """Sol de la couronne (sol_vert_clair, dessus à 0,4) de la ligne des façades (+1 : le trottoir passe sous leur
+    pied) au bord extérieur, avec le renfoncement nord : esplanade (voie, rangées de tirets blancs : aire des
+    navettes) entre ses deux flancs, et la couronne du fond derrière elle."""
+    j = plan.JOINT_COURONNE
+    AX, AZS, AZN = plan.ALIGNEMENT_X + j, plan.ALIGNEMENT_Z_SUD + j, plan.ALIGNEMENT_Z_NORD + j
+    CX, CZS, CZN = plan.COURONNE_X, plan.COURONNE_Z_SUD, plan.COURONNE_Z_NORD
+    EX, EZ = plan.ESPLANADE_X + j, plan.ESPLANADE_Z + j        # l'esplanade passe sous le pied des flancs et du fond
+    FX, FZ = plan.FOND_X, plan.FOND_Z
     y = plan.NIVEAU_COURONNE
     with b.group("Sol"):
         with b.group("Couronne"):
             for s in (1, -1):
-                dalles(b, s * AX, s * CX, -CZ, CZ, y, SOL_COURONNE, "SolCouronne")     # est / ouest + angles
-                dalles(b, -AX, AX, s * AZ, s * CZ, y, SOL_COURONNE, "SolCouronne")     # nord / sud
+                dalles(b, s * AX, s * CX, -CZN, CZS, y, SOL_COURONNE, "SolCouronne")    # est / ouest + angles
+                dalles(b, s * EX, s * AX, -CZN, -AZN, y, SOL_COURONNE, "SolCouronne")   # nord, de part et d'autre
+                dalles(b, s * EX, s * FX, -EZ, -CZN, y, SOL_COURONNE, "SolCouronne")    # pied des flancs
+            dalles(b, -AX, AX, AZS, CZS, y, SOL_COURONNE, "SolCouronne")                 # sud
+            dalles(b, -FX, FX, -FZ, -EZ, y, SOL_COURONNE, "SolCouronne")                 # couronne du fond
+        with b.group("Esplanade"):
+            dalles(b, -EX, EX, -EZ, -AZN, y, VOIE, "Esplanade")
+            # rangées de tirets blancs (comme les places de la référence) : 3 rangées de tirets 6 × 1 tous les 12
+            z_f = plan.ALIGNEMENT_Z_NORD
+            for zr in (-z_f - 22, -z_f - 44, -z_f - 66):
+                for k in range(-10, 11):
+                    xc = 12 * k
+                    if abs(xc) + 3 > plan.ESPLANADE_X - 8:
+                        continue
+                    b.box((xc - 3, y, zr), (xc + 3, y + plan.NIVEAU_MARQUAGE, zr + 1), BLANC, studs="top",
+                          name="Tiret")
+
+
+def _mur(b: Builder, x0, x1, z0, z1, y0, yb, y1, bandeau_x, bandeau_z) -> None:
+    """Un pan du mur de fond (boîte x0 → x1, z0 → z1, de y0 à yb) et son bandeau (yb → y1), qui déborde de
+    bandeau_x / bandeau_z de chaque côté (saillies de 0,1, ou bouts arrêtés au bandeau voisin)."""
+    b.box((x0, y0, z0), (x1, yb, z1), MUR, name="Mur")
+    b.box((x0 - bandeau_x[0], yb, z0 - bandeau_z[0]), (x1 + bandeau_x[1], y1, z1 + bandeau_z[1]), BANDEAU,
+          studs="top", name="Bandeau")
 
 
 def mur_de_fond(b: Builder) -> None:
-    """Mur continu de 2 au bord extérieur de la couronne, jusqu'à y 36 ; bandeau lavande d'1,5 en haut (saillie 0,1).
-    Le mur part de y -0,6 (enfoncé dans le sol de la couronne : son dessous n'est jamais dans le plan y 0,4 où se
-    posent les tours qui le touchent) et sa face extérieure dépasse le bord du sol de 0,05 (pas de face confondue)."""
-    CX, CZ = plan.COURONNE_X, plan.COURONNE_Z
+    """Mur continu de 2 au bord extérieur de la couronne (avec le décrochement de la couronne du fond), jusqu'à
+    y 36 ; bandeau lavande d'1,5 en haut (saillie 0,1). Le mur part de y -0,6 (enfoncé dans le sol de la couronne :
+    son dessous n'est jamais dans le plan y 0,4 où se posent les tours) et sa face extérieure dépasse le bord du sol
+    de 0,05. Les pans le long de Z couvrent les angles ; les pans le long de X s'arrêtent contre eux."""
+    CX, CZS, CZN = plan.COURONNE_X, plan.COURONNE_Z_SUD, plan.COURONNE_Z_NORD
+    FX, FZ = plan.FOND_X, plan.FOND_Z
     e = plan.MUR_FOND_EPAISSEUR
     y0, y1 = plan.NIVEAU_COURONNE - 1.0, plan.MUR_FOND_HAUTEUR
     yb = y1 - 1.5
-    X, Z = CX + 0.05, CZ + 0.05
+    o = 0.05                     # débord extérieur sur le bord du sol
+    t = 0.1                      # saillie du bandeau
     with b.group("Tours"):
         with b.group("MurDeFond"):
             for s in (1, -1):
-                b.box((s * (CX - e), y0, -Z), (s * X, yb, Z), MUR, name="Mur")
-                b.box((s * (CX - e - 0.1), yb, -Z - 0.1), (s * (X + 0.1), y1, Z + 0.1), BANDEAU, studs="top",
-                      name="Bandeau")
-                b.box((-(CX - e), y0, s * (CZ - e)), (CX - e, yb, s * Z), MUR, name="Mur")
-                b.box((-(CX - e - 0.1), yb, s * (CZ - e - 0.1)), (CX - e - 0.1, y1, s * (Z + 0.1)), BANDEAU,
-                      studs="top", name="Bandeau")
+                # pans le long de Z : bords est et ouest (z de -482 à 447), flancs de la couronne du fond
+                xa, xb = sorted((s * (CX - e), s * (CX + o)))
+                _mur(b, xa, xb, -CZN - o, CZS + o, y0, yb, y1, (t, t), (t, t))
+                xa, xb = sorted((s * (FX - e), s * (FX + o)))
+                _mur(b, xa, xb, -FZ - o, -CZN + e, y0, yb, y1, (t, t), (t, t))
+                # pans nord le long de X, entre le bord est (ou ouest) et le flanc du fond ; leur bandeau s'arrête
+                # contre ceux des pans le long de Z
+                xa, xb = sorted((s * (CX - e), s * (FX + o)))
+                _mur(b, xa, xb, -CZN - o, -CZN + e, y0, yb, y1, (-t, -t), (t, t))
+            # pan sud et pan du fond, entre les pans le long de Z
+            _mur(b, -(CX - e), CX - e, CZS - e, CZS + o, y0, yb, y1, (-t, -t), (t, t))
+            _mur(b, -(FX - e), FX - e, -FZ - o, -FZ + e, y0, yb, y1, (-t, -t), (t, t))
 
 
 def traces_parcelles(b: Builder) -> None:
-    """Groupe facultatif (supprimable) : équerres dorées aux coins des parcelles, bord blanc des zones d'escalier.
-    Au ras du sol (0 → 0,3), sans collision : de la peinture."""
+    """Groupe facultatif (supprimable) : équerres dorées aux coins des plateformes des parcelles, contour blanc des
+    bandes d'entrée. Au ras du sol (0 → 0,3), sans collision : de la peinture."""
     h = 0.3
     j = 0.05            # retrait vers l'intérieur : aucune face dans le plan d'une ligne de grille (8k, 8k + 1)
     kw = dict(studs="top", collide=False, shadow=False)
@@ -440,11 +486,11 @@ def traces_parcelles(b: Builder) -> None:
                 e = p["escalier"]
                 s = 1 if p["cote"] == "E" else -1
                 xa = s * (plan.ESCALIER_X_EXT + j)           # bord côté tapis (|x| = 65)
-                xb = s * (plan.PARCELLE_X_INT - j)           # bord de la parcelle (|x| = 80)
+                xb = s * (plan.PARCELLE_X_INT - j)           # bord de la plateforme (|x| = 81)
                 z0, z1 = e["z0"] + j, e["z1"] - j
-                b.box((xa, 0, z0), (xa + s * 1, h, z1), BLANC, name="BordEscalier", **kw)
-                b.box((xa + s * 1, 0, z0), (xb, h, z0 + 1), BLANC, name="BordEscalier", **kw)
-                b.box((xa + s * 1, 0, z1 - 1), (xb, h, z1), BLANC, name="BordEscalier", **kw)
+                b.box((xa, 0, z0), (xa + s * 1, h, z1), BLANC, name="BordEntree", **kw)
+                b.box((xa + s * 1, 0, z0), (xb, h, z0 + 1), BLANC, name="BordEntree", **kw)
+                b.box((xa + s * 1, 0, z1 - 1), (xb, h, z1), BLANC, name="BordEntree", **kw)
 
 
 def reperes(b: Builder) -> None:
@@ -481,8 +527,8 @@ def tapis_et_centre(b: Builder, suivi: Suivi) -> None:
               f"Tapis/{p['id']}", ("rect", plan.PORTAIL_LARGEUR, plan.PORTAIL_PROFONDEUR, plan.PORTAIL_HAUTEUR, 0))
     for nom, e in plan.CENTRE.items():
         lx, lz = e["emprise"]
-        poser(b, suivi, nom, e["fonction"], e["variante"], {}, (e["x"], 0, e["z"]), e["yaw"], f"Centre/{nom}",
-              ("rect", lx, lz, e["hauteur"], 0))
+        poser(b, suivi, nom, e["fonction"], e["variante"], dict(e.get("params", {})), (e["x"], 0, e["z"]),
+              e["yaw"], f"Centre/{nom}", ("rect", lx, lz, e["hauteur"], 0))
 
 
 # =====================================================================================================================
@@ -695,8 +741,7 @@ def _points_forme(p, pas: float = 1.0, nmax: int = 48) -> np.ndarray:
 def _aire_praticable(pts: np.ndarray, ymin: float = -1e9, ymax: float = 1e9) -> int:
     """Aire (studs², cases de 1 × 1) de la projection au sol des points dont y ∈ [ymin, ymax], au-dessus d'une zone
     praticable (pelouse, trottoirs, route : en deçà de la ligne des façades)."""
-    m = (pts[:, 1] >= ymin) & (pts[:, 1] <= ymax) & (np.abs(pts[:, 0]) < plan.ALIGNEMENT_X) & \
-        (np.abs(pts[:, 2]) < plan.ALIGNEMENT_Z)
+    m = (pts[:, 1] >= ymin) & (pts[:, 1] <= ymax) & (_profondeur_praticable(pts) > 0)
     if not m.any():
         return 0
     cases = np.unique(np.floor(pts[m][:, [0, 2]]).astype(np.int64), axis=0)
@@ -704,8 +749,9 @@ def _aire_praticable(pts: np.ndarray, ymin: float = -1e9, ymax: float = 1e9) -> 
 
 
 def _cases_praticables(pts: np.ndarray) -> np.ndarray:
-    """Cases (1 × 1, indices entiers) couvertes par la projection au sol des points, en deçà de la ligne des façades."""
-    m = (np.abs(pts[:, 0]) < plan.ALIGNEMENT_X) & (np.abs(pts[:, 2]) < plan.ALIGNEMENT_Z)
+    """Cases (1 × 1, indices entiers) couvertes par la projection au sol des points, en deçà de la ligne des façades
+    (zones praticables : pelouse, trottoirs, route, esplanade)."""
+    m = _profondeur_praticable(pts) > 0
     if not m.any():
         return np.zeros((0, 2), np.int64)
     return np.unique(np.floor(pts[m][:, [0, 2]]).astype(np.int64), axis=0)
@@ -735,9 +781,19 @@ def _aire_sous(parts, lo, hi, i: int, porteuses: np.ndarray) -> int:
     return sum(1 for k in cles if 5.0 <= y_bas - dessus.get(k, 0.0) < plan.HAUTEUR_LIBRE)
 
 
+def _profondeur_praticable(pts: np.ndarray) -> np.ndarray:
+    """Distance signée de chaque point (x, z) au bord des zones praticables (plan.ZONES_PRATICABLES : tout ce qui est
+    en deçà de la ligne des façades, esplanade nord comprise) : > 0 dedans, ≤ 0 dans la couronne ou au-delà."""
+    out = np.full(len(pts), -1e9)
+    for (x0, x1, z0, z1) in plan.ZONES_PRATICABLES:
+        d = np.minimum.reduce([pts[:, 0] - x0, x1 - pts[:, 0], pts[:, 2] - z0, z1 - pts[:, 2]])
+        out = np.maximum(out, d)
+    return out
+
+
 def _devant_facade(pts: np.ndarray) -> np.ndarray:
     """Profondeur de chaque point devant la ligne des façades (> 0 : côté rue ; ≤ 0 : dans la couronne)."""
-    return np.minimum(plan.ALIGNEMENT_X - np.abs(pts[:, 0]), plan.ALIGNEMENT_Z - np.abs(pts[:, 2]))
+    return _profondeur_praticable(pts)
 
 
 def _hors_emprise(e: dict, pts: np.ndarray) -> np.ndarray:
@@ -786,12 +842,16 @@ def verifications(b: Builder) -> dict:
         m = solide & (hi[:, 1] > 0.3) & (lo[:, 1] < 12) & ~exempt & _inter_rect(lo, hi, c["x0"], c["x1"], c["z0"], c["z1"])
         pb["allees_encombrees"] += [(c["id"], nomme(i)) for i in np.flatnonzero(m)[:5]]
     # --- hauteur libre : rien de large dont le dessous est entre 5 et 40 au-dessus d'une zone praticable -------------
-    AX, AZ = plan.ALIGNEMENT_X, plan.ALIGNEMENT_Z
-    ix0, ix1 = np.maximum(lo[:, 0], -AX), np.minimum(hi[:, 0], AX)
-    iz0, iz1 = np.maximum(lo[:, 2], -AZ), np.minimum(hi[:, 2], AZ)
-    aire = np.clip(ix1 - ix0, 0, None) * np.clip(iz1 - iz0, 0, None)
-    blanche = np.array([g.startswith(("Centre/Vente", "Tapis/Portail_", "Mobilier/Lampe", "Mobilier/Palmier",
-                                      "Mobilier/Panneau", "Provisoire/")) for g in groupes])
+    aire = np.zeros(len(parts))
+    for (x0, x1, z0, z1) in plan.ZONES_PRATICABLES:
+        ix0, ix1 = np.maximum(lo[:, 0], x0), np.minimum(hi[:, 0], x1)
+        iz0, iz1 = np.maximum(lo[:, 2], z0), np.minimum(hi[:, 2], z1)
+        aire += np.clip(ix1 - ix0, 0, None) * np.clip(iz1 - iz0, 0, None)
+    # liste blanche : toits du stand et des kiosques du U, lampadaires, palmes, panneaux (SPECS), et l'œuf du monument, une sculpture posée
+    # sur son plateau (sa coquille déborde de 2,5 au plus de son cylindre de collision : personne ne passe dessous)
+    blanche = np.array([g.startswith(("Centre/Vente", "Centre/Kiosque_", "Centre/Monument/Oeuf", "Tapis/Portail_",
+                                      "Mobilier/Lampe", "Mobilier/Palmier", "Mobilier/Panneau", "Provisoire/"))
+                        for g in groupes])
     m = visible & (lo[:, 1] > 5) & (lo[:, 1] < plan.HAUTEUR_LIBRE) & (aire > 64) & ~blanche
     # supports possibles : pièces à collision (même invisibles) qui montent du sol (hors dalles de sol)
     porteuses = np.array([p.collide for p in parts]) & (hi[:, 1] > 1.0) & \
@@ -805,8 +865,10 @@ def verifications(b: Builder) -> dict:
     # --- couronne : rien devant la ligne des façades sous y 8 ; au plus 1,5 de saillie entre 8 et 40 -----------------
     tours = np.array([g.startswith("Tours/") and not g.startswith(("Tours/Tubes", "Tours/MurDeFond")) for g in groupes])
     yc = plan.NIVEAU_COURONNE
-    m = tours & visible & (lo[:, 1] < yc + 40) & \
-        _inter_rect(lo, hi, -plan.ALIGNEMENT_X, plan.ALIGNEMENT_X, -plan.ALIGNEMENT_Z, plan.ALIGNEMENT_Z, marge=0.05)
+    dans_zone = np.zeros(len(parts), bool)
+    for (x0, x1, z0, z1) in plan.ZONES_PRATICABLES:
+        dans_zone |= _inter_rect(lo, hi, x0, x1, z0, z1, marge=0.05)
+    m = tours & visible & (lo[:, 1] < yc + 40) & dans_zone
     for i in np.flatnonzero(m):
         pts = _points_forme(parts[i], pas=0.5)
         prof = _devant_facade(pts)
@@ -836,10 +898,10 @@ def verifications(b: Builder) -> dict:
     fines = [nomme(i) for i, p in enumerate(parts) if min(p.size) < 0.1 - 1e-6 and p.group != GROUPE_REPERES]
     if fines:
         pb["trop_fines"] += fines[:10]
-    # --- fenêtre de l'œuf : rien au-dessus de la hauteur maximale dans |x| < 70 du côté nord ------------------------
+    # --- fenêtre de l'œuf : aucun bâtiment au-dessus de la hauteur maximale dans |x| < 70, au fond de l'esplanade ----
     F = plan.FENETRE_OEUF
-    m = visible & (hi[:, 1] > F["hauteur_max"] + plan.NIVEAU_COURONNE + 1e-6) & \
-        _inter_rect(lo, hi, F["x0"], F["x1"], -plan.COURONNE_Z, -plan.ALIGNEMENT_Z)
+    m = tours & visible & (hi[:, 1] > F["hauteur_max"] + plan.NIVEAU_COURONNE + 1e-6) & \
+        _inter_rect(lo, hi, F["x0"], F["x1"], F["z0"], F["z1"])
     pb["fenetre_oeuf"] += [(nomme(i), round(float(hi[i, 1]), 1)) for i in np.flatnonzero(m)[:8]]
     # --- repères ----------------------------------------------------------------------------------------------------
     noms_rep = [p.name for p in parts if p.group == GROUPE_REPERES]

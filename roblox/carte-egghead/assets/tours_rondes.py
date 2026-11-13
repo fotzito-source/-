@@ -45,6 +45,7 @@ from palette import c, schema
 # --------------------------------------------------------------------------------------------------------------
 
 PORTE = c("bleu_nuit")          # panneau des portes (le cadre prend la couleur vive du bâtiment)
+NEON_MAX_GALETTES = plan.BUDGET_FONCTION.get("tours_rondes.tour_galettes", (140, 40, 0))[1]   # Neon par appel
 HUBLOT = c("hublot")            # verre opaque des hublots et des bandes vitrées
 
 
@@ -248,9 +249,9 @@ def _bilan(b, i0, D, H, ame, emprise=None, **extra):
 def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=True, **_):
     """Pile de galettes (T01) : socle à studs, pied rayé, fût, galettes au pas de 0,2 D (on en ajoute pour remplir
     la hauteur, jamais étirées) faites d'un bord vertical (cylindre) et d'une lentille bombée (ellipsoïde),
-    3 longues fentes Neon incrustées dans le bord d'une galette sur deux (colonnes à -50, 0, +50°), dernière
-    galette sous la bande d'évents qui porte le dôme à deux yeux et 3 méridiens, porte, antenne.
-    ≈ 85-95 pièces (≤ 140), ≈ 21-27 Neon (≤ 40)."""
+    longues fentes Neon incrustées dans le bord (3 à -50, 0, +50° sur une galette sur deux, 1 au milieu sur les
+    autres : colonnes régulières), dernière galette sous la bande d'évents qui porte le dôme à deux yeux et
+    3 méridiens, porte, antenne. Tout reste dans le disque D à toute hauteur. ≈ 80-95 pièces (≤ 140), ≈ 25-36 Neon (≤ 40)."""
     i0 = len(b.parts)
     s = schema("tour_galettes", variant)
     H, D = float(hauteur), float(diametre)
@@ -289,19 +290,28 @@ def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=Tru
     n = max(3, int(round((y_g1 - y_g0) / pas)) + 1)
     p2 = (y_g1 - y_g0) / (n - 1)
     fl, fh = 0.2 * D, 1.2 * kf          # fente : longueur, hauteur
-    poses = 0
+    gal = [k for k in range(n)
+           if not any(abs(y_g0 + k * p2 - yq) < demi + demi_g + 0.6 for (yq, demi, _) in quais)]
+    # 3 fentes sur une galette sur deux (et la dernière), 1 au milieu de l'avant sur les autres : colonnes
+    # régulières ; au-delà de 40 Neon (tour très haute), les fentes seules s'effacent d'abord en bas
+    fentes = {k: ((-50, 0, 50) if k % 2 == 0 or k == n - 1 else (0,)) for k in gal}
+    for k in gal:
+        if sum(len(v) for v in fentes.values()) <= NEON_MAX_GALETTES:
+            break
+        if len(fentes[k]) == 1:
+            fentes[k] = ()
+    for k in gal:
+        if sum(len(v) for v in fentes.values()) <= NEON_MAX_GALETTES:
+            break
+        fentes[k] = ()
     with b.group("Galettes"):
-        for k in range(n):
+        for k in gal:
             y = y_g0 + k * p2
-            if any(abs(y - yq) < demi + demi_g + 0.6 for (yq, demi, _) in quais):
-                continue
-            poses += 1
-            rg = R_g * (1.08 if k == n - 1 and y > 40 else 1.0)   # la dernière, sous le dôme : un col plus large
+            rg = R_g                    # toutes dans le disque D à toute hauteur (F-T-100 borde la fenêtre de l'œuf)
             b.cyl((0, y, 0), rg, h_r, s["galettes"], studs="top", collide=False, name="Bord")
             b.ellipsoid((0, y, 0), (2 * rg, e, 2 * rg), s["galettes"], collide=False, name="Galette")
-            if k % 2 == 0 or k == n - 1:
-                for th in (-50, 0, 50):
-                    _fente(b, rg, th, y, fl, fh, s["neon"])
+            for th in fentes[k]:
+                _fente(b, rg, th, y, fl, fh, s["neon"])
     with b.group("Coiffe"):
         b.cyl((0, y_b0 + h_b / 2, 0), R_b, h_b, s["cadres"], studs="top", name="Bande")
         for j in range(7):
@@ -313,7 +323,7 @@ def tour_galettes(b, variant=0, hauteur=200, diametre=54, quai=None, antenne=Tru
             _hublot_ellipsoide(b, (0, y_d, 0), rd, h_d, th, 0.32, 0.19 * R_f, s["cadres"])
         if antenne:
             _antenne(b, H - 0.6, 6.5, s["cadres"], s["pied"][0], r=0.45 * kf, rb=1.0 * kf)
-    return _bilan(b, i0, D, H, R_f, galettes=poses, dome_dessous_visible=dome.info["dessous_visible"])
+    return _bilan(b, i0, D, H, R_f, galettes=len(gal), dome_dessous_visible=dome.info["dessous_visible"])
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -439,11 +449,11 @@ def _fenetre_arrondie(b, R, theta, y, larg, haut, cadre, vitre):
 
 
 def tour_soucoupe(b, variant=0, hauteur=150, diametre=56, soucoupe=None, **_):
-    """Tour-soucoupe (T08) : pied évasé à studs, gros corps à paires de rainures (une bande de plus à chaque 0,55 D
-    de hauteur, jamais étirée), fenêtres en boîte arrondie dans les deux bandes du haut, hublots dans les autres,
-    porte, rebord et large corniche, plateau à coupole de verre (M16), tige, gobelet (cloche) sous l'épaisse
-    soucoupe à 10 fentes Neon, dôme, antenne à disque et boule. Soucoupe Ø 1,25 D (1,3 D au-delà de H 200 :
-    coin SO). ≈ 75-90 pièces (≤ 100), 10 Neon (≤ 14), 1 verre."""
+    """Tour-soucoupe (T08) : pied évasé à studs, gros corps rythmé de bandes couleur corniche à rainure sombre
+    (une tous les 0,55 D, 0,45 D pour le corps haut du coin SO : jamais étiré), fenêtres en boîte arrondie et rangs
+    de hublots en alternance entre elles, porte, rebord et large corniche, plateau à coupole de verre (M16), tige,
+    gobelet (cloche) sous l'épaisse soucoupe à 10 fentes Neon, dôme, antenne à disque et boule. Soucoupe Ø 1,25 D
+    (1,3 D au-delà de H 200 : coin SO). ≈ 70-95 pièces (≤ 100), 10 Neon (≤ 14), 1 verre."""
     i0 = len(b.parts)
     s = schema("tour_soucoupe", variant)
     H, D = float(hauteur), float(diametre)
@@ -473,7 +483,7 @@ def tour_soucoupe(b, variant=0, hauteur=150, diametre=56, soucoupe=None, **_):
         b.cyl((0, (6.0 - 0.3 + y_c1) / 2, 0), R_c, y_c1 - 5.7, s["corps"], name="Corps")
         # paires de rainures au pas de 0,55 D depuis le haut (0,45 D pour un corps haut, qui en reçoit plus : jamais
         # d'étirement) ; bandes entre elles : fenêtres arrondies et rangs de hublots en alternance
-        pas_r = (0.45 if y_re0 > 3.0 * D else 0.55) * D
+        pas_r = (0.45 if y_re0 > 2.15 * D else 0.55) * D
         hauts = []
         yr = y_re0 - 4.0 * kx
         while yr - 2.6 * kx > 17.0 and len(hauts) < 6:
@@ -668,7 +678,8 @@ def tour_ruban(b, variant=0, hauteur=250, diametre=72, tours_ruban=2.0, **_):
     """Champignon géant (T10) : plinthe Ø D, tambour à porte et hublots, bande de fenêtres à meneaux, corniche à
     studs, pied de colonne, colonne de 10 cylindres dégradés (bas `colonne[0]` → haut `colonne[1]`), collier sous
     le chapeau, chapeau géant (≤ 120) à dessous plus sombre et 8 fenêtres Neon, ruban continu en hélice (2 tours
-    de 24 segments), épi jusqu'à H. ≈ 110 pièces (≤ 200), 8 Neon (≤ 12)."""
+    de 24 segments, ses deux bouts plongent dans la colonne), épi jusqu'à H. ≈ 100 pièces (≤ 200), 8 Neon
+    (≤ 12)."""
     i0 = len(b.parts)
     s = schema("tour_ruban", variant)
     H, D = float(hauteur), float(diametre)
@@ -735,14 +746,15 @@ def tour_ruban(b, variant=0, hauteur=250, diametre=72, tours_ruban=2.0, **_):
         y_r0, y_r1 = y_p1 + 0.12 * (y_col1 - y_p1), y_col1 - 0.16 * (y_col1 - y_p1)
         larg, ep = 3.0 * kx, 0.6 * kx
 
-        def rayon(y):
+        def rayon(y, g):
             f = min(1.0, max(0.0, (y - y_p1) / (y_col1 - y_p1)))
-            return (0.225 - (0.225 - 0.1625) * f) * D + 2.6 * kf + ep / 2
+            return (0.225 - (0.225 - 0.1625) * f) * D + ep / 2 - 0.3 + (2.6 * kf + 0.3) * g
         pts = []
         for i in range(n_seg + 1):
             ph = 360.0 * tours_ruban * i / n_seg
             y = y_r0 + (y_r1 - y_r0) * i / n_seg
-            pts.append(_u(ph) * rayon(y) + _y(y))
+            g = min(1.0, i / 3.0, (n_seg - i) / 3.0)      # les deux bouts plongent dans la colonne : rien ne flotte
+            pts.append(_u(ph) * rayon(y, g) + _y(y))
         for i in range(n_seg):
             p0, p1 = pts[i], pts[i + 1]
             dd = p1 - p0
@@ -884,7 +896,7 @@ def tour_fusee(b, variant=0, hauteur=55, diametre=20, type="blanche", **_):
                 r_max = R_e if yb - hb / 2 <= y_e <= yb + hb / 2 else max(r_corps(yb - hb / 2), r_corps(yb + hb / 2))
                 b.cyl((0, yb, 0), r_max + 0.15, hb, s["bandes"], name="Bande")
             _hublot_ellipsoide(b, (0, y_e, 0), R_e, h_e, 0, (0.4 * H - y_e) / h_e, 2.2 * kf, s["cadres"])
-            _porte(b, R_j, 1.0, PORTE, s["cadres"], largeur=4.0, haut=5.5)
+            _porte(b, R_j, 1.0, PORTE, s["corps"], largeur=4.0, haut=5.5)     # cadre clair sur la jupe vive
         with b.group("Pointe"):
             y_s = y_e + h_e - 0.35
             b.cone_etage((0, y_s, 0), 0.9 * kf, 0.25, H - 0.9 * kf - y_s, s["bandes"], etages=3, collide=False,
@@ -931,8 +943,11 @@ def tour_hublots(b, variant=0, hauteur=42, diametre=30, **_):
                               collide=False, name="Meneau")
         else:                           # rangs de hublots à cadres épais, rang du haut allumé
             f = min(2.3, 0.3 * (rangs[1] - rangs[0]))
+            # pas angulaire : au moins 1 stud entre deux cadres (un tambour étroit n'en reçoit que 3 par rang)
+            pas_h = max(30.0, math.degrees(2 * math.asin(min(1.0, (f + 0.5) / R_t))))
+            ths = (-60, -30, 0, 30, 60) if pas_h <= 30.0 else (-pas_h, 0.0, pas_h)
             for k, y in enumerate(rangs):
-                for th in (-60, -30, 0, 30, 60):
+                for th in ths:
                     _hublot_mur(b, R_t, th, y, f, s["vitres"], c("neon_blanc") if k == 2 else HUBLOT,
                                 allume=(k == 2), bord=0.42 * f)
     with b.group("Toit"):

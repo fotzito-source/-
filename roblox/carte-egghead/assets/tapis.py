@@ -1,4 +1,4 @@
-"""Tapis roulant du centre (« tapis de transfert du labo », G06) et ses deux portails.
+"""Tapis roulant du centre (« tapis de transfert du labo », G06) et portail de tête de voie (facultatif).
 
     python apercu.py assets.tapis:tapis --no-ground ...        (le tapis entier, en coordonnées de la carte)
     python apercu.py assets.tapis:portail --variant 0 --res 1200x675 --samples 12
@@ -12,12 +12,16 @@ aux joints) et les poses de `plan.chevrons()`. U ouvert (aujourd'hui) ou boucle 
 - Deux tronçons qui se touchent n'ont jamais leurs dessus au même niveau (paliers de 0,02, trois niveaux si une
   boucle fermée a un nombre impair de tronçons).
 - Liseré Neon cyan sur l'arête de chaque bordure côté bande (un par tronçon et par côté).
+- Bouts ouverts (têtes d'un U) : embout carré, bordure blanche en travers et filet Neon cyan (LAYOUT : « embout carré
+  et filet blanc en travers de la bande ») ; rien sur une boucle fermée.
 - Chevrons blancs en « V » (2 bras), pointe dans le sens du flux ; près d'un joint, le « V » suit la courbe (les
   bouts des bras sont pris sur l'axe 3,5 en arrière, comme les chevrons pliés de la référence).
 - Les pièces de la bande portent les attributs Roblox `Troncon`, `FluxX`, `FluxZ` (sens du flux, pour scripter le
   défilement : `part.AssemblyLinearVelocity = Vector3.new(FluxX, 0, FluxZ) * vitesse`).
 
-`portail(b, variant)` : porte des têtes nord des voies (variante 0 = entrée, Neon violet ; 1 = sortie, Neon cyan) :
+`portail(b, variant)` : porte de tête de voie, posée seulement si `plan.PORTAILS` en donne (le plan final : têtes
+sans portail, « embout carré » ; la fonction reste pour un portail voulu) (variante 0 = entrée, Neon violet ; 1 =
+sortie, Neon cyan) :
 socles arrondis à studs de part et d'autre de la bande, colonnes rayées, grande arche d'or, fine arche Neon devant,
 fond fermé arrondi blanc à hublot lumineux (cœur Neon sous une bulle de verre), petit dôme et antenne au sommet.
 Avant (-Z local) vers le tapis ; la bande passe dessous dans l'axe x = 0, de z = -profondeur/2 au fond.
@@ -243,6 +247,9 @@ LISERE_LARGEUR = 0.3
 LISERE_EPAISSEUR = 0.15
 LISERE_RETRAIT = 0.02          # le liseré n'affleure pas la face de la bordure côté bande (pas de face confondue)
 CHEVRON_HAUTS = (0.70, 0.72)   # dessus des deux bras (un bras 0,02 plus haut)
+EMBOUT_LONGUEUR = 1.2          # embout carré des têtes ouvertes (le long du flux)
+EMBOUT_DESSUS = 1.05           # au-dessus des bordures (1,0 / 1,02 / 1,04) : aucun dessus confondu
+EMBOUT_BAS = -0.17             # dessous différent de ceux des bandes (-0,10 / -0,12 / -0,14) et bordures
 CHEVRON_BAS = (0.56, 0.54)     # dessous des bras : dans la bande (au-dessus de y 0,6 : aucun jour)
 
 
@@ -301,9 +308,33 @@ def tapis(b, variant=0, **params):
                 _bloc_plat(b, ctr, dl, s_hi - s_lo, LISERE_LARGEUR, y0, y0 + LISERE_EPAISSEUR, col_lisere,
                            studs=False, material="Neon", collide=False, shadow=False, name=f"Lisere_{t['id']}")
 
+    # Embouts : aux bouts ouverts (têtes d'un U), une bordure blanche en travers de toute la largeur (0,1 plus large et
+    # plus longue que la bande : aucune face confondue), dessus à 1,05, et un filet Neon cyan sur son arête côté
+    # bande, qui rejoint les deux liserés ; rien si le tapis est fermé.
+    axe = Axe(bandes)
+    if not axe.ferme:
+        with b.group("Embouts"):
+            for t, debut in ((bandes[0], True), (bandes[-1], False)):
+                d = _v(t["direction"]) / np.linalg.norm(t["direction"])
+                if debut:      # bout de départ : coins « début » des bordures, la bande continue vers +d
+                    A, B = _v(t["bordure_ext"][0]), _v(t["bordure_int"][3])
+                    vers = d
+                else:          # bout d'arrivée : coins « fin », la bande vient de -d
+                    A, B = _v(t["bordure_ext"][1]), _v(t["bordure_int"][2])
+                    vers = -d
+                larg = float(np.linalg.norm(B - A))
+                mil = (A + B) / 2
+                e = EMBOUT_LONGUEUR
+                ctr = mil + vers * (e / 2) - vers * 0.05
+                _bloc_plat(b, ctr, vers, e + 0.1, larg + 0.2, EMBOUT_BAS, EMBOUT_DESSUS, col_bord,
+                           name="Embout")
+                _bloc_plat(b, mil + vers * (e - LISERE_RETRAIT - LISERE_LARGEUR / 2), vers, LISERE_LARGEUR,
+                           plan.TAPIS_BANDE + 2 * LISERE_RETRAIT + 2 * LISERE_LARGEUR + 0.1, EMBOUT_DESSUS,
+                           EMBOUT_DESSUS + LISERE_EPAISSEUR, col_lisere, studs=False, material="Neon",
+                           collide=False, shadow=False, name="Lisere_Embout")
+
     # Chevrons : pointe sur l'axe (pose du plan), bouts des bras 3,5 en arrière le long de l'axe (V plié près d'un
     # joint), envergure 9, bras de 1,2.
-    axe = Axe(bandes)
     prof = plan.CHEVRON_PROFONDEUR
     demi = plan.CHEVRON_LARGEUR / 2
     trait = plan.CHEVRON_TRAIT
@@ -339,7 +370,8 @@ def tapis(b, variant=0, **params):
     xs = [p[0] for t in bandes for cle in ("bordure_int", "bande", "bordure_ext") for p in t[cle]]
     zs = [p[1] for t in bandes for cle in ("bordure_int", "bande", "bordure_ext") for p in t[cle]]
     return {"emprise": (round(max(xs) - min(xs), 2), round(max(zs) - min(zs), 2)),
-            "hauteur": round(dessus_bord + PALIER * max(niv) + LISERE_EPAISSEUR, 2),
+            "hauteur": round(max(dessus_bord + PALIER * max(niv), EMBOUT_DESSUS if not axe.ferme else 0.0)
+                             + LISERE_EPAISSEUR, 2),
             "chevrons": len(poses), "troncons": len(bandes), "ferme": axe.ferme,
             "longueur_axe": round(axe.L, 2)}
 
@@ -389,8 +421,10 @@ def portail(b, variant=0, largeur=30, profondeur=16, hauteur=36, **params):
     xe = W / 2                                          # faces extérieures (15)
     zf = -P / 2                                         # face avant (côté tapis)
     zb = P / 2
-    # bout de la bande dans le repère du portail (le plan : tête à l'avant, fond 12 plus loin)
-    z_fin = zf + abs(plan.TAPIS_Z_TETE - plan.TAPIS_Z_FOND)
+    # bout de la bande dans le repère du portail (le plan : tête à l'avant, fond 12 plus loin) ; si le plan ne fait
+    # plus entrer la bande dans un portail (têtes sans portail), le fond garde sa place propre (3/4 de la profondeur)
+    entree = abs(plan.TAPIS_Z_TETE - plan.TAPIS_Z_FOND)
+    z_fin = zf + (entree if entree >= 0.5 * P else 0.75 * P)
     h_socle = 2.4
     xc = (xo + xe) / 2 + 0.2                            # axe des colonnes et rayon de l'arche (≈ 12,3)
     zc = z_fin - 3.4                                    # colonnes et arche juste devant le fond (≈ 0,6)
@@ -465,5 +499,4 @@ def portail(b, variant=0, largeur=30, profondeur=16, hauteur=36, **params):
         b.cyl((0, y_top + 1.45 + 2.6 + 0.9, zc), 0.22, 2.2, c("blanc_labo"), collide=False, name="Antenne")
         b.ball((0, y_top + 1.45 + 2.6 + 2.2, zc), 0.55, c("or"), collide=False, name="Pointe")
     return {"emprise": (W, P), "hauteur": round(y_top + 1.45 + 2.6 + 2.75, 2), "ouverture": 2 * xo,
-            "dessous_arche": round(y_c, 2), "apparition_z": round(zf + abs(plan.TAPIS_Z_TETE
-                                                                            - plan.TAPIS_Z_APPARITION), 2)}
+            "dessous_arche": round(y_c, 2), "fond_z": round(z_fin, 2)}

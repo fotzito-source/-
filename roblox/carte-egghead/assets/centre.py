@@ -10,9 +10,9 @@ façon jouet, aucun texte. Rien de plus haut que 0,3 dans les zones libres (zone
 Pièces que l'on touche (socles, comptoir, plateaux, mâts) : collision franche ; ellipsoïdes et détails fins :
 `collide=False` (l'œuf du monument : collision par un cylindre invisible).
 
-Aucune face d'un asset dans le plan des lignes de la grille du sol (dessus à 0,15 / 0,20) : les pièces au sol
-ont leur dessus à 0,3 au moins et leurs côtés ne sont jamais alignés sur les axes à moins de 0,3 du sol, sauf
-les socles qui commencent à y = 0 (contrôlé à la pose sur la carte par le script de contrôle du constructeur).
+Sol : aucun dessus dans le plan des lignes de la grille (0,15 / 0,20) ; les pièces posées sur la pelouse ont leur
+dessus à 0,25 au moins (tirets de la zone de vente : 0,3 ; plaque d'apparition : 0,41). Contrôle : chaque pièce
+posée à sa place du plan sur la pelouse de carte.py (grille comprise), `kit.faces_confondues` vide.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import math
 import numpy as np
 
 import plan
-from kit import mix, rot_x, rot_y, rot_z, shade
+from kit import bornes_part, mix, rot_x, rot_y, rot_z, shade
 from palette import c
 
 try:   # petits objets du mobilier (écrit en parallèle) : repli sur des versions simples si absent ou en erreur
@@ -120,16 +120,19 @@ def etoile(b, centre, rayon, epaisseur, couleur, *, normale="z", **kw) -> list:
     return out
 
 
-def _potelet(b, x, z, y=0.0):
-    """Potelet M06 (H ≈ 3,6) : celui de assets.mobilier si disponible, sinon une version simple (4 pièces)."""
+def _potelet(b, x, z, y=0.0, max_pieces=5):
+    """Potelet M06 (H ≈ 3,6) : celui de assets.mobilier (même dessin que sur le reste de la carte) s'il existe et
+    tient en `max_pieces`, sinon une version simple (4 pièces)."""
     if _mobilier is not None and hasattr(_mobilier, "potelet"):
+        n0 = len(b.parts)
         try:
-            n0 = len(b.parts)
             with b.at((x, y, z)):
                 _mobilier.potelet(b, variant=0)
-            return len(b.parts) - n0
+            if len(b.parts) - n0 <= max_pieces:
+                return len(b.parts) - n0
         except Exception:   # noqa: BLE001
             pass
+        del b.parts[n0:]                  # absent, en erreur ou trop cher : on retire ce qu'il a posé
     with b.at((x, y, z)):
         b.cone_etage((0, 0, 0), 0.75, 0.5, 1.3, [c("indigo"), shade(c("indigo"), 0.85)], etages=2, name="Potelet")
         b.cyl((0, 2.25, 0), 0.38, 1.9, c("blanc_labo"), name="Potelet")
@@ -170,9 +173,9 @@ def stand_vente(b, variant=0, **params):
     #    sur la face), plancher rond du kiosque
     with b.group("Socle"):
         boite_ronde(b, -W / 2, W / 2, -D / 2, D / 2, 0.0, h_socle, r_coin, blanc, name="Socle")
-        n_r = 4                                         # 4 rouges par côté : R B R B R B R entre deux angles blancs
-        for axe in ("x", "z"):
+        for axe in ("x", "z"):                          # R B R … R entre deux angles blancs, pas ≈ 3,2
             L = (W if axe == "x" else D) / 2 - r_coin - 0.15
+            n_r = max(2, round((2 * L + 3.2) / 6.4))
             pas = 2 * L / (2 * n_r - 1)
             for sgn in (-1, 1):
                 for k in range(n_r):
@@ -231,16 +234,29 @@ def stand_vente(b, variant=0, **params):
         b.cyl((0, y_p, 0), r_piece, 0.9, c("or"), axis="z", name="Piece", collide=False)
         b.cyl((0, y_p, 0), r_piece * 0.74, 1.04, c("or_fonce"), axis="z", name="PieceCentre", collide=False)
         b.cyl((0, y_p, 0), r_piece * 0.38, 1.18, c("or"), axis="z", name="PieceBouton", collide=False)
-    # -- zone de vente : demi-disque en pointillés blancs au nord (centre au milieu du bord nord du socle)
-    n_t = int(params.get("tirets", 12))
+    # -- zone de vente : demi-disque en pointillés blancs vers l'avant (nord), centre lu dans le plan
+    #    (plan.ZONE_VENTE, relatif au stand) ; les tirets qui tomberaient sur le socle sont omis
+    zx, zz = params.get("centre_zone", _zone_locale())
+    n_t = int(params.get("tirets", max(12, min(16, round(math.pi * rz / 3.9)))))
     with b.group("ZoneVente"):
         for k in range(n_t):
             a = math.radians(180.0 * (k + 0.5) / n_t)   # jamais 0, 90 ni 180° : aucun tiret aligné sur les axes
-            x, z = rz * math.cos(a), -D / 2 - rz * math.sin(a)
+            x, z = zx + rz * math.cos(a), zz - rz * math.sin(a)
+            if abs(x) < W / 2 + 1.2 and abs(z) < D / 2 + 1.2:
+                continue
             b.boxc((x, 0.15, z), (2.0, 0.3, 0.6), blanc, yaw=math.degrees(a) + 90.0, studs="top", name="Tiret",
                    collide=False)                      # X local du tiret = tangente (-sin a, -cos a)
     return {"emprise": (W, D), "hauteur": round(y_p + r_piece, 2), "hauteur_toit": round(y_sommet, 2),
-            "zone_vente": {"centre_z": -D / 2, "rayon": rz}}
+            "zone_vente": {"centre": (round(zx, 2), round(zz, 2)), "rayon": rz, "tirets": n_t}}
+
+
+def _zone_locale():
+    """Centre de la zone de vente dans le repère du stand (plan.ZONE_VENTE moins la pose du stand, yaw compris)."""
+    v, zv = plan.CENTRE["Vente"], plan.ZONE_VENTE
+    dx, dz = zv["x"] - v["x"], zv["z"] - v["z"]
+    y = math.radians(v.get("yaw", 0))
+    # monde = R_y(yaw) · local  ⇒  local = R_y(-yaw) · monde
+    return (dx * math.cos(y) - dz * math.sin(y), dx * math.sin(y) + dz * math.cos(y))
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -251,8 +267,10 @@ def machine(b, variant=0, **params):
     """Machine : deux pylônes rayés bleu nuit et blanc à boules Neon cyan, bulle de verre à cœur Neon violet sur
     un piédestal, anneau orbital d'or incliné, deux arcs Neon des boules vers la bulle, tuyaux en J à l'arrière, sur
     un socle arrondi 12 × 10 (bord indigo, dessus à studs). ≤ 50 pièces, ≤ 6 Neon, ≤ 1 verre."""
-    W = float(params.get("largeur", 12.0))
-    D = float(params.get("profondeur", 10.0))
+    e = plan.CENTRE.get("Machine", {})
+    W = float(params.get("largeur", e.get("emprise", (12, 10))[0]))
+    D = float(params.get("profondeur", e.get("emprise", (12, 10))[1]))
+    H = float(params.get("hauteur", e.get("hauteur", 15)))
     indigo, blanc, dalle = c("indigo"), c("blanc_labo"), c("dalle_labo")
     h0, h1 = 0.7, 1.2
     with b.group("Socle"):
@@ -263,15 +281,15 @@ def machine(b, variant=0, **params):
         for j, sx in enumerate((-1, 1)):          # les deux bouts se recouvrent : dessus et dessous décalés
             ya, yb = h0 - 0.08 + 0.02 * j, h1 - 0.04 - 0.03 * j
             b.cyl((sx * (lp - dp) / 2, (ya + yb) / 2, 0), dp / 2, yb - ya, dalle, studs="top", name="Plateau")
-    # pylônes à l'arrière (z +1,6), bulle à l'avant (z -1,3) : l'anneau orbital passe entre eux
-    xp, zp = 4.2, 1.5
-    zb = -1.3
-    h_pyl = 11.4
+    # pylônes à l'arrière (z +1,6), bulle à l'avant (z -1,6) : l'anneau orbital passe entre eux
+    xp, zp = 4.5, 1.6
+    zb = -1.6
     r_boule = 1.15
+    h_pyl = max(8.0, H - h1 - 2 * r_boule + 0.25)       # dessus des boules à H
     with b.group("Pylones"):
         for sx in (-1, 1):
             x = sx * xp
-            b.cyl((x, h1 + 0.2, zp), 1.75, 0.4, c("or"), studs="top", name="Bague")
+            b.cyl((x, h1 + 0.2, zp), 1.5, 0.4, c("or"), studs="top", name="Bague")
             b.cone_etage((x, h1 + 0.4, zp), 1.35, 0.8, h_pyl - 0.4, [c("bleu_nuit"), blanc], etages=6,
                          name="Pylone")
             b.ball((x, h1 + h_pyl + r_boule - 0.25, zp), r_boule, c("cyan"), material="Neon", collide=False,
@@ -285,7 +303,7 @@ def machine(b, variant=0, **params):
         yc = y_ped + r_bulle - 0.3
         b.ball((0, yc, zb), r_bulle, c("verre"), material="Glass", transparency=0.5, name="Bulle")
         b.ball((0, yc, zb), 1.35, c("neon_violet"), material="Neon", collide=False, shadow=False, name="Coeur")
-        b.anneau((0, yc + 0.2, zb), r_bulle + 0.9, 0.36, c("or"), 12, rot=rot_x(24) @ rot_z(-14), name="Orbite",
+        b.anneau((0, yc + 0.2, zb), r_bulle + 0.65, 0.36, c("or"), 12, rot=rot_x(24) @ rot_z(-14), name="Orbite",
                  collide=False, shadow=False)
         # arcs Neon : des boules des pylônes vers le haut de la bulle (droits, fins)
         for sx in (-1, 1):
@@ -311,26 +329,97 @@ def machine(b, variant=0, **params):
 # Monument de l'œuf (G03)
 # --------------------------------------------------------------------------------------------------------------
 
-def _dent(b, base, t, u, largeur, hauteur, epaisseur, couleur, **kw):
-    """Dent du zigzag : triangle isocèle dans le plan (t, u) (t horizontal, u vers le haut), pied centré en `base`,
-    2 coins dos à dos d'épaisseur `epaisseur`."""
-    base, t, u = (np.asarray(v, float) for v in (base, t, u))
-    for s in (1, -1):
-        Z = -s * t                                   # dos du coin (face +Z) sur l'axe de la dent
-        X = np.cross(u, Z)
-        R = np.column_stack([X, u, Z])
-        ctr = base + u * hauteur / 2 + s * t * largeur / 4
-        b.part("wedge", (epaisseur, hauteur, largeur / 2), ctr, R, couleur, name="Dent", **kw)
+# Recette de l'œuf telle que construite dans le ciel (assets/ciel.py, C01 affinée), en unités k = 1, pour que la
+# réplique rime avec l'œuf du ciel : coquilles (centre y, rayon, demi-hauteur, teinte), cassure à 138, dôme sombre =
+# coquille rose montée de 6 et resserrée pour en sortir exactement à la cassure, dents penchées de 7° (tangentes au
+# dôme : il reste derrière elles), pied enfoncé de 5 dans la coquille. Copie locale (le ciel est écrit à part).
+OEUF_COQUILLE = ((84.0, 74.71, 84.00, "violet"), (92.5, 74.93, 50.06, "violet_mauve"), (91.5, 74.05, 79.10, "mauve"),
+                 (101.0, 71.01, 91.22, "mauve_rose"), (124.0, 66.80, 75.04, "rose"))
+OEUF_CASSURE = 138.0
+OEUF_DOME_DELTA = 6.0
+OEUF_DENT = {"ep": 2.6, "pente": 7.0, "saillie": 0.6, "enfonce": 5.0,
+             "h": (40.0, 27.0, 35.0, 24.0, 33.0, 26.0, 39.0, 25.0, 34.0, 24.0, 37.0, 28.0),
+             "sommet": (0.0, 0.2, -0.14, 0.22, -0.2, 0.12, -0.16, 0.2, -0.1, 0.16, -0.22, 0.12)}
+
+
+def _r_ell(y, cy, a, h):
+    u = (y - cy) / h
+    return a * math.sqrt(1 - u * u) if abs(u) < 1 else 0.0
+
+
+def _oeuf_dome():
+    """(centre y, rayon, demi-hauteur) du dôme sombre, k = 1."""
+    cr, ar, hr, _ = OEUF_COQUILLE[-1]
+    lam = ar * ar / (hr * hr)
+    d = OEUF_DOME_DELTA
+    ad = math.sqrt(ar * ar - lam * d * (2 * (OEUF_CASSURE - cr) - d))
+    return cr + d, ad, ad / math.sqrt(lam)
+
+
+def _dent(b, phi, apo, y0, larg, decal, h, ep, pente, couleur, **kw):
+    """Dent de la cassure : triangle de deux coins dos à dos, plan médian à `apo` de l'axe au pied (y0), penché de
+    `pente` vers l'axe ; `phi` : angle du milieu du côté (0 = +X, 90 = -Z) ; sommet décalé de `decal` le long du
+    côté ; `h` : longueur dans le plan."""
+    ph = math.radians(phi)
+    radial = np.array([math.cos(ph), 0.0, -math.sin(ph)])
+    X = np.array([-math.sin(ph), 0.0, -math.cos(ph)])
+    lam = math.radians(pente)
+    Y = math.cos(lam) * np.array([0.0, 1.0, 0.0]) - math.sin(lam) * radial
+    Z = math.sin(lam) * np.array([0.0, 1.0, 0.0]) + math.cos(lam) * radial
+    pied = np.array([0.0, y0, 0.0]) + apo * radial + decal * X
+    wd, wg = larg / 2 - decal, larg / 2 + decal
+    b.part("wedge", (ep, h, wd), pied + X * (wd / 2) + Y * (h / 2), np.column_stack([Z, Y, -X]), couleur,
+           name="Dent", **kw)
+    b.part("wedge", (ep, h, wg), pied - X * (wg / 2) + Y * (h / 2), np.column_stack([-Z, Y, X]), couleur,
+           name="Dent", **kw)
+
+
+def oeuf_replique(b, k, *, dents=10, meridiens=2, **kw):
+    """Réplique de l'œuf du ciel à l'échelle k, y = 0 au bas de la coquille : 5 coquilles (violet → rose), dôme
+    sombre, `meridiens` méridiens Neon violet (chacun dans l'axe de deux dents opposées), `dents` dents roses.
+    Tout sans collision ; dents sans ombre (taches sur la coquille). Renvoie le sommet (y)."""
+    v, m, r = c("oeuf_violet"), c("oeuf_mauve"), c("oeuf_rose")
+    teinte = {"violet": v, "violet_mauve": mix(v, m, 0.6), "mauve": mix(m, r, 0.2), "mauve_rose": mix(m, r, 0.6),
+              "rose": r}
+    for cy, a, h, t in OEUF_COQUILLE:
+        b.ellipsoid((0, cy * k, 0), (2 * a * k, 2 * h * k, 2 * a * k), teinte[t], name="Coquille", collide=False, **kw)
+    cd, ad, hd = _oeuf_dome()
+    b.ellipsoid((0, cd * k, 0), (2 * ad * k, 2 * hd * k, 2 * ad * k), c("oeuf_interieur"), name="Interieur",
+                collide=False, **kw)
+    D = OEUF_DENT
+    r_c = max(_r_ell(OEUF_CASSURE, cy, a, h) for cy, a, h, _ in OEUF_COQUILLE)
+    t_p, cos_p = math.tan(math.radians(D["pente"])), math.cos(math.radians(D["pente"]))
+    ep = max(D["ep"] * k, 0.32)
+    phis = []
+    for i in range(dents):
+        phi = 90.0 + 360.0 * i / dents
+        phis.append(phi)
+        y0 = (OEUF_CASSURE - D["enfonce"]) * k
+        r_ext0 = (r_c + D["saillie"] + D["enfonce"] * t_p) * k
+        apo = r_ext0 - ep / (2 * cos_p)
+        larg = 2 * r_ext0 * math.tan(math.pi / dents)
+        hy = (D["h"][i % len(D["h"])] + D["enfonce"]) * k
+        _dent(b, phi, apo, y0, larg, D["sommet"][i % len(D["sommet"])] * larg / 2, hy / cos_p, ep, D["pente"],
+              r, collide=False, shadow=False)
+    # méridiens : tranches du dôme un peu plus grandes que lui, chacune dans le plan de deux dents opposées (leur
+    # pied, qui sort à peine de la coquille sous la cassure, reste caché derrière les dents)
+    for j in range(meridiens):
+        phi = phis[round(j * dents / (2 * meridiens)) % dents] if dents else 90.0 + 90.0 * j
+        b.ellipsoid((0, cd * k, 0), (max(0.8 * k, 0.11), 2 * (hd + 0.3) * k, 2 * (ad + 0.3) * k), c("neon_violet"),
+                    rot=rot_y(phi + 90), material="Neon", collide=False, shadow=False, name="Meridien")
+    return (cd + hd) * k
 
 
 def monument(b, variant=0, **params):
     """Monument de l'œuf : plateau de 3 disques (turquoise / blanc / turquoise, studs), halo Neon violet flottant,
-    réplique de l'œuf fêlé (recette C01 à l'échelle k : 3 coquilles, intérieur sombre, 2 méridiens Neon, dents du
-    zigzag), anneau de données en arcs, 5 petits cubes en arc, 4 lampadaires-soucoupes bas sur le plateau.
+    réplique de l'œuf fêlé du ciel (C01 telle que dans assets/ciel.py, k = 0,14 : 5 coquilles violet → rose, dôme
+    sombre, 2 méridiens Neon, 10 dents du zigzag), anneau de données en deux arcs, 5 petits cubes en arc,
+    4 lampadaires-soucoupes bas sur le plateau ; collision de l'œuf par un cylindre invisible.
     Avant (-Z local) vers l'apparition (pose yaw 180). ≤ 120 pièces, ≤ 20 Neon, aucune transparence."""
     k = float(params.get("echelle", 0.14))
     turq, blanc = c("turquoise"), c("blanc_labo")
-    R1, R2, R3 = 17.0, 14.0, 11.0
+    R1 = min(plan.CENTRE.get("Monument", {}).get("emprise", (34, 34))) / 2
+    R2, R3 = R1 - 3.0, R1 - 6.0
     e = 1.5
     with b.group("Plateau"):
         b.cyl((0, e / 2, 0), R1, e, turq, studs="top", name="Disque")
@@ -344,33 +433,13 @@ def monument(b, variant=0, **params):
     # -- l'œuf (repère local de la recette : y = 0 au bas de la coquille), enfoncé de 1,4 dans le dernier disque
     y0 = y_haut - 1.4
     with b.at((0, y0, 0), group="Oeuf"):
-        b.ellipsoid((0, 80 * k, 0), (150 * k, 160 * k, 150 * k), c("oeuf_violet"), name="Coquille", collide=False)
-        b.ellipsoid((0, 92 * k, 0), (148 * k, 156 * k, 148 * k), c("oeuf_mauve"), name="Coquille", collide=False)
-        b.ellipsoid((0, 122 * k, 0), (134 * k, 156 * k, 134 * k), c("oeuf_rose"), name="Coquille", collide=False)
-        yc = 168 * k
-        b.ellipsoid((0, yc, 0), (109 * k, 64 * k, 109 * k), c("oeuf_interieur"), name="Interieur", collide=False)
-        for a in (0, 90):
-            b.ellipsoid((0, yc, 0), (max(0.6 * k, 0.12), 64.6 * k, 109.6 * k), c("neon_violet"), rot=rot_y(a + 45),
-                        material="Neon", collide=False, shadow=False, name="Meridien")
-        # dents du zigzag sur le bord de la cassure (cercle R 54 k, pied à 166 k), hauteurs irrégulières
-        n_d = int(params.get("dents", 10))
-        r_c = 54.6 * k
-        hauts = [26, 20, 30, 22, 28, 18, 24, 29, 21, 25, 19, 27]
-        for i in range(n_d):
-            th = 2 * math.pi * (i + 0.25) / n_d
-            radial = np.array([math.cos(th), 0.0, -math.sin(th)])
-            t = np.array([-math.sin(th), 0.0, -math.cos(th)])
-            pen = math.radians(14 + 4 * ((i * 7) % 3 - 1))
-            u = math.cos(pen) * np.array([0.0, 1.0, 0.0]) - math.sin(pen) * radial
-            larg = 2 * math.pi * r_c / n_d * 1.02
-            _dent(b, radial * r_c + np.array([0.0, 165.0 * k, 0.0]), t, u, larg, hauts[i % len(hauts)] * k,
-                  max(2.5 * k, 0.32), c("oeuf_rose"), collide=False, shadow=False)
-        # collision de l'œuf : cylindre invisible dans sa partie basse
+        sommet = oeuf_replique(b, k, dents=int(params.get("dents", 10)), meridiens=2)
+        # collision de l'œuf : cylindre invisible dans son ventre (le joueur bute sur la coquille, pas sur sa boîte)
         b.cyl((0, (3.8 + 21.0) / 2, 0), 8.0, 21.0 - 3.8, blanc, transparency=1.0, shadow=False,
               name="CollisionOeuf")
     # -- anneau de données (arcs bleu roi / bleu nuit, incliné) et cubes en arc
     with b.group("Donnees"):
-        y_a = y0 + 118 * k
+        y_a = y0 + 100 * k
         for j in range(2):
             b.anneau((0, y_a, 0), 13.4, 0.26, [c("bleu_roi"), c("bleu_nuit")], 24, arc=165, depart=7.5 + 180 * j,
                      rot=rot_x(7) @ rot_z(3), section="plat", largeur=1.15, collide=False, shadow=False,
@@ -389,7 +458,7 @@ def monument(b, variant=0, **params):
             a = math.radians(45 + 90 * j)
             rr = (R1 + R2) / 2
             _lampe_soucoupe(b, rr * math.cos(a), -rr * math.sin(a), e, hauteur=5.5)
-    return {"emprise": (2 * R1, 2 * R1), "hauteur": round(y0 + 200 * k, 2), "echelle_oeuf": k}
+    return {"emprise": (2 * R1, 2 * R1), "hauteur": round(y0 + sommet, 2), "echelle_oeuf": k}
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -397,10 +466,10 @@ def monument(b, variant=0, **params):
 # --------------------------------------------------------------------------------------------------------------
 
 def vitrine(b, variant=0, **params):
-    """Podium octogonal Ø 36 (entre plats), H 2,5 : deux gradins octogonaux (indigo, blanc, studs), anneau
+    """Podium octogonal Ø 36-38 (entre plats, lu dans le plan), H 2,5 : deux gradins octogonaux (indigo, blanc, studs), anneau
     octogonal Neon cyan sur la contremarche du second, bords dorés, **disque central de Ø 20 laissé libre** (dessus
     plat à studs à 2,5 ; rien au-dessus de 2,6 : la statue du jeu s'y pose). ≤ 60 pièces, ≤ 10 Neon."""
-    A1 = float(params.get("diametre", 36.0)) / 2
+    A1 = float(params.get("diametre", plan.CENTRE.get("Vitrine", {}).get("emprise", (36, 36))[0])) / 2
     A2 = A1 - 3.5
     r_libre = float(params.get("rayon_libre", plan.VITRINE_RAYON_LIBRE))
     y1, y2 = 1.2, 2.3
@@ -440,8 +509,8 @@ def panneau_quetes(b, variant=0, **params):
     Wf, Hf = 10.0, 6.0
     yc = 11.6
     with b.group("Socle"):
-        b.cyl((0, 0.3, 0), 2.1, 0.6, blanc, studs="top", name="Emetteur")
-        b.cyl((0, 0.35, 0), 2.45, 0.3, c("indigo"), name="Bague")
+        b.cyl((0, 0.3, 0), 1.7, 0.6, blanc, studs="top", name="Emetteur")
+        b.cyl((0, 0.35, 0), 1.95, 0.3, c("indigo"), name="Bague")
         b.cyl((0, 0.85, 0), 0.9, 0.5, c("or"), studs="top", name="Collier")
     with b.group("Mat"):
         b.cyl((0, (1.1 + yc - 1.5) / 2, 0.5), 0.4, yc - 1.5 - 1.1, blanc, name="Mat")
@@ -457,7 +526,7 @@ def panneau_quetes(b, variant=0, **params):
             b.boxc((x_g + lx / 2, yc + dy, -0.04), (lx, 0.42, 0.12), c("neon_blanc"), material="Neon",
                    collide=False, shadow=False, name="FauxTexte")
         etoile(b, (0, yc + Hf / 2 + 1.25, 0.42), 1.5, 0.5, c("or"), collide=False, name="Etoile")
-    return {"emprise": (Wf + 0.8, 4.9), "hauteur": round(yc + Hf / 2 + 1.25 + 1.5, 2)}
+    return {"emprise": (Wf + 0.8, 3.9), "hauteur": round(yc + Hf / 2 + 1.25 + 1.5, 2)}
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -477,8 +546,11 @@ def apparition(b, variant=0, **params):
     with b.group("Halo"):
         b.anneau((0, 0.12, 0), R + 1.6, 0.28, c("cyan"), 16, depart=0, section="plat", largeur=0.5,
                  material="Neon", collide=False, shadow=False, name="Halo")
+    n0 = len(b.parts)
     with b.group("Potelets"):
         for j in range(4):
             a = math.radians(45 + 90 * j)
             _potelet(b, 7.5 * math.cos(a), -7.5 * math.sin(a))
-    return {"emprise": (14.0, 14.0), "hauteur": 3.9}
+    y_sol = float(b.to_world((0, 0, 0))[1])
+    h = max([0.41] + [float(bornes_part(p)[1][1]) - y_sol for p in b.parts[n0:]])
+    return {"emprise": (14.0, 14.0), "hauteur": round(h, 2)}

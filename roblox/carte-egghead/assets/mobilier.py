@@ -23,6 +23,7 @@ import math
 
 import numpy as np
 
+import plan
 from kit import rot_x, rot_y, rot_z, shade, varier
 from palette import c
 
@@ -123,7 +124,8 @@ def _ext_y(taille, R) -> float:
 
 
 def _palmier(b, variant: int = 0, hauteur: float = 18.0, courbure: float = 1.0, palmes: int | None = None,
-             ouverture: float = 360.0, pointe: float | None = None, portee: float = 1.0) -> None:
+             ouverture: float = 360.0, pointe: float | None = None, portee: float = 1.0,
+             axe_secteur: float | None = None) -> None:
     """Construit un palmier dans le repère courant (pied en (0, 0, 0)), sans groupe ni résumé.
 
     Stipe : 7 cylindres annelés (clair / foncé) le long d'un arc, pied évasé. Couronne en deux étages de lames
@@ -136,7 +138,7 @@ def _palmier(b, variant: int = 0, hauteur: float = 18.0, courbure: float = 1.0, 
     stipe est réglé pour qu'elle culmine à `hauteur`). ouverture : secteur (degrés) des lames, centré sur le sens
     de la courbure (360 = tout autour ; 200-240 contre une façade : les lames du bord du secteur se relèvent et
     raccourcissent). pointe : azimut (degrés, 0 = +X, 90 = -Z) du sens de la courbure (sinon ±X). portee :
-    échelle de la longueur des lames."""
+    échelle de la longueur des lames. axe_secteur : azimut du milieu du secteur des lames (par défaut `pointe`)."""
     v = int(variant) % 4
     sens = 1.0 if v % 2 == 0 else -1.0
     n_p = int(palmes) if palmes else (8 if v < 2 else 6)
@@ -147,6 +149,7 @@ def _palmier(b, variant: int = 0, hauteur: float = 18.0, courbure: float = 1.0, 
     rng = b.rng
     az_c = (0.0 if sens > 0 else 180.0) if pointe is None else float(pointe)
     ca, sa = math.cos(math.radians(az_c)), -math.sin(math.radians(az_c))   # sens horizontal de la courbure
+    az_s = az_c if axe_secteur is None else float(axe_secteur)              # milieu du secteur des lames
 
     # --- couronne autour du sommet du stipe T = (0, 0, 0)
     plein = ouverture >= 359.0
@@ -159,11 +162,11 @@ def _palmier(b, variant: int = 0, hauteur: float = 18.0, courbure: float = 1.0, 
             phi = phi0 + (i + (0.0 if haute else 0.5)) * 360.0 / n_p + float(rng.uniform(-7, 7))
         else:
             f = (i + (0.25 if haute else 0.75)) / n_p - 0.5
-            phi = az_c + f * ouverture + float(rng.uniform(-4, 4))
+            phi = az_s + f * ouverture + float(rng.uniform(-4, 4))
         e = float(rng.uniform(-24, -12) if haute else rng.uniform(-56, -44))
         Lb = (10.4 if haute else 9.8) * kc * portee * float(rng.uniform(0.88, 1.08))
         if not plein:                       # contre une façade : les lames du bord du secteur se relèvent
-            t = max(0.0, abs(((phi - az_c + 180) % 360) - 180) / 180.0 - 0.3)
+            t = max(0.0, abs(((phi - az_s + 180) % 360) - 180) / 180.0 - 0.3)
             e += 40 * t
             Lb *= 1 - 0.35 * t
         d = _dir(phi, e)
@@ -214,8 +217,9 @@ def palmier(b, variant: int = 0, hauteur: float = 18, courbure: float = 1.0, **p
     par étage), `ouverture` (secteur des lames, degrés), `pointe` (azimut du sens de la courbure), `portee`
     (longueur des lames). Stipe solide ; lames, cœur et noix sans collision."""
     n0 = len(b.parts)
+    opts = {k: params[k] for k in ("palmes", "ouverture", "pointe", "portee") if params.get(k) is not None}
     with b.group("Palmier"):
-        _palmier(b, variant, hauteur, courbure, **params)
+        _palmier(b, variant, hauteur, courbure, **opts)
     return _resume(b, n0)
 
 
@@ -230,15 +234,69 @@ def _boule_haie(b, centre, taille, ton: str = "milieu", **kw):
 
 
 # ---------------------------------------------------------------------------------------------------------------
+# Zones du plan à respecter : parcelles et escaliers vides, couronne de bâtiments
+# ---------------------------------------------------------------------------------------------------------------
+
+def _zones_plan() -> tuple[list, list]:
+    """(interdits, praticables) en rectangles monde (x0, x1, z0, z1). Interdits : emprises des parcelles et zones
+    d'escalier (vides entre y 0,3 et 80, contrôlées par carte.py). Praticables : pelouse, trottoirs, route,
+    esplanade ; au-delà commence la couronne de bâtiments."""
+    interdits = []
+    for p in getattr(plan, "PARCELLES", None) or []:
+        try:
+            interdits.append(tuple(float(p[k]) for k in ("x0", "x1", "z0", "z1")))
+            e = p.get("escalier")
+            if e:
+                interdits.append(tuple(float(e[k]) for k in ("x0", "x1", "z0", "z1")))
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+    praticables = [tuple(float(v) for v in r) for r in (getattr(plan, "ZONES_PRATICABLES", None) or [])]
+    return interdits, praticables
+
+
+def _boite(p):
+    """Boîte englobante prudente d'une pièce (|R| · demi-taille, comme les contrôles de carte.py)."""
+    h = np.abs(np.asarray(p.rot, float).reshape(3, 3)) @ (np.asarray(p.size, float) / 2)
+    ctr = np.asarray(p.pos, float)
+    return ctr - h, ctr + h
+
+
+def _conflits(parts, interdits, praticables, base) -> list:
+    """Centres (x, z) des pièces dont la boîte entre dans une parcelle ou un escalier entre y 0,3 et 80, ou sort
+    des zones praticables (vers la couronne) quand la base (x, z) de l'objet est dans une zone praticable."""
+    def dans(x, z, r, m=1e-6):
+        return r[0] - m <= x <= r[1] + m and r[2] - m <= z <= r[3] + m
+    garde = bool(praticables) and any(dans(base[0], base[1], r) for r in praticables)
+    out = []
+    for p in parts:
+        lo, hi = _boite(p)
+        if hi[1] <= 0.3 or lo[1] >= 80:
+            continue
+        mauvais = any(lo[0] < r[1] - 0.01 and hi[0] > r[0] + 0.01 and lo[2] < r[3] - 0.01 and hi[2] > r[2] + 0.01
+                      for r in interdits)
+        if not mauvais and garde:
+            coins = ((lo[0], lo[2]), (lo[0], hi[2]), (hi[0], lo[2]), (hi[0], hi[2]))
+            mauvais = not all(any(dans(x, z, r, 0.05) for r in praticables) for x, z in coins)
+        if mauvais:
+            out.append((float(lo[0] + hi[0]) / 2, float(lo[2] + hi[2]) / 2))
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------------
 # Groupe de palmiers en jardinière ronde
 # ---------------------------------------------------------------------------------------------------------------
 
 def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteur: float | None = None,
                     **params) -> dict:
-    """Jardinière ronde de Ø `diametre` à bordure rayée rouge et blanc (anneau à section carrée de 10-14
-    segments, studs), terre `haie` à studs, boules de haie, et `n` palmiers de hauteurs différentes (18 → 28 ;
-    `hauteur` = le plus grand), courbures opposées vers l'extérieur. Pièces ≤ 16 + 28 n : le grand palmier a
-    8 palmes (28), les autres 6 (24) ; la différence paie des boules de haie en plus."""
+    """Jardinière ronde de Ø `diametre` à bordure rayée rouge et blanc (anneau à section carrée de 10 segments
+    sous Ø 9, 12 au-delà, studs), terre `haie` à studs, boules de haie, et `n` palmiers de hauteurs différentes (18 → 28 ;
+    `hauteur` = le plus grand), penchés vers l'extérieur : le grand presque droit, les petits très penchés (en V,
+    couronnes séparées, comme les paires de EH4). Pièces ≤ 16 + 28 n (en pratique 42 / 67 / 93 pour n = 1 / 2
+    / 3) : le grand palmier a 7 lames par étage (26), les autres 6 (24).
+    Placement : la fonction lit `plan.PARCELLES` et `plan.ZONES_PRATICABLES` dans le repère de la carte ; si une
+    couronne entre dans une parcelle ou un escalier, ou traverse une façade alors que la jardinière est dans une
+    zone praticable, les palmiers sont refaits penchés loin du conflit (secteur de lames réduit). Le résumé
+    renvoie `replis` (essais refaits) et `conflits` (pièces encore fautives, 0 attendu)."""
     n0 = len(b.parts)
     n = max(1, int(n))
     D = max(float(diametre), 5.0)
@@ -251,10 +309,10 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
         bas = max(min(18.0, H * 0.8), H * 0.64)
         hs = [H + (bas - H) * i / (n - 1) for i in range(n)]
     budget = 16 + 28 * n
-    pieces_palmiers = 28 + 24 * (n - 1)
+    pieces_palmiers = 26 + 24 * (n - 1)
     reste = budget - pieces_palmiers                    # bordure + terre + haies
-    n_seg = 10 if D < 7 else (12 if reste < 24 else 14)
-    n_haies = max(2, reste - n_seg - 1)
+    n_seg = 10 if D < 9 else 12                         # rayures de 2,2 à 2,5 (budget de la carte)
+    n_haies = max(2, reste - (12 if D < 7 else (16 if reste < 26 else 17)) - 1)   # marge pour la carte
     e = 1.3 if D < 7 else 1.5                           # section de la bordure
     Rc = D / 2 - e / 2                                  # ligne médiane de la bordure
     Ri = Rc - e / 2                                     # bord intérieur
@@ -284,14 +342,57 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
     # palmiers : le plus grand au centre (n = 1) ou sur un petit cercle, chacun penché vers l'extérieur
     ar = Ri * (0.0 if n == 1 else 0.5)
     b0 = float(rng.uniform(0, 360)) + 90 * v
-    for i, h in enumerate(hs):
-        a = b0 + i * 360.0 / n
-        pos = (ar * math.cos(math.radians(a)), y_terre - 0.05, -ar * math.sin(math.radians(a)))
-        var = (0 if i == 0 else 2) + (v % 2 if n == 1 else 0)
-        courb = (0.7 if i == 0 else 1.9) * (1.0 if n > 1 else 1.4)      # les petits s'écartent du grand (V)
-        with b.at(pos, group="Palmier"):
-            _palmier(b, var, h, courb, pointe=a if n > 1 else None, portee=1.0 if i == 0 else 0.88)
-    return _resume(b, n0, palmiers=[round(h, 1) for h in hs])
+
+    def planter(repli=None):
+        """repli = None (V autour du centre) ou (azimut local qui s'éloigne du conflit, portée, ouverture,
+        courbure) : palmiers côte à côte, penchés loin du conflit, lames sur un secteur tourné de ce côté."""
+        for i, h in enumerate(hs):
+            var = (0 if i == 0 else 2) + (v % 2 if n == 1 else 0)
+            lames = 7 if i == 0 else None                    # principal 7 + 7 lames (26), les autres 6 + 6 (24)
+            if repli is None:
+                a = b0 + i * 360.0 / n
+                pos = (ar * math.cos(math.radians(a)), y_terre - 0.05, -ar * math.sin(math.radians(a)))
+                courb = (0.7 if i == 0 else 1.9) * (1.0 if n > 1 else 1.4)      # les petits s'écartent (V)
+                kw = dict(pointe=a if n > 1 else None, portee=1.0 if i == 0 else 0.88)
+            else:
+                az, portee, ouv, courb0 = repli
+                u = (math.cos(math.radians(az)), -math.sin(math.radians(az)))          # loin du conflit
+                w = (-u[1], u[0])                                                       # de côté
+                f = (i - (n - 1) / 2) * (1.5 * Ri if n > 1 else 0.0) / max(n - 1, 1)
+                pos = (0.2 * Ri * u[0] + f * w[0], y_terre - 0.05, 0.2 * Ri * u[1] + f * w[1])
+                courb = courb0 * (0.75 if i == 0 else 1.0)
+                ecart = (i - (n - 1) / 2) * (70.0 / max(n - 1, 1))                   # éventail de ±35°
+                # un azimut croissant tourne vers -w : le palmier du côté +w penche donc avec az - écart (V ouvert)
+                kw = dict(pointe=az - ecart, axe_secteur=az, portee=portee * (1.0 if i == 0 else 0.9),
+                          ouverture=ouv)
+            with b.at(pos, group="Palmier"):
+                _palmier(b, var, h, courb, palmes=lames, **kw)
+
+    # Les couronnes ne doivent ni entrer dans une parcelle ou un escalier (vides), ni traverser une façade de la
+    # couronne : si l'essai par défaut déborde, on recommence en penchant les palmiers loin du conflit, avec des
+    # lames sur un secteur de plus en plus étroit et de plus en plus courtes (déterministe).
+    interdits, praticables = _zones_plan()
+    Rw, tw = _repere(b)
+    base = (float(tw[0]), float(tw[2]))
+    n1 = len(b.parts)
+    planter()
+    conf = _conflits(b.parts[n1:], interdits, praticables, base)
+    replis = 0
+    if conf:
+        cx, cz = float(np.mean([q[0] for q in conf])), float(np.mean([q[1] for q in conf]))
+        loc = Rw.T @ np.array([base[0] - cx, 0.0, base[1] - cz])
+        if math.hypot(loc[0], loc[2]) < 1e-6:
+            loc = np.array([0.0, 0.0, -1.0])
+        az = math.degrees(math.atan2(-loc[2], loc[0]))
+        for essai in ((0.95, 230.0, 1.4), (0.9, 200.0, 1.7), (0.8, 180.0, 2.0), (0.7, 160.0, 2.2),
+                      (0.6, 140.0, 2.4)):
+            del b.parts[n1:]
+            replis += 1
+            planter((az,) + essai)
+            conf = _conflits(b.parts[n1:], interdits, praticables, base)
+            if not conf:
+                break
+    return _resume(b, n0, palmiers=[round(h, 1) for h in hs], replis=replis, conflits=len(conf))
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -302,7 +403,7 @@ def jardiniere(b, variant: int = 0, largeur: float = 12, profondeur: float = 6, 
                **params) -> dict:
     """M03 · jardinière rectangulaire `largeur` (X) × `profondeur` (Z) contre une façade (dos à +Z) : bordure
     rayée M04 (segments d'environ 2, rouge / blanc, poteaux d'angle ronds blancs un peu plus hauts, studs),
-    terre à studs, haie en boules qui se recouvrent sur deux rangs (+ 2-4 boules claires sur le dessus), un
+    terre à studs, haie en boules qui se recouvrent sur deux rangs (+ 2 boules claires sur le dessus), un
     palmier au centre penché vers l'avant (rue) dont les lames évitent le dos (la façade est à 4 studs derrière
     le tronc : rien au-dessus de la bordure ne dépasse z local 3,6). ≤ 70 pièces (palmier compris)."""
     n0 = len(b.parts)
@@ -343,20 +444,20 @@ def jardiniere(b, variant: int = 0, largeur: float = 12, profondeur: float = 6, 
               studs="top", name="Terre")
         # haies : rang arrière (plus haut, plus foncé) et rang avant, puis deux boules claires sur le dessus
         xi, zi = W / 2 - t, Dp / 2 - t                  # demi-intérieur
-        n_rang = 6 if W >= 10 else max(2, int(W // 2))
+        n_rang = 4 if W >= 10 else max(2, int(W // 2))
         for rang, (z, sy, ton) in enumerate(((zi * 0.36, 3.3, "bas"), (-zi * 0.36, 2.9, "milieu"))):
             for i in range(n_rang):
                 x = -xi + (i + 0.5) * (2 * xi / n_rang) + float(rng.uniform(-0.25, 0.25))
-                sx = 2 * xi / n_rang * float(rng.uniform(1.5, 1.7))
+                sx = 2 * xi / n_rang * float(rng.uniform(1.4, 1.55))
                 sz = zi * float(rng.uniform(1.2, 1.4))
                 syy = sy * float(rng.uniform(0.9, 1.1))
                 yc = y_terre + syy * (0.34 if rang == 0 else 0.28)
                 _boule_haie(b, (x, yc, z), (sx, syy, sz), ton if i % 3 else "milieu")
-        n_dessus = 4 if W >= 10 else 2
+        n_dessus = 2
         for i in range(n_dessus):
             x = -xi + (i + 0.5) * (2 * xi / n_dessus) + float(rng.uniform(-0.3, 0.3))
             _boule_haie(b, (x, y_terre + 2.35, float(rng.uniform(-0.3, 0.3))),
-                        (2 * xi / n_dessus * 1.25, 2.3 * float(rng.uniform(0.9, 1.1)), 2.6), "haut")
+                        (2 * xi / n_dessus * 0.95, 2.4 * float(rng.uniform(0.9, 1.1)), 2.7), "haut")
     if palmier:
         # penché vers l'avant (-Z), légèrement de côté selon la variante ; lames sur 200° (rien dans le dos :
         # la façade est 3,7 derrière le tronc), un peu plus courtes
@@ -430,9 +531,9 @@ BANC_COULEURS = ("orange", "turquoise", "rose_bonbon", "jaune_citron")
 
 
 def banc(b, variant: int = 0, **params) -> dict:
-    """M10 · banc arrondi (10 pièces) : assise en gélule (bloc + 2 bouts ronds, studs) sur 2 pieds blancs,
-    dossier en gélule à l'arrière (+Z) sur 2 montants ; on s'assoit face à -Z. Assise et dossier `orange`,
-    `turquoise`, `rose_bonbon` ou `jaune_citron` selon la variante. 7 × 2 au sol, 3,9 de haut."""
+    """M10 · banc arrondi (8 pièces) : assise en gélule (bloc + 2 bouts ronds, studs) sur 2 pieds blancs,
+    dossier en gélule posé sur l'arrière de l'assise (+Z) ; on s'assoit face à -Z. Assise et dossier `orange`,
+    `turquoise`, `rose_bonbon` ou `jaune_citron` selon la variante. 7 × 2 au sol, 3,6 de haut."""
     n0 = len(b.parts)
     col = c(BANC_COULEURS[int(variant) % 4])
     blanc = c("blanc_labo")
@@ -442,10 +543,10 @@ def banc(b, variant: int = 0, **params) -> dict:
         b.box((-2.5, 1.6, -1.0), (2.5, 2.2, 1.0), col, studs="top", name="Assise")
         for s in (-1, 1):
             b.cyl((s * 2.5, 1.9, 0), 1.0, 0.5, col, studs="top", name="Assise")      # 1,65 → 2,15
-        b.box((-2.5, 2.45, 0.55), (2.5, 3.85, 0.95), col, studs="top", name="Dossier")
+        # dossier pris dans l'arrière de l'assise ; 0,05 en retrait des bouts et 0,03-0,05 du dos de l'assise
+        b.box((-2.45, 2.15, 0.55), (2.45, 3.55, 0.95), col, studs="top", name="Dossier")
         for s in (-1, 1):
-            b.cyl((s * 2.5, 3.15, 0.75), 0.7, 0.5, col, axis="z", name="Dossier")
-            b.boxc((s * 1.6, 2.33, 0.75), (0.32, 0.56, 0.3), blanc, name="Montant", **FIN)
+            b.cyl((s * 2.45, 2.85, 0.75), 0.7, 0.44, col, axis="z", name="Dossier")
     return _resume(b, n0)
 
 
