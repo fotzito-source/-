@@ -162,9 +162,10 @@ CENTRE = {
     "Monument": {"x": 0.0, "z": 127.0, "emprise": (34, 34), "hauteur": 32, "yaw": 180,
                  "fonction": "centre.monument", "variante": 0,
                  "note": "à la place du sanctuaire ; l'avant regarde le sud (l'apparition)"},
-    "Vitrine": {"x": 0.0, "z": 34.0, "emprise": (36, 36), "hauteur": 2.5, "yaw": 180,
+    "Vitrine": {"x": 0.0, "z": 34.5, "emprise": (36, 36), "hauteur": 2.5, "yaw": 180,
                 "fonction": "centre.vitrine", "variante": 0,
-                "note": "podium octogonal Ø 36 ; disque central de Ø 20 LIBRE (statue du jeu)"},
+                "note": "podium octogonal Ø 36 ; disque central de Ø 20 LIBRE (statue du jeu) ; z 34,5 (mesuré 34 ± 5) : "
+                        "ses faces nord et sud (16,5 et 52,5) ne tombent pas sur une ligne de la grille [8k, 8k + 1]"},
     "Quetes": {"x": 0.0, "z": 151.0, "emprise": (12, 4), "hauteur": 16, "yaw": 180,
                "fonction": "centre.panneau_quetes", "variante": 0,
                "note": "panneau holographique sans texte devant le monument (le PNJ des quêtes y était)"},
@@ -866,6 +867,11 @@ VUES = {
     "nord": ((0.0, 66.1, -319.0), (0.0, 18.23, -231.3), 70.6),
     "centre": ((32.0, 34.0, 292.0), (-4.0, 6.0, 170.0), 60.0),
     "aerienne_sud": ((420.0, 520.0, 980.0), (0.0, 40.0, -60.0), 48.0),
+    # vue d'ensemble depuis le côté du soleil (-X / +Z) : toute la carte et l'œuf au fond (la vue « aerienne »
+    # calculée par rendu.py se cadre sur l'emprise de toutes les pièces, ciel compris : la carte y serait petite)
+    "aerienne": ((-700.0, 700.0, 1100.0), (0.0, 60.0, -250.0), 50.0),
+    # dessus quasi orthographique de la carte seule (le haut de l'image = nord) ; rendre en 800 × 1000
+    "plan_carte": ((0.0, 4500.0, 0.0), (0.0, 0.0, -0.05), 12.0),
 }
 RESOLUTIONS = {"capture1": (2000, 1077), "capture2": (2000, 1050)}
 

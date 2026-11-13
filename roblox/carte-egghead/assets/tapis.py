@@ -397,7 +397,8 @@ def portail(b, variant=0, largeur=30, profondeur=16, hauteur=36, **params):
     r_col = 1.5
     t_arche = 1.8                                       # section carrée de l'arche d'or
     y_c = H - 2.4 - xc - t_arche / 2                    # centre de l'arche : sommet de l'arche ≈ H - 2,4
-    n_arche = 18                                        # 9 segments sur 180° : un segment à plat au sommet
+    n_arche = 24                                        # arche d'or : 12 segments sur 180° (joint au sommet)
+    n_neon = 18                                         # arche Neon : 9 segments (un segment à plat au sommet)
 
     # -- socles : boîte arrondie blanche + plateau de couleur à studs ; bornes d'entrée à l'avant
     with b.group("Socles"):
@@ -423,7 +424,7 @@ def portail(b, variant=0, largeur=30, profondeur=16, hauteur=36, **params):
     # -- grande arche d'or (un segment à plat au sommet) et fine arche Neon sur sa face avant
     with b.group("Arche"):
         b.anneau((0, y_c, zc), xc, t_arche, c("or"), n_arche, axe="z", arc=180, section="carre", name="Arche")
-        b.anneau((0, y_c, zc - t_arche / 2 - 0.13), xc, 0.38, s["neon"], n_arche, axe="z", arc=180,
+        b.anneau((0, y_c, zc - t_arche / 2 - 0.13), xc, 0.38, s["neon"], n_neon, axe="z", arc=180,
                  section="rond", material="Neon", collide=False, shadow=False, name="ArcheNeon")
     # -- fond fermé arrondi : plaque blanche à demi-disque, plaque de couleur derrière (liseré), hublot lumineux
     #    devant (cœur Neon sous une bulle de verre), grand cercle d'or au dos
@@ -452,10 +453,14 @@ def portail(b, variant=0, largeur=30, profondeur=16, hauteur=36, **params):
         b.cyl((0, y_h, z1f + 0.35), 5.6, 0.4, s["hublot_fond"], axis="z", name="DosFond")
         b.cyl((0, y_h, z1f + 0.5), 3.7, 0.3, s["hublot_anneau"], axis="z", name="DosAnneau")
         b.cyl((0, y_h, z1f + 0.62), 1.9, 0.3, s["dome"], axis="z", name="DosPastille")
+        # bandeau de couleur au dos, à la naissance du demi-disque (cache le raccord bloc / demi-disque)
+        b.box((-(r_f + 0.25), y_c - 0.45, z1f - 0.3), (r_f + 0.25, y_c + 0.45, z1f + 0.15), s["fond_bord"],
+              name="Bandeau")
     # -- couronnement : tambour, dôme, antenne à boule
     with b.group("Sommet"):
         y_top = y_c + xc + t_arche / 2                  # dessus du segment du sommet
-        b.cyl((0, y_top + 0.7, zc), 2.9, 1.5, c("blanc_labo"), studs="top", name="Tambour")
+        # tambour : descend de 0,3 sous le sommet de l'arche (joint de deux segments, faîte en pente de 7,5°)
+        b.cyl((0, y_top + 0.575, zc), 2.9, 1.75, c("blanc_labo"), studs="top", name="Tambour")
         b.dome((0, y_top + 1.45, zc), 2.9, 2.6, s["dome"], collide=False)
         b.cyl((0, y_top + 1.45 + 2.6 + 0.9, zc), 0.22, 2.2, c("blanc_labo"), collide=False, name="Antenne")
         b.ball((0, y_top + 1.45 + 2.6 + 2.2, zc), 0.55, c("or"), collide=False, name="Pointe")

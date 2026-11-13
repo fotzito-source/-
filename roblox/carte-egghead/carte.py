@@ -56,8 +56,10 @@ MODULES_ASSETS = ("tapis", "centre", "tours_rondes", "tours_formes", "ciel", "mo
 # --- Couleurs du sol (palette.py ; tons dérivés par mix / shade seulement) ----------------------------------------
 SOL_VERT = coul("sol_vert")
 # Lignes de la grille : la grille de l'île (refEH4) est un fin quadrillage vert clair, pas un carrelage blanc. La
-# ligne fait 1 stud (studs alignés) : on baisse donc son contraste (sol_ligne mêlé au vert clair, essai du 12/11).
-LIGNE_GRILLE = mix(coul("sol_vert_clair"), coul("sol_ligne"), 0.22)
+# ligne fait 1 stud (studs alignés), soit 1/8 de la case contre ≈ 1/25 dans l'anime : on baisse donc son contraste
+# (sol_ligne mêlé à 10 % au vert clair, essais du 12-13/11 sous la lumière de la carte : à 22 %, la grille paraît
+# blanche dans capture2).
+LIGNE_GRILLE = mix(coul("sol_vert_clair"), coul("sol_ligne"), 0.10)
 SOL_COURONNE = coul("sol_vert_clair")
 DALLE = coul("dalle_labo")
 VOIE = coul("voie")
@@ -670,6 +672,90 @@ def _inter_rect(lo, hi, x0, x1, z0, z1, marge=0.01):
     return (lo[:, 0] < x1 - marge) & (hi[:, 0] > x0 + marge) & (lo[:, 2] < z1 - marge) & (hi[:, 2] > z0 + marge)
 
 
+def _points_forme(p, pas: float = 1.0, nmax: int = 48) -> np.ndarray:
+    """Points (monde) qui échantillonnent le volume réel d'une pièce (bloc et coin : la boîte ; boule et
+    ellipsoïde : l'ellipsoïde inscrit ; cylindre : axe X local, comme dans Roblox). Sert à juger l'emprise vraie
+    d'une forme ronde, que sa boîte englobante surestime (un pneu de Ø 100 n'occupe pas les coins de sa boîte)."""
+    size = np.asarray(p.size, float)
+    n = [int(min(nmax, max(2, math.ceil(s / pas) + 1))) for s in size]
+    axes = [np.linspace(-1.0, 1.0, k) for k in n]
+    u, v, w = np.meshgrid(*axes, indexing="ij")
+    u, v, w = u.ravel(), v.ravel(), w.ravel()
+    if p.shape in ("ball", "ellipsoid"):
+        m = u * u + v * v + w * w <= 1.0 + 1e-9
+    elif p.shape == "cyl":
+        m = v * v + w * w <= 1.0 + 1e-9
+    else:
+        m = np.ones(u.shape, bool)
+    loc = np.stack([u[m], v[m], w[m]], axis=1) * (size / 2)
+    R = np.asarray(p.rot, float).reshape(3, 3)
+    return loc @ R.T + np.asarray(p.pos, float)
+
+
+def _aire_praticable(pts: np.ndarray, ymin: float = -1e9, ymax: float = 1e9) -> int:
+    """Aire (studs², cases de 1 × 1) de la projection au sol des points dont y ∈ [ymin, ymax], au-dessus d'une zone
+    praticable (pelouse, trottoirs, route : en deçà de la ligne des façades)."""
+    m = (pts[:, 1] >= ymin) & (pts[:, 1] <= ymax) & (np.abs(pts[:, 0]) < plan.ALIGNEMENT_X) & \
+        (np.abs(pts[:, 2]) < plan.ALIGNEMENT_Z)
+    if not m.any():
+        return 0
+    cases = np.unique(np.floor(pts[m][:, [0, 2]]).astype(np.int64), axis=0)
+    return int(len(cases))
+
+
+def _cases_praticables(pts: np.ndarray) -> np.ndarray:
+    """Cases (1 × 1, indices entiers) couvertes par la projection au sol des points, en deçà de la ligne des façades."""
+    m = (np.abs(pts[:, 0]) < plan.ALIGNEMENT_X) & (np.abs(pts[:, 2]) < plan.ALIGNEMENT_Z)
+    if not m.any():
+        return np.zeros((0, 2), np.int64)
+    return np.unique(np.floor(pts[m][:, [0, 2]]).astype(np.int64), axis=0)
+
+
+def _aire_sous(parts, lo, hi, i: int, porteuses: np.ndarray) -> int:
+    """Aire praticable (studs²) sous la pièce i : cases de son emprise vraie où la hauteur libre entre le dessus du
+    plus haut support placé dessous (pièce à collision qui monte du sol ; à défaut le sol, y 0) et le dessous de la
+    pièce vaut de 5 à 40 (un personnage peut s'y tenir, la caméra Roblox y sauterait)."""
+    cases = _cases_praticables(_points_forme(parts[i], pas=1.0, nmax=128))
+    if not len(cases):
+        return 0
+    y_bas = float(lo[i, 1])
+    # obstacles de la colonne : pièces à collision qui commencent sous la pièce (un volume qui la traverse, comme
+    # le cylindre de collision d'un œuf posé, bouche toute la hauteur : dessus effectif = y_bas)
+    cand = porteuses & (lo[:, 0] < hi[i, 0]) & (hi[:, 0] > lo[i, 0]) & (lo[:, 2] < hi[i, 2]) & \
+        (hi[:, 2] > lo[i, 2]) & (lo[:, 1] < y_bas - 1e-6)
+    cand[i] = False
+    dessus = {}
+    cles = {(int(a), int(c)) for a, c in cases}
+    for j in np.flatnonzero(cand):
+        haut_j = min(float(hi[j, 1]), y_bas)
+        for a, c in _cases_praticables(_points_forme(parts[j], pas=1.0, nmax=64)):
+            k = (int(a), int(c))
+            if k in cles and haut_j > dessus.get(k, 0.0):
+                dessus[k] = haut_j
+    return sum(1 for k in cles if 5.0 <= y_bas - dessus.get(k, 0.0) < plan.HAUTEUR_LIBRE)
+
+
+def _devant_facade(pts: np.ndarray) -> np.ndarray:
+    """Profondeur de chaque point devant la ligne des façades (> 0 : côté rue ; ≤ 0 : dans la couronne)."""
+    return np.minimum(plan.ALIGNEMENT_X - np.abs(pts[:, 0]), plan.ALIGNEMENT_Z - np.abs(pts[:, 2]))
+
+
+def _hors_emprise(e: dict, pts: np.ndarray) -> np.ndarray:
+    """Distance de chaque point (x, z) hors de l'emprise au sol de l'emplacement e (0 dedans). Rang 1 : tout le
+    rectangle largeur × profondeur de l'intervalle (le socle d'une fusée, R D/2 + 1, ou le socle carré d'un kiosque
+    rond y ont droit) ; rang 2 et coins : le disque du diamètre au sol."""
+    forme = plan.emprise_slot(e) if e.get("rang") != 1 else ("rect",)
+    if forme[0] == "cercle":
+        _, cx, cz, r = forme
+        return np.clip(np.hypot(pts[:, 0] - cx, pts[:, 2] - cz) - r, 0, None)
+    yaw = math.radians(e["yaw"])
+    ux, uz = math.cos(yaw), -math.sin(yaw)
+    vx, vz = math.sin(yaw), math.cos(yaw)
+    dx, dz = pts[:, 0] - e["x"], pts[:, 2] - e["z"]
+    a, c = dx * ux + dz * uz, dx * vx + dz * vz
+    return np.hypot(np.clip(np.abs(a) - e["largeur"] / 2, 0, None), np.clip(np.abs(c) - e["profondeur"] / 2, 0, None))
+
+
 def verifications(b: Builder) -> dict:
     """Contrôles de la carte : toutes les listes de « problemes » doivent rester vides."""
     parts = b.parts
@@ -707,7 +793,49 @@ def verifications(b: Builder) -> dict:
     blanche = np.array([g.startswith(("Centre/Vente", "Tapis/Portail_", "Mobilier/Lampe", "Mobilier/Palmier",
                                       "Mobilier/Panneau", "Provisoire/")) for g in groupes])
     m = visible & (lo[:, 1] > 5) & (lo[:, 1] < plan.HAUTEUR_LIBRE) & (aire > 64) & ~blanche
-    pb["hauteur_libre"] += [(nomme(i), round(float(lo[i, 1]), 1), round(float(aire[i]))) for i in np.flatnonzero(m)[:8]]
+    # supports possibles : pièces à collision (même invisibles) qui montent du sol (hors dalles de sol)
+    porteuses = np.array([p.collide for p in parts]) & (hi[:, 1] > 1.0) & \
+        ~np.isin(racines, ["Sol", "Trottoirs", "Routes", GROUPE_REPERES, "TracesParcelles"])
+    for i in np.flatnonzero(m):
+        # emprise vraie (une forme ronde n'occupe pas les coins de sa boîte) ; une case ne compte que si l'on peut se
+        # tenir dessous : entre le dessus du support le plus haut sous la pièce (le sol sinon) et son dessous, 5 à 40
+        a = _aire_sous(parts, lo, hi, i, porteuses)
+        if a > 64 and len(pb["hauteur_libre"]) < 8:
+            pb["hauteur_libre"].append((nomme(i), round(float(lo[i, 1]), 1), a))
+    # --- couronne : rien devant la ligne des façades sous y 8 ; au plus 1,5 de saillie entre 8 et 40 -----------------
+    tours = np.array([g.startswith("Tours/") and not g.startswith(("Tours/Tubes", "Tours/MurDeFond")) for g in groupes])
+    yc = plan.NIVEAU_COURONNE
+    m = tours & visible & (lo[:, 1] < yc + 40) & \
+        _inter_rect(lo, hi, -plan.ALIGNEMENT_X, plan.ALIGNEMENT_X, -plan.ALIGNEMENT_Z, plan.ALIGNEMENT_Z, marge=0.05)
+    for i in np.flatnonzero(m):
+        pts = _points_forme(parts[i], pas=0.5)
+        prof = _devant_facade(pts)
+        y = pts[:, 1] - yc
+        bas = (y < 8) & (prof > 0.05)
+        milieu = (y >= 8) & (y < 40) & (prof > 1.5)
+        if (bas | milieu).any() and len(pb["devant_facades"]) < 10:
+            pb["devant_facades"].append((nomme(i), round(float(prof[bas | milieu].max()), 2),
+                                         round(float(y[bas | milieu].min()), 1)))
+    # --- emplacements de la couronne : sous y 40, chaque asset reste dans son emprise (information, à 0,5 près) ------
+    debord: dict = {}
+    for i in np.flatnonzero(tours & visible & (lo[:, 1] < yc + 40)):
+        ident = groupes[i].split("/")[1]
+        e = plan.CEINTURE_PAR_ID.get(ident)
+        if e is None:
+            continue
+        coins = np.array([[x, z] for x in (lo[i, 0], hi[i, 0]) for z in (lo[i, 2], hi[i, 2])])
+        if _hors_emprise(e, np.stack([coins[:, 0], np.zeros(4), coins[:, 1]], axis=1)).max() <= 0.5:
+            continue
+        pts = _points_forme(parts[i], pas=1.0, nmax=20)
+        pts = pts[pts[:, 1] < yc + 40]
+        if len(pts):
+            d = float(_hors_emprise(e, pts).max())
+            if d > 0.5 and d > debord.get(ident, (0, ""))[0]:
+                debord[ident] = (round(d, 1), parts[i].name)
+    # --- tailles : 0,1 stud au moins sur chaque axe (règle de la carte) ------------------------------------------------
+    fines = [nomme(i) for i, p in enumerate(parts) if min(p.size) < 0.1 - 1e-6 and p.group != GROUPE_REPERES]
+    if fines:
+        pb["trop_fines"] += fines[:10]
     # --- fenêtre de l'œuf : rien au-dessus de la hauteur maximale dans |x| < 70 du côté nord ------------------------
     F = plan.FENETRE_OEUF
     m = visible & (hi[:, 1] > F["hauteur_max"] + plan.NIVEAU_COURONNE + 1e-6) & \
@@ -789,9 +917,45 @@ def verifications(b: Builder) -> dict:
         "par_module": par_module,
         "provisoires": [f"{p['id']} ({p['fonction']}) : {p['raison']}" for p in provisoires],
         "nb_provisoires": len(provisoires),
+        # information : emplacements de la couronne dont l'asset sort de son emprise sous y 40 (id → (écart, pièce))
+        "debordements": dict(sorted(debord.items(), key=lambda kv: -kv[1][0])),
         "faces_confondues_meme_teinte": ctl["faces_confondues_meme_teinte"],
         "problemes": problemes,
     }
+
+
+def faces_par_module(b: Builder) -> dict:
+    """Diagnostic pour les constructeurs : faces confondues comptées module par module (chaque module seul ; les
+    coïncidences entre deux modules restent dans verifications()["problemes"]["faces_confondues"])."""
+    suivi: Suivi = b._suivi
+    mod_de = {a["id"]: ("provisoires" if a["provisoire"] else _module_budget(a["fonction"])) for a in suivi.appels}
+    paquets = defaultdict(list)
+    for p in b.parts:
+        g = p.group.split("/")
+        if g[0] in ("Tours", "Centre", "Mobilier") and len(g) > 1 and g[1] in mod_de:
+            mod = mod_de[g[1]]
+        elif g[0] == "Tapis":
+            mod = "tapis+centre"
+        elif g[0] == "Ciel":
+            mod = "ciel"
+        elif g[0] == "Provisoire":
+            mod = "provisoires"
+        else:
+            mod = "carte"
+        paquets[mod].append(p)
+    out = {}
+    module_de_part = {}
+    for mod in sorted(paquets):
+        pbs, memes = _faces_confondues(paquets[mod], limite=400)
+        out[mod] = (len(pbs), len(memes), pbs[:2])
+        for p in paquets[mod]:
+            module_de_part[f"{p.group}/{p.name}"] = mod
+    # coïncidences entre deux modules (un asset contre le sol, deux poses voisines…)
+    pbs, _ = _faces_confondues(b.parts, limite=3000)
+    inter = [(a, c, ar) for (a, c, ar) in pbs
+             if module_de_part.get(a.rsplit(".", 1)[0]) != module_de_part.get(c.rsplit(".", 1)[0])]
+    out["inter-modules"] = (len(inter), 0, inter[:3])
+    return out
 
 
 def main() -> None:
@@ -814,6 +978,18 @@ def main() -> None:
         print("par module (pièces, Neon, transparentes / plafonds) :")
         for k, d in v["par_module"].items():
             print(f"  {k:14s} {json.dumps(d, ensure_ascii=False)}")
+        print("faces confondues par module (problèmes, même teinte ; premiers cas) :")
+        for k, (n_pb, n_memes, ex) in faces_par_module(b).items():
+            print(f"  {k:14s} {n_pb:4d} {n_memes:4d}  {json.dumps(ex, ensure_ascii=False)[:400]}")
+        hors = [a for a in b._suivi.appels if not a["provisoire"]
+                and any(x > c for x, c in zip((a["pieces"], a["neon"], a["transp"]),
+                                              plan.budget_appel(a["fonction"], a["params"], a["variante"])))]
+        if hors:
+            print(f"appels hors budget ({len(hors)}) :")
+            for a in hors:
+                cap = tuple(round(x) for x in plan.budget_appel(a["fonction"], a["params"], a["variante"]))
+                print(f"  {a['id']:16s} {a['fonction']:30s} v{a['variante']} {(a['pieces'], a['neon'], a['transp'])}"
+                      f" > {cap}")
     if v["provisoires"]:
         print(f"provisoires ({len(v['provisoires'])}) :")
         par_raison = defaultdict(list)

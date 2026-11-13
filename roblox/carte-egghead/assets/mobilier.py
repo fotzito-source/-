@@ -57,7 +57,14 @@ def _resume(b, n0: int, **extra) -> dict:
             continue
         Rp = R.T @ np.asarray(p.rot, float).reshape(3, 3)
         cp = R.T @ (np.asarray(p.pos, float) - t)
-        half = np.abs(Rp) @ (np.asarray(p.size, float) / 2)
+        h = np.asarray(p.size, float) / 2
+        if p.shape in ("ball", "ellipsoid"):           # étendue exacte de l'ellipsoïde
+            half = np.sqrt((Rp ** 2) @ (h ** 2))
+        elif p.shape == "cyl":                         # axe = X de la pièce, rayon h[1]
+            a = np.abs(Rp[:, 0])
+            half = a * h[0] + np.sqrt(np.clip(1 - a ** 2, 0, 1)) * h[1]
+        else:
+            half = np.abs(Rp) @ h
         lo, hi = np.minimum(lo, cp - half), np.maximum(hi, cp + half)
     out = {"emprise": (round(float(hi[0] - lo[0]), 2), round(float(hi[2] - lo[2]), 2)),
            "hauteur": round(float(hi[1]), 2), "pieces": len(parts), "neon": int(neon),
@@ -109,86 +116,103 @@ def _pilule(b, centre, largeur: float, hauteur: float, epaisseur: float, couleur
 # M01 · Palmier à cocos
 # ---------------------------------------------------------------------------------------------------------------
 
+def _ext_y(taille, R) -> float:
+    """Demi-étendue verticale d'un ellipsoïde de diamètres `taille` tourné par R (colonnes = axes locaux)."""
+    R = np.asarray(R, float)
+    return float(np.sqrt(np.sum((R[1, :] * np.asarray(taille, float) / 2) ** 2)))
+
+
 def _palmier(b, variant: int = 0, hauteur: float = 18.0, courbure: float = 1.0, palmes: int | None = None,
-             ouverture: float = 360.0, pointe: float | None = None) -> None:
+             ouverture: float = 360.0, pointe: float | None = None, portee: float = 1.0) -> None:
     """Construit un palmier dans le repère courant (pied en (0, 0, 0)), sans groupe ni résumé.
 
-    variant : pair = courbure vers +X local, impair = vers -X ; 0-1 : 8 palmes, 2-3 : 6 palmes.
-    ouverture : secteur (degrés) où se répartissent les palmes, centré sur le sens de la courbure (360 = tout
-    autour ; 240 contre une façade). pointe : azimut (degrés) imposé au sens de la courbure (sinon ±X)."""
+    Stipe : 7 cylindres annelés (clair / foncé) le long d'un arc, pied évasé. Couronne en deux étages de lames
+    (ellipsoïdes épais, effet jouet) : `palmes` lames peu inclinées en haut (-12 à -24°), autant de lames qui
+    pendent en dessous (-44 à -56°), décalées d'une demi-division (parapluie dense, ombre étoilée), cœur sombre,
+    4 noix de coco en grappe sous la couronne. 28 pièces avec 8 lames par étage, 24 avec 6.
+
+    variant : pair = courbure vers +X local, impair = vers -X ; 0-1 : 8 lames par étage, 2-3 : 6.
+    `hauteur` = sommet réel de la couronne (la couronne est calculée d'abord autour du sommet du stipe, puis le
+    stipe est réglé pour qu'elle culmine à `hauteur`). ouverture : secteur (degrés) des lames, centré sur le sens
+    de la courbure (360 = tout autour ; 200-240 contre une façade : les lames du bord du secteur se relèvent et
+    raccourcissent). pointe : azimut (degrés, 0 = +X, 90 = -Z) du sens de la courbure (sinon ±X). portee :
+    échelle de la longueur des lames."""
     v = int(variant) % 4
     sens = 1.0 if v % 2 == 0 else -1.0
     n_p = int(palmes) if palmes else (8 if v < 2 else 6)
     H = max(float(hauteur), 6.0)
     k = H / 18.0
-    kc = k ** 0.7                    # couronne : s'élargit moins vite que la hauteur
+    kc = k ** 0.8                    # couronne : s'élargit un peu moins vite que la hauteur
     kr = k ** 0.5                    # rayon du stipe
     rng = b.rng
     az_c = (0.0 if sens > 0 else 180.0) if pointe is None else float(pointe)
     ca, sa = math.cos(math.radians(az_c)), -math.sin(math.radians(az_c))   # sens horizontal de la courbure
 
-    # --- stipe : 7 cylindres annelés le long d'un arc (2° → 20° × courbure), alternés clair / foncé
+    # --- couronne autour du sommet du stipe T = (0, 0, 0)
+    plein = ouverture >= 359.0
+    phi0 = float(rng.uniform(0, 360))
+    large = 1.0 if n_p >= 8 else 1.15                    # 6 lames par étage : lames plus larges
+    lames = []
+    for j in range(2 * n_p):
+        haute, i = j < n_p, j % n_p
+        if plein:
+            phi = phi0 + (i + (0.0 if haute else 0.5)) * 360.0 / n_p + float(rng.uniform(-7, 7))
+        else:
+            f = (i + (0.25 if haute else 0.75)) / n_p - 0.5
+            phi = az_c + f * ouverture + float(rng.uniform(-4, 4))
+        e = float(rng.uniform(-24, -12) if haute else rng.uniform(-56, -44))
+        Lb = (10.4 if haute else 9.8) * kc * portee * float(rng.uniform(0.88, 1.08))
+        if not plein:                       # contre une façade : les lames du bord du secteur se relèvent
+            t = max(0.0, abs(((phi - az_c + 180) % 360) - 180) / 180.0 - 0.3)
+            e += 40 * t
+            Lb *= 1 - 0.35 * t
+        d = _dir(phi, e)
+        R = _cadre(d, roulis=(1 if i % 2 else -1) * float(rng.uniform(6, 16)))
+        cc = d * (Lb / 2 - 1.2 * kc) + np.array([0.0, (0.45 if haute else -0.25) * kc, 0.0])
+        taille = ((2.4 if haute else 2.3) * kc * large, 0.62 * kc ** 0.6, Lb)
+        col = varier(shade(c("palme"), 1.07 if haute else 0.82), rng, 0.03)
+        lames.append((cc, taille, R, col))
+    r_coeur, y_coeur = 0.8 * kc, 0.1 * kc
+    montee = max(max(cc[1] + _ext_y(t, R) for (cc, t, R, _) in lames), y_coeur + r_coeur)
+    y_t = H - montee
+
+    # --- stipe : 7 cylindres annelés le long d'un arc (2° → 20° × courbure), alternés clair / foncé ; chaque
+    # anneau clair déborde de 0,1 sur ses voisins (anneaux du stipe), pied évasé
     n_s = 7
     angles = [courbure * (2.0 + 3.0 * i) for i in range(n_s)]
-    haut_couronne = 2.3 * kc
-    y_t = H - haut_couronne
     L = (y_t + 0.2) / sum(math.cos(math.radians(a)) for a in angles)
     P = np.array([0.0, -0.2, 0.0])
-    tronc, tronc_f = shade(c("tronc"), 1.14), shade(c("tronc"), 0.78)
+    tronc, tronc_f = shade(c("tronc"), 1.14), shade(c("tronc"), 0.76)
     with b.group("Stipe"):
         for i, a in enumerate(angles):
             d = np.array([ca * math.sin(math.radians(a)), math.cos(math.radians(a)), sa * math.sin(math.radians(a))])
             Q = P + L * d
-            r = kr * (1.08 - 0.34 * i / (n_s - 1)) + (0.05 if i % 2 == 0 else -0.03)
-            col = varier(tronc if i % 2 == 0 else tronc_f, rng, 0.03)
-            b.cyl_entre(P - 0.14 * d, Q + 0.14 * d, r, col, name="Stipe")
+            r = kr * (1.18 - 0.32 * i / (n_s - 1)) + (0.06 if i % 2 == 0 else -0.04) + (0.13 if i == 0 else 0.0)
+            col = varier(tronc if i % 2 == 0 else tronc_f, rng, 0.025)
+            b.cyl_entre(P - 0.12 * d, Q + 0.12 * d, r, col, name="Stipe")
             P = Q
     T = P
 
-    # --- couronne : cœur, palmes (2 ellipsoïdes : lame qui monte puis lame qui retombe), noix de coco
+    # --- couronne : cœur, lames, noix de coco en grappe sous la couronne
     with b.group("Couronne"):
-        b.ball(T + np.array([0.0, 0.25 * kc, 0.0]), 0.95 * kc, c("palme_fonce"), name="Coeur", **SANS)
-        phi0 = float(rng.uniform(0, 360))
-        plein = ouverture >= 359.0
-        for j in range(n_p):
-            if plein:
-                phi = phi0 + j * 360.0 / n_p + float(rng.uniform(-7, 7))
-            else:
-                f = (j + 0.5) / n_p - 0.5
-                phi = az_c + f * ouverture + float(rng.uniform(-5, 5))
-            haute = j % 2 == 0
-            e1 = float(rng.uniform(17, 25) if haute else rng.uniform(1, 8))
-            e2 = float(rng.uniform(-30, -22) if haute else rng.uniform(-50, -40))
-            if not plein:                       # contre une façade : les palmes du dos se relèvent
-                dos = abs(((phi - az_c + 180) % 360) - 180) / 180.0
-                e1 += 10 * max(0.0, dos - 0.4)
-            L1 = (7.4 if haute else 6.9) * kc * float(rng.uniform(0.93, 1.07))
-            L2 = (7.0 if haute else 6.4) * kc * float(rng.uniform(0.93, 1.07))
-            w1, w2 = 2.15 * kc, 1.85 * kc
-            ep = 0.34 * kc ** 0.5
-            d1, d2 = _dir(phi, e1), _dir(phi, e2)
-            racine = T - d1 * 0.5 * kc
-            col1 = varier(c("palme") if haute else shade(c("palme"), 0.88), rng, 0.03)
-            col2 = varier(shade(c("palme"), 1.12) if haute else shade(c("palme"), 1.0), rng, 0.03)
-            roul = float(rng.uniform(-14, 14))
-            b.ellipsoid(racine + d1 * L1 / 2, (w1, ep, L1), col1, rot=_cadre(d1, roulis=roul), name="Palme", **SANS)
-            J = racine + d1 * 0.8 * L1
-            b.ellipsoid(J + d2 * (L2 / 2 - 0.75 * kc), (w2, ep * 0.9, L2), col2, rot=_cadre(d2, roulis=-roul * 1.4),
-                        name="Palme", **SANS)
+        b.ball(T + np.array([0.0, y_coeur, 0.0]), r_coeur, c("palme_fonce"), name="Coeur", **SANS)
+        for (cc, t, R, col) in lames:
+            b.ellipsoid(T + cc, t, col, rot=R, name="Palme", **SANS)
         psi0 = float(rng.uniform(0, 90))
+        rr = 1.0 * kc
         for m in range(4):
             psi = math.radians(psi0 + 90 * m + float(rng.uniform(-14, 14)))
-            rr = 0.92 * kc
-            p = T + np.array([rr * math.cos(psi), -0.95 * kc + 0.18 * (m % 2) * kc, -rr * math.sin(psi)])
-            b.ball(p, 0.72 * kc * float(rng.uniform(0.94, 1.06)), varier(c("coco"), rng, 0.04), name="Coco", **SANS)
+            p = T + np.array([rr * math.cos(psi), -1.05 * kc + 0.3 * (m % 2) * kc, -rr * math.sin(psi)])
+            b.ball(p, 0.84 * kc * float(rng.uniform(0.94, 1.06)), varier(c("coco"), rng, 0.04), name="Coco", **SANS)
 
 
 def palmier(b, variant: int = 0, hauteur: float = 18, courbure: float = 1.0, **params) -> dict:
-    """M01 · palmier à cocos (≤ 28 pièces) : stipe annelé courbe (7 segments alternés tronc / tronc foncé),
-    cœur, 8 palmes (variantes 0, 1) ou 6 (variantes 2, 3) en 2 ellipsoïdes (lame qui monte, lame qui retombe),
-    4 noix de coco orangées. Pair : courbure vers +X local ; impair : vers -X. `hauteur` = sommet des palmes
-    (18 → 28 dans les groupes). Paramètres facultatifs : `palmes`, `ouverture` (secteur des palmes, degrés),
-    `pointe` (azimut du sens de la courbure). Stipe solide ; palmes et noix sans collision."""
+    """M01 · palmier à cocos (28 pièces ; 24 en variantes 2-3) : stipe annelé courbe (7 segments alternés clair /
+    foncé, pied évasé), couronne en parapluie de deux étages de lames épaisses (8 + 8, ou 6 + 6 : haut presque à
+    plat, bas qui pend), cœur sombre, 4 noix de coco orangées en grappe. Pair : courbure vers +X local ; impair :
+    vers -X. `hauteur` = sommet réel de la couronne (18 → 28 dans les groupes). Facultatifs : `palmes` (lames
+    par étage), `ouverture` (secteur des lames, degrés), `pointe` (azimut du sens de la courbure), `portee`
+    (longueur des lames). Stipe solide ; lames, cœur et noix sans collision."""
     n0 = len(b.parts)
     with b.group("Palmier"):
         _palmier(b, variant, hauteur, courbure, **params)
@@ -246,27 +270,27 @@ def groupe_palmiers(b, variant: int = 0, n: int = 2, diametre: float = 8, hauteu
         a0 = float(rng.uniform(0, 360))
         for i in range(n_bas):
             a = math.radians(a0 + i * 360.0 / n_bas + float(rng.uniform(-10, 10)))
-            rb = Ri * float(rng.uniform(0.5, 0.62))
-            sx = Ri * float(rng.uniform(1.05, 1.25)) * (1.0 if n_bas > 3 else 1.25)
-            sy = float(rng.uniform(2.1, 2.6)) * (D / 8) ** 0.4
-            _boule_haie(b, (rb * math.cos(a), y_terre + sy * 0.32, -rb * math.sin(a)), (sx, sy, sx * 0.95),
+            rb = Ri * float(rng.uniform(0.55, 0.65))
+            sx = Ri * float(rng.uniform(1.25, 1.45)) * (1.0 if n_bas > 3 else 1.2)
+            sy = float(rng.uniform(2.8, 3.4)) * (D / 8) ** 0.4
+            _boule_haie(b, (rb * math.cos(a), y_terre + sy * 0.3, -rb * math.sin(a)), (sx, sy, sx * 0.95),
                         "bas" if i % 2 else "milieu")
         for i in range(n_haut):
             a = math.radians(a0 + 360.0 / n_bas / 2 + i * 360.0 / max(n_haut, 1) + float(rng.uniform(-15, 15)))
-            rb = Ri * float(rng.uniform(0.2, 0.38))
-            sx = Ri * float(rng.uniform(0.85, 1.0))
-            sy = float(rng.uniform(1.8, 2.3)) * (D / 8) ** 0.4
-            _boule_haie(b, (rb * math.cos(a), y_terre + sy * 0.62, -rb * math.sin(a)), (sx, sy, sx), "haut")
+            rb = Ri * float(rng.uniform(0.15, 0.35))
+            sx = Ri * float(rng.uniform(1.0, 1.15))
+            sy = float(rng.uniform(2.4, 2.9)) * (D / 8) ** 0.4
+            _boule_haie(b, (rb * math.cos(a), y_terre + sy * 0.55, -rb * math.sin(a)), (sx, sy, sx), "haut")
     # palmiers : le plus grand au centre (n = 1) ou sur un petit cercle, chacun penché vers l'extérieur
-    ar = Ri * (0.0 if n == 1 else (0.38 if n == 2 else 0.45))
+    ar = Ri * (0.0 if n == 1 else 0.5)
     b0 = float(rng.uniform(0, 360)) + 90 * v
     for i, h in enumerate(hs):
         a = b0 + i * 360.0 / n
         pos = (ar * math.cos(math.radians(a)), y_terre - 0.05, -ar * math.sin(math.radians(a)))
         var = (0 if i == 0 else 2) + (v % 2 if n == 1 else 0)
-        courb = (0.85 if i == 0 else 1.25) * (1.0 if n > 1 else 1.1)
+        courb = (0.7 if i == 0 else 1.9) * (1.0 if n > 1 else 1.4)      # les petits s'écartent du grand (V)
         with b.at(pos, group="Palmier"):
-            _palmier(b, var, h, courb, pointe=a if n > 1 else None)
+            _palmier(b, var, h, courb, pointe=a if n > 1 else None, portee=1.0 if i == 0 else 0.88)
     return _resume(b, n0, palmiers=[round(h, 1) for h in hs])
 
 
@@ -278,9 +302,9 @@ def jardiniere(b, variant: int = 0, largeur: float = 12, profondeur: float = 6, 
                **params) -> dict:
     """M03 · jardinière rectangulaire `largeur` (X) × `profondeur` (Z) contre une façade (dos à +Z) : bordure
     rayée M04 (segments d'environ 2, rouge / blanc, poteaux d'angle ronds blancs un peu plus hauts, studs),
-    terre à studs, 12-14 boules de haie sur deux rangs (+ deux claires sur le dessus), un palmier au centre
-    penché vers l'avant (rue) dont les palmes évitent le dos (la façade est à 4 studs derrière le tronc).
-    ≤ 70 pièces (palmier compris)."""
+    terre à studs, haie en boules qui se recouvrent sur deux rangs (+ 2-4 boules claires sur le dessus), un
+    palmier au centre penché vers l'avant (rue) dont les lames évitent le dos (la façade est à 4 studs derrière
+    le tronc : rien au-dessus de la bordure ne dépasse z local 3,6). ≤ 70 pièces (palmier compris)."""
     n0 = len(b.parts)
     v = int(variant) % 4
     rng = b.rng
@@ -320,22 +344,25 @@ def jardiniere(b, variant: int = 0, largeur: float = 12, profondeur: float = 6, 
         # haies : rang arrière (plus haut, plus foncé) et rang avant, puis deux boules claires sur le dessus
         xi, zi = W / 2 - t, Dp / 2 - t                  # demi-intérieur
         n_rang = 6 if W >= 10 else max(2, int(W // 2))
-        for rang, (z, sy, ton) in enumerate(((zi * 0.38, 2.9, "bas"), (-zi * 0.4, 2.5, "milieu"))):
+        for rang, (z, sy, ton) in enumerate(((zi * 0.36, 3.3, "bas"), (-zi * 0.36, 2.9, "milieu"))):
             for i in range(n_rang):
                 x = -xi + (i + 0.5) * (2 * xi / n_rang) + float(rng.uniform(-0.25, 0.25))
-                sx = 2 * xi / n_rang * float(rng.uniform(1.25, 1.45))
-                sz = zi * float(rng.uniform(1.15, 1.35))
-                syy = sy * float(rng.uniform(0.92, 1.08))
-                yc = y_terre + syy * (0.36 if rang == 0 else 0.3)
+                sx = 2 * xi / n_rang * float(rng.uniform(1.5, 1.7))
+                sz = zi * float(rng.uniform(1.2, 1.4))
+                syy = sy * float(rng.uniform(0.9, 1.1))
+                yc = y_terre + syy * (0.34 if rang == 0 else 0.28)
                 _boule_haie(b, (x, yc, z), (sx, syy, sz), ton if i % 3 else "milieu")
-        for s in (-1, 1):
-            x = s * xi * float(rng.uniform(0.42, 0.58))
-            _boule_haie(b, (x, y_terre + 2.0, float(rng.uniform(-0.3, 0.3))), (2.6, 1.9, 2.4), "haut")
+        n_dessus = 4 if W >= 10 else 2
+        for i in range(n_dessus):
+            x = -xi + (i + 0.5) * (2 * xi / n_dessus) + float(rng.uniform(-0.3, 0.3))
+            _boule_haie(b, (x, y_terre + 2.35, float(rng.uniform(-0.3, 0.3))),
+                        (2 * xi / n_dessus * 1.25, 2.3 * float(rng.uniform(0.9, 1.1)), 2.6), "haut")
     if palmier:
-        # penché vers l'avant (-Z), légèrement de côté selon la variante ; palmes sur 240° (rien dans le dos)
-        pointe = 90.0 + (-1, 1, -1, 1)[v] * float(rng.uniform(8, 22))
+        # penché vers l'avant (-Z), légèrement de côté selon la variante ; lames sur 200° (rien dans le dos :
+        # la façade est 3,7 derrière le tronc), un peu plus courtes
+        pointe = 90.0 + (-1, 1, -1, 1)[v] * float(rng.uniform(8, 20))
         with b.at((0, y_terre - 0.05, 0.3), group="Palmier"):
-            _palmier(b, v % 2, 18.0 + (0.0, 1.0, -0.5, 1.5)[v], 1.0, ouverture=240.0, pointe=pointe)
+            _palmier(b, v % 2, 18.0 + (0.0, 1.0, -0.5, 1.5)[v], 1.1, ouverture=200.0, pointe=pointe, portee=0.9)
     return _resume(b, n0)
 
 
@@ -346,9 +373,9 @@ def jardiniere(b, variant: int = 0, largeur: float = 12, profondeur: float = 6, 
 def lampadaire(b, variant: int = 0, hauteur: float = 9, **params) -> dict:
     """Lampadaire (≤ 10 pièces, 1 Neon). Pair (v0, v2) : **à écran** M07 : boule-socle indigo, mât blanc en
     deux diamètres et bague d'or, écran Neon `cyan` incliné vers l'avant (-Z) dans un cadre, volet vert,
-    bouton citron au sommet. Impair (v1, v3) : **soucoupe** M08 : pylône conique indigo à bague d'or, mât blanc,
-    soucoupe (ventre bleu roi, bord, dôme) et lumière Neon `cyan` dessous. v2 / v3 : autres couleurs.
-    `hauteur` = sommet. Socle solide, mât et tête sans collision."""
+    bouton citron au sommet. Impair (v1, v3) : **soucoupe** M08 : pied en cloche lisse indigo (jupe + cloche) à
+    bague d'or, mât blanc, soucoupe (ventre, bord, dôme) et lumière Neon `cyan` dessous. v2 / v3 : autres
+    couleurs. `hauteur` = sommet. Pied solide (boule ou cylindre invisible ajusté), mât et tête sans collision."""
     n0 = len(b.parts)
     v = int(variant) % 4
     H = max(float(hauteur), 6.0)
@@ -378,9 +405,14 @@ def lampadaire(b, variant: int = 0, hauteur: float = 9, **params) -> dict:
         else:
             ventre, bord, dome = ((c("bleu_roi"), c("turquoise"), blanc),
                                   (c("turquoise"), c("orange"), c("jaune_citron")))[v // 2]
-            hp = 3.4
-            b.cone_etage((0, 0, 0), 1.3, 0.75, hp, indigo, etages=3, studs="top", name="Pylone")
-            b.cyl((0, hp + 0.12, 0), 0.82, 0.3, c("jaune_or"), name="Bague", **FIN)
+            # pied en cloche lisse (EH4) : disque à studs, jupe cylindrique, cloche (ellipsoïde dont la moitié
+            # basse se cache dans la jupe et le sol), bague d'or au col ; collision : cylindre invisible ajusté
+            b.disque((0, 0.15, 0), 1.45, 0.3, indigo, studs="top", name="Socle")
+            b.cyl((0, 0.8, 0), 1.25, 1.0, indigo, name="Jupe")                              # 0,3 → 1,3
+            b.ellipsoid((0, 1.3, 0), (2.3, 4.8, 2.3), indigo, name="Cloche", **SANS)       # → 3,7
+            hp = 3.35
+            b.cyl((0, hp, 0), 0.75, 0.35, c("jaune_or"), name="Bague", **FIN)
+            b.cyl((0, 1.85, 0), 1.0, 3.1, "#FFFFFF", transparency=1.0, shadow=False, name="CollisionPied")
             ys = H - 1.3
             b.cyl((0, (hp + ys) / 2, 0), 0.3, ys - hp, blanc, name="Mat", **FIN)
             b.ellipsoid((0, ys, 0), (4.8, 1.3, 4.8), ventre, name="Soucoupe", **SANS)
@@ -591,12 +623,12 @@ def _picto(b, nom: str, cx: float, cy: float, zf: float, fond: str) -> None:
         e = enfonce()
         b.cyl((cx + x, cy + y, zf - (ep + dz - e) / 2), r, ep + dz + e, col, axis="z", **kw)
 
-    if nom == "etoile":
+    if nom == "etoile":          # 5 carrés tournés de 45° : leur coin extérieur fait la pointe (étoile dodue)
         col = c("jaune_citron") if clair else c("or")
         for i in range(5):
             a = math.radians(90 + 72 * i)
-            bloc(0.62 * math.cos(a), 0.62 * math.sin(a), 0.62, 1.15, ang=72 * i, col=col, ep=0.15 + 0.01 * i)
-        rond(0, 0, 0.5, col, ep=0.22)
+            bloc(0.55 * math.cos(a), 0.55 * math.sin(a), 0.95, 0.95, ang=72 * i + 45, col=col, ep=0.15 + 0.01 * i)
+        rond(0, 0, 0.62, col, ep=0.22)
     elif nom == "coeur":
         col = c("rouge") if fond not in (c("magenta"), c("violet")) else c("rose_bonbon")
         for s in (-1, 1):
@@ -607,9 +639,9 @@ def _picto(b, nom: str, cx: float, cy: float, zf: float, fond: str) -> None:
         rond(0, 0, 0.72, c("or_fonce"), ep=0.16, dz=0.06)
     elif nom == "eclair":
         col = c("jaune_citron")
-        bloc(0.28, 0.62, 0.55, 1.2, ang=-28, col=col)
-        bloc(0.0, 0.0, 1.35, 0.42, ang=12, col=col, ep=0.15)
-        bloc(-0.3, -0.62, 0.55, 1.2, ang=-28, col=col)
+        bloc(0.22, 0.55, 0.6, 1.5, ang=-26, col=col)                # trait du haut
+        bloc(0.07, 0.0, 0.95, 0.42, col=col, ep=0.15)                # crochet
+        bloc(-0.08, -0.55, 0.6, 1.5, ang=-26, col=col, ep=0.17)     # trait du bas
     elif nom == "nuage":
         col = c("blanc_labo")
         rond(-0.75, -0.12, 0.55, col, ep=0.15)
