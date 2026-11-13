@@ -204,7 +204,7 @@ dans `plan.py` ; l'origine ne change pas (milieu du tapis et des 8 parcelles). C
    (≈ 220 de haut) n'est pas copié en hauteur : l'œuf, au-dessus, tient ce rôle.
 3. **Couronne régénérée** (173 emplacements au lieu de 161) : côtés est et ouest allongés de 35 au nord (un kiosque,
    un connecteur et une tour de plus : bulbe orange à l'est, tour à anneau à l'ouest) ; côté nord en deux tronçons de
-   114 (rang 2 : bulbe -240, champignon -182, damier 182 ramené à 130 pour laisser passer le tube du coin NE à 150,
+   114 (rang 2 : bulbe -240, champignon -184, damier 182 ramené à 130 pour laisser passer le tube du coin NE à 150,
    soucoupe 240) ; nouveaux côtés `fond`, `flanc_ouest`, `flanc_est` (ids `F-…`, `FO-…`, `FE-…`) ; repères d'angle
    nord en z -442 ; mur de fond qui suit le décrochement (couronne du fond jusqu'à z -572 pour |x| ≤ 160).
 4. **Tapis** : axes à ±48,5, bords ±40,5 / ±56,5, bande de 16 (3 + 10 + 3), chevrons tous les 8 ; demi-tour sud
@@ -221,5 +221,5 @@ dans `plan.py` ; l'origine ne change pas (milieu du tapis et des 8 parcelles). C
 7. **Décor** : passages piétons à z ±137 ; palmiers aux places des arbres de la référence (un palmier en bac dans
    chaque écart entre rangées vers |x| 170 ; jardinières aux coins de la pelouse et dans la marge arrière, au droit
    des écarts : les palmes ne couvrent pas les parcelles) ; câble de l'œuf ancré en (-80 ; -600), derrière la
-   couronne du fond ; tubes `Tube_Nord_Ouest` (N-T-182 → F-T-102) et `Tube_Coin_NE` (F-T102 → E-T-320).
+   couronne du fond ; tubes `Tube_Nord_Ouest` (N-T-184 → F-T-102) et `Tube_Coin_NE` (F-T102 → E-T-320).
 8. **Non construits** : les piliers orange (effets de parcelle), comme prévu.

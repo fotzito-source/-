@@ -539,7 +539,7 @@ RANG2 = {
     ],
     "nord": [
         (-240, 50, RR + ".tour_bulbe", 0, 130, 46, {}),
-        (-182, 50, RR + ".tour_champignon", 3, 165, 54, {}),
+        (-184, 50, RR + ".tour_champignon", 3, 165, 54, {}),        # son chapeau (R 27) reste hors du flanc ouest
         # damier ramené à 130 : le tube du coin NE (y 150) passe au-dessus de sa tête
         (182, 50, RF + ".tour_damier", 2, 130, 44, {}),
         (240, 50, RR + ".tour_soucoupe", 3, 150, 48, {}),
@@ -583,7 +583,7 @@ TUBES = [
     {"id": "Tube_Est_Nord", "de": "E-T-320", "vers": "E-T-240", "y": 100.0, "type": "geant", "onde": 0},
     {"id": "Tube_Ouest_Nord", "de": "O-T-160", "vers": "O-T-80", "y": 75.0, "type": "geant", "onde": 0},
     {"id": "Tube_Ouest_Sud", "de": "O-T80", "vers": "O-T160", "y": 75.0, "type": "fin", "onde": 0},
-    {"id": "Tube_Nord_Ouest", "de": "N-T-182", "vers": "F-T-102", "y": 70.0, "type": "fin", "onde": 0},
+    {"id": "Tube_Nord_Ouest", "de": "N-T-184", "vers": "F-T-102", "y": 70.0, "type": "fin", "onde": 0},
     {"id": "Tube_Coin_NE", "de": "F-T102", "vers": "E-T-320", "y": 150.0, "type": "fin", "onde": 0},
     {"id": "Tube_Coin_SE", "de": "S-T80", "vers": "E-T320", "y": 80.0, "type": "fin", "onde": 6},
 ]
@@ -994,8 +994,9 @@ VUES = {
     # vue d'ensemble depuis le côté du soleil (-X / +Z) : toute la carte et l'œuf au fond (la vue « aerienne »
     # calculée par rendu.py se cadre sur l'emprise de toutes les pièces, ciel compris : la carte y serait petite)
     "aerienne": ((-700.0, 700.0, 1100.0), (0.0, 60.0, -250.0), 50.0),
-    # dessus quasi orthographique de la carte seule (le haut de l'image = nord) ; rendre en 800 × 1000
-    "plan_carte": ((0.0, 4500.0, 0.0), (0.0, 0.0, -0.05), 12.0),
+    # dessus quasi orthographique de la carte seule, esplanade et couronne du fond comprises (z -572 → 447 ; le haut
+    # de l'image = nord) ; rendre en 800 × 1000
+    "plan_carte": ((0.0, 4500.0, -62.5), (0.0, 0.0, -62.55), 13.4),
 }
 RESOLUTIONS = {"capture1": (2000, 1077), "capture2": (2000, 1050)}
 
