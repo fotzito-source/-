@@ -194,11 +194,11 @@ def _gelule(b, centre, lx, ly, lz, couleur, **kw):
     r = ly / 2
     out = [b.boxc((cx, cy, cz), (lx - 2 * r, ly, lz), couleur, **kw)]
     for sx in (-1, 1):
-        out.append(b.cyl((cx + sx * (lx / 2 - r), cy, cz + 0.02), r, lz - 0.04, couleur, axis="z", **kw))
+        out.append(b.cyl((cx + sx * (lx / 2 - r), cy, cz), r, lz - 0.04, couleur, axis="z", **kw))
     return out
 
 
-def _etoile(b, centre, Ro, ep, couleur, R=None, **kw):
+def _etoile(b, centre, Ro, ep, couleur, R=None, moyeu=0.3, **kw):
     """Étoile pleine à 5 branches dans le plan XY local (normale Z), pointe vers +Y : 10 coins (demi-branches en
     triangles rectangles) + un moyeu cylindrique. 11 pièces."""
     R = np.eye(3) if R is None else np.asarray(R, float)
@@ -217,7 +217,7 @@ def _etoile(b, centre, Ro, ep, couleur, R=None, **kw):
             Y, Z = d, -p
             rot = np.column_stack([np.cross(Y, Z), Y, Z])
             b.part("wedge", (ep, a, cc), M + d * a / 2 + p * cc / 2, rot, couleur, name="Branche", **kw)
-    _cyl_axe(b, C, R @ np.array([0.0, 0.0, 1.0]), ep + 0.3, Ri, couleur, name="Moyeu", **kw)
+    _cyl_axe(b, C, R @ np.array([0.0, 0.0, 1.0]), ep + moyeu, Ri, couleur, name="Moyeu", **kw)
 
 
 def _picto(b, kind, centre, taille, couleur, ep=0.3, **kw):
@@ -227,7 +227,7 @@ def _picto(b, kind, centre, taille, couleur, ep=0.3, **kw):
     s = float(taille)
     kw.setdefault("collide", False)
     if kind == "etoile":
-        _etoile(b, (cx, cy, cz), 0.5 * s, ep, couleur, **kw)
+        _etoile(b, (cx, cy, cz), 0.5 * s, ep, couleur, moyeu=0.1, **kw)
     elif kind == "etoile_rayons":
         for k in range(5):
             ang = 72 * k
@@ -863,12 +863,12 @@ def boutique_arche(b, variant=0, largeur=30, profondeur=16, hauteur=28, picto=No
         yg = (yl + 0.6 + H - 3.5) / 2
         hg = min(4.6, (H - 3.5) - (yl + 0.6) - 1.4)
         lg = min(15.0, 2 * xm - 4.0)
-        _gelule(b, (0, yg, zfa - 1.25), lg, hg, 0.5, gel, collide=False)
-        _gelule(b, (0, yg, zfa - 1.05), lg + 0.5, hg + 0.4, 0.5, s["neon"], material="Neon", collide=False,
+        _gelule(b, (0, yg, zfa - 1.1), lg, hg, 0.5, gel, collide=False)
+        _gelule(b, (0, yg, zfa - 0.9), lg + 0.5, hg + 0.4, 0.5, s["neon"], material="Neon", collide=False,
                 shadow=False)
         kind = picto or PICTOS_BOUTIQUE[variant % 4]
         pc = BLANC if gel in (c("rose_bonbon"), c("violet"), c("turquoise")) else c("jaune_citron")
-        _picto(b, kind, (0, yg, zfa - 1.5 - 0.15), (1.25 if kind == "nuage" else 0.95) * hg, pc)
+        _picto(b, kind, (0, yg, zfa - 1.35 - 0.125), (1.25 if kind == "nuage" else 0.95) * hg, pc, ep=0.25)
         ysl = H - 3.5 - 2.6
         for sx in (-1, 1):
             for k in (-1, 0, 1):
